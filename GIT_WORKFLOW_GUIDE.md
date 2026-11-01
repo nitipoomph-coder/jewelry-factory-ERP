@@ -1,141 +1,141 @@
- # 📘 คู่มือการบริหารจัดการ Git สำหรับการทำงานคนเดียว 2 เครื่อง (Multi-Device Git Workflow Guide)
+# Multi-Device Git Workflow Guide
 
-เอกสารนี้จัดทำขึ้นเพื่อเป็นแนวทางปฏิบัติในการสลับทำงานระหว่าง 2 เครื่อง (เช่น **คอมพิวเตอร์ที่ทำงาน** และ **คอมพิวเตอร์ที่บ้าน**) เพื่อป้องกันปัญหาโค้ดชนกัน (Merge Conflicts), โค้ดหาย หรือกิ่งโค้ดแยกสาย (Divergent Branches)
-
----
-
-## 🎯 ปัญหาที่มักพบเจอเมื่อทำงานคนเดียว 2 เครื่อง
-
-1. **ลืม Push ก่อนเลิกงาน** จากเครื่อง A ทำให้เครื่อง B ไม่มีโค้ดล่าสุด
-2. **ลืม Pull ก่อนเริ่มงาน** บนเครื่อง B แล้วลงมือเขียนโค้ดต่อ ทำให้ประวัติ Git แยกเป็น 2 สาย
-3. **มีไฟล์แก้ไขค้างไว้ (Uncommitted Changes)** แล้วพยายาม Pull โค้ดใหม่เข้ามา ทำให้ติด Conflict
+This document defines standardized Git synchronization protocols for developers alternating work between multiple environments (e.g., **Office Workstation** and **Remote / Home Machine**), preventing merge conflicts, lost work, and divergent branches.
 
 ---
 
-## ⭐️ กฎทอง 3 ข้อ (The 3 Golden Rules)
+## 🎯 Common Multi-Device Challenges
 
-> 1. **เริ่มงาน = `Pull` เสมอ** (ดึงโค้ดล่าสุดก่อนแตะไฟล์ใดๆ)
-> 2. **เลิกงาน = `Push` เสมอ** (Commit และ Push งานขึ้น GitHub ทุกครั้งก่อนปิดเครื่อง)
-> 3. **ใช้ `Rebase` แทน Plain Merge** (เพื่อให้ประวัติ Git เป็นเส้นตรง อ่านง่าย ไม่เกิด Merge Commit ขยะ)
+1. **Forgetting to push at end of day** on Machine A leaves Machine B with an outdated working copy.
+2. **Forgetting to pull before starting work** on Machine B creates divergent Git history branches.
+3. **Uncommitted local changes** block incoming pull operations and cause merge conflicts.
 
 ---
 
-## 🔄 ขั้นตอนการทำงานประจำวัน (Daily Workflow)
+## ⭐️ The 3 Golden Rules
+
+> 1. **Start of Work = Always `Pull`:** Fetch and rebase the latest upstream changes before touching code.
+> 2. **End of Work = Always `Push`:** Commit and push all progress to GitHub before closing your session.
+> 3. **Use `Rebase` over Plain Merge:** Keeps linear, readable commit history without redundant merge commits.
+
+---
+
+## 🔄 Daily Workflow Lifecycle
 
 ```mermaid
 flowchart TD
-    A[💻 เปิดเครื่อง / เริ่มงาน] --> B[🔍 เช็คสถานะ: git status]
-    B --> C[📥 ดึงโค้ดใหม่: git pull --rebase origin main]
-    C --> D[🛠️ ลงมือพัฒนา / เขียนโค้ด]
-    D --> E[🔔 เลิกงาน / ย้ายเครื่อง]
-    E --> F[📦 สรุปงาน: git add .]
-    F --> G["💬 บันทึก Commit: git commit -m '...' "]
-    G --> H[🚀 ส่งขึ้น GitHub: git push origin main]
+    A[💻 Boot Machine / Start Session] --> B[🔍 Check Local Status: git status]
+    B --> C[📥 Sync Upstream: git pull --rebase origin main]
+    C --> D[🛠️ Develop / Write Code]
+    D --> E[🔔 End Session / Switch Machine]
+    E --> F[📦 Stage Changes: git add .]
+    F --> G["💬 Commit Changes: git commit -m '...' "]
+    G --> H[🚀 Push to Remote: git push origin main]
 ```
 
-### 1️⃣ ตอนเริ่มงาน (Start of Day / Switch to Machine B)
+### 1️⃣ Starting Your Session (Start of Day / Switching Machines)
 
-ก่อนจะเริ่มแก้ไขโค้ดใดๆ ให้รันคำสั่งตามลำดับดังนี้:
+Before modifying any source files, execute the following commands:
 
 ```bash
-# 1. เช็คว่ามีงานค้างที่ไม่ ได้บันทึกไว้ไหม
+# 1. Check for uncommitted working tree changes
 git status
 
-# 2. ตรวจสอบข้อมูลอัปเดตจาก GitHub
+# 2. Fetch remote branch updates
 git fetch origin
 
-# 3. ดึงโค้ดล่าสุดลงมาด้วย Rebase
+# 3. Fast-forward local branch with rebase
 git pull --rebase origin main
 ```
 
 ---
 
-### 2️⃣ ตอนเลิกงาน (End of Day / Leaving Machine A)
+### 2️⃣ Concluding Your Session (End of Day / Leaving Machine)
 
-เมื่อพัฒนาเรียบร้อยแล้ว หรือเตรียมย้ายไปทำอีกเครื่องหนึ่ง:
+When development is complete or before switching to your other machine:
 
 ```bash
-# 1. เช็คไฟล์ที่มีการเปลี่ยนแปลง
+# 1. Inspect modified and untracked files
 git status
 
-# 2. นำไฟล์ทั้งหมดเข้าเตรียม Commit
+# 2. Stage changes
 git add .
 
-# 3. สร้าง Commit พร้อมข้อความอธิบายงานที่ทำ
-git commit -m "feat: เพิ่มระบบบันทึกสถานะ PO"
+# 3. Create descriptive commit message
+git commit -m "feat: implement production order tracking updates"
 
-# 4. Push ขึ้น GitHub
+# 4. Push to GitHub
 git push origin main
 ```
 
 --- 
 
-## 🛠️ การจัดการเมื่อเกิดปัญหาพบบ่อย (Troubleshooting)
+## 🛠️ Common Troubleshooting Scenarios
 
-### Case A: เขียนโค้ดไปแล้ว แต่นึกได้ว่าลืม Pull โค้ดใหม่มาจากอีกเครื่อง!
+### Scenario A: Started editing code locally before pulling upstream updates!
 
-**วิธีแก้ (ใช้ Git Stash ฝากงานไว้ก่อน):**
+**Resolution (Leverage Git Stash):**
 
 ```bash
-# 1. เก็บงานที่กำลังเขียนอยู่ไว้ใน Stash ชั่วคราว
+# 1. Temporarily stash uncommitted local work
 git stash
 
-# 2. ดึงโค้ดล่าสุดจาก GitHub ลงมา
+# 2. Pull latest upstream commits with rebase
 git pull --rebase origin main
 
-# 3. ดึงงานที่ฝากไว้ใน Stash กลับออกมาทำต่อ
+# 3. Re-apply stashed work on top of latest history
 git stash pop
 ```
-*(หากเกิด Conflict ให้แก้ไขไฟล์ที่มีปัญหา แล้วรัน `git add .` ตามปกติ)*
+*(If merge conflicts occur, resolve conflict markers, run `git add .`, and continue).*
 
 ---
 
-### Case B: กด `git push` แล้วโดนปฏิเสธ (Rejected / Non-fast-forward)
+### Scenario B: `git push` rejected (Non-fast-forward conflict)
 
-สาเหตุเกิดจากเครื่องอื่นได้ Push Commit ใหม่ขึ้น GitHub ไปก่อนหน้าแล้ว
+Occurs when another machine pushed new commits to GitHub earlier.
 
-**วิธีแก้:**
+**Resolution:**
 
 ```bash
-# ดึง Commit ใหม่มาเรียงต่อหัวด้วย rebase
+# Rebase incoming commits beneath your local work
 git pull --rebase origin main
 
-# จากนั้นทดลอง Push อีกครั้ง
+# Retry push operation
 git push origin main
 ```
 
 ---
 
-## ⚙️ การตั้งค่า Git เพื่อความสะดวก (Recommended Configurations)
+## ⚙️ Recommended Local Git Configuration
 
-รันคำสั่งเหล่านี้ **ครั้งเดียวต่อเครื่อง** ใน Terminal เพื่อให้ Git จัดการ Rebase อัตโนมัติ:
+Run these commands **once per machine** in your terminal:
 
 ```bash
-# ตั้งค่าให้ git pull ใช้ --rebase เป็นค่าเริ่มต้นเสมอ
+# Configure git pull to default to rebase mode
 git config --global pull.rebase true
 
-# ตั้งค่าให้ลบชื่อ Branch ที่ถูกลบไปแล้วบน GitHub อัตโนมัติ
+# Automatically prune deleted remote branches on fetch
 git config --global fetch.prune true
 
-# กำหนดชื่อ Branch หลักมาตรฐานเป็น main
+# Set standard default branch name to main
 git config --global init.defaultBranch main
 ```
 
 ---
 
-## 📜 ตารางสรุปคำสั่งพบบ่อย (Git Cheat Sheet)
+## 📜 Git Quick Reference (Cheat Sheet)
 
-| คำสั่ง | คำอธิบาย | ช่วงเวลาที่ใช้ |
+| Command | Operational Purpose | When to Use |
 | :--- | :--- | :--- |
-| `git status` | เช็คสถานะไฟล์ปัจจุบัน | ใช้บ่อยๆ ตลอดวัน |
-| `git pull --rebase origin main` | ดึงโค้ดใหม่ล่าสุดแบบเรียงประวัติ | **ตอนเริ่มงาน** |
-| `git add .` | เตรียมไฟล์ทั้งหมดสำหรับบันทึก | ตอนเลิกงาน |
-| `git commit -m "รายละเอียด"` | บันทึกประวัติการแก้ไข | ตอนเลิกงาน |
-| `git push origin main` | ส่งโค้ดขึ้น GitHub | **ตอนเลิกงาน** |
-| `git stash` / `git stash pop` | ซ่อนงานชั่วคราว / ดึงงานซ่อนกลับมา | แก้ปัญหาลืม Pull |
-| `git log --oneline -n 5` | ดูประวัติ Commit 5 รายการล่าสุด | เช็คความถูกต้อง |
+| `git status` | Inspect working directory and staged status | Regularly throughout the day |
+| `git pull --rebase origin main` | Synchronize upstream commits with linear history | **Start of every session** |
+| `git add .` | Stage modified files for commit | Prior to committing |
+| `git commit -m "message"` | Record changes with descriptive commit log | End of work tasks |
+| `git push origin main` | Publish commits to remote GitHub repository | **End of every session** |
+| `git stash` / `git stash pop` | Temporarily shelve uncommitted work / Restore | Recovering from forgotten pulls |
+| `git log --oneline -n 5` | Review the 5 most recent commit summaries | Verification and audit |
 
 ---
 
-> 💡 **Tip:** แนะนำให้ติดโน้ตเตือนตัวเองสั้นๆ ไว้ที่โต๊ะทำงาน:
-> **"ก่อนเริ่ม = Pull | เลิกงาน = Push"** 🚀
+> 💡 **Quick Reminder:**  
+> **"Start Session = Pull | End Session = Push"** 🚀
