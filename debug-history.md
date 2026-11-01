@@ -63,33 +63,33 @@ After restoring the missing braces in TopOrdersGalleryPage, the npm run build pr
 1. **Careful Regex Placements:** Always verify the lexical scope when injecting code via string replacement. Restoring a return statement must happen at the component body level, not inside nested helper functions.
 2. **Aggressive Cleanup:** When removing components (like Back buttons), always remember to also remove their imports to prevent the strict TS compiler from halting the build.
 
-## Issue: PO Tracker SP ช้า + Index หายเกลี้ยง + `_All`/dateType อื่นพังเงียบ
+## Issue: PO Tracker SP Latency, Missing Indexes, and Silent SP Failures
 **Date:** 2026-07-02
 **Component:** `PC_Show_OrdTrack_Sum_*` (dbGeneration), `routes/orders.js`, `backend/sql/`
 
-> ⚠️ **สถานะปัจจุบัน (2026-10-08):** Index (Fix #2) **ยังอยู่และใช้งานจริง** — แต่การแก้ SP ทั้งหมด (Fix #1, #3) และการส่ง `@Status` (Fix #4) **ถูกยกเลิก** เพราะทำให้ระบบ VB.NET เดิมพัง → SP บน DB เป็นตัวเดิม, backend ส่งแค่ `@FromDate`/`@ToDate`, กรองสถานะใน Memory และนโยบายตอนนี้คือ **ไม่แตะ DB 100%**
+> ⚠️ **Current Status (2026-10-08):** Indexes (Fix #2) **remain active and in production use** — however, all SP modifications (Fix #1, #3) and passing `@Status` (Fix #4) **were rolled back** because they broke the legacy VB.NET system. The database stored procedures reverted to original versions, backend passes only `@FromDate`/`@ToDate`, filtering status in memory, and the current project policy is **100% Read-Only Database**.
 
 ### Symptoms:
-งานหลักคือตัดการดึงรูปแบบ base64 (VARBINARY จาก `GMItemPhoto`) ออกจากระบบ + เร่ง SP ให้เร็วขึ้น ระหว่างเช็คข้อมูลจริงก่อนแก้ พบปัญหาที่ซ่อนอยู่หลายจุด
+The primary goal was removing base64 image retrieval (VARBINARY from `GMItemPhoto`) from the query flow and improving SP execution speed. Real-world inspection prior to modifications uncovered several latent issues.
 
-### Root Causes (สิ่งที่เจอตอนเช็คข้อมูลจริง):
-1. **Index หายเกลี้ยง เหลือแค่ `PK_GMCust`** — ตาราง `OrdHD` (176k), `OrdDT` (755k), `OrdTrackDT`, `OrdWeekPlanHD` เป็น HEAP ไม่มี index เลย → SP วิ่ง full scan + correlated subquery ต่อแถว = คอขวดตัวจริง (แม้ในเอกสารจะระบุว่าเคยสร้าง index ครบแล้วก็ตาม)
-2. **`GROUP BY` ด้วยก้อน VARBINARY(MAX)** — SP `LEFT JOIN GMItemPhoto` แล้ว `MAX(CAST(ItemPhoto AS VARBINARY(MAX)))` ในทุก aggregate CTE + outer query ยัง group by blob อีกชั้น + โอน base64 หลาย MB มา Node ทุกครั้ง
-3. **`_All` ALTER ไม่ได้** — อ้าง `LEFT JOIN VPC_OrdSum_Detail` ซึ่งเป็น view ที่ binding error (อ้างตาราง `MasterFileProduct`/`Item_Head` ที่หายหลัง restore) → `_All` เดิมรันไม่ได้อยู่แล้ว (broken เงียบ)
-4. **@Status drift** — มีเพียง SP `_OrdDate` ที่ประกาศ `@Status` ส่วน `_DueDate`/`_CustDueDate`/`_FinDate`/`_All` เป็นเวอร์ชันเก่าไม่มี param นี้ แต่ backend ส่ง `@Status` ให้ทุกตัว → dateType อื่นนอกจาก Order Date error "too many arguments" (พังเงียบ)
+### Root Causes (Discovered During Production Inspection):
+1. **Completely Missing Indexes (Only `PK_GMCust` remained):** Tables `OrdHD` (176k rows), `OrdDT` (755k rows), `OrdTrackDT`, and `OrdWeekPlanHD` were heap tables with zero indexes. The SP performed full table scans and correlated subqueries per row, creating the actual performance bottleneck (despite documentation claiming indexes had been created).
+2. **`GROUP BY` on Massive VARBINARY(MAX) Blobs:** The SP `LEFT JOIN`ed `GMItemPhoto` and executed `MAX(CAST(ItemPhoto AS VARBINARY(MAX)))` across every aggregate CTE. The outer query further grouped by this blob, transmitting multi-megabyte payloads of base64 data to Node on every request.
+3. **`_All` SP Failed to ALTER:** Referenced `LEFT JOIN VPC_OrdSum_Detail`, a broken view with binding errors (referencing tables `MasterFileProduct`/`Item_Head` that disappeared after database restoration). Consequently, `_All` was silently broken and unable to run.
+4. **`@Status` Parameter Drift:** Only the `_OrdDate` SP declared `@Status`. The remaining SPs (`_DueDate`, `_CustDueDate`, `_FinDate`, `_All`) were older revisions lacking this parameter. However, the backend passed `@Status` to all of them, resulting in silent "too many arguments" errors for any date type other than Order Date.
 
 ### Fixes:
-1. **ตัดรูปออกจาก SP ทั้ง 5** → เปลี่ยน `MAX(CAST(...ItemPhoto...))` เป็น `MIN(OrdDT.ItemNo) AS SampleItemNo` + ลบ join `GMItemPhoto` + ลบ blob ออกจาก GROUP BY (ยืนยัน `GMItemPhoto` เป็น 1:1 → SumQty/SumItem/SumAmnt/row count เท่าเดิมเป๊ะ pure perf win)
-2. **สร้าง 9 covering index** (NONCLUSTERED, `ONLINE=ON`, `DATA_COMPRESSION=PAGE`) — ไม่แตะ heap/clustered เพื่อลดความเสี่ยงต่อระบบ VB.net เดิม (`backend/sql/indexes.sql`)
-3. **ลบ dead join `VPC_OrdSum_Detail`** ใน `_All` (join แบบ LEFT ไม่ select คอลัมน์ใดเลย = no-op ต่อผลลัพธ์เพราะ GROUP BY ยุบ row ซ้ำ) → `_All` กลับมาใช้ได้
-4. **backend ส่ง `@Status` เฉพาะ SP `_OrdDate`** (`if (spName.endsWith('_OrdDate'))`) → dateType อื่นกลับมาทำงาน
-5. เก็บ SP/Index/baseline เป็นไฟล์จริงใน `backend/sql/` เป็น SSOT กัน "หายตอน restore"
+1. **Removed Images from All 5 SPs:** Replaced `MAX(CAST(...ItemPhoto...))` with `MIN(OrdDT.ItemNo) AS SampleItemNo`, removed the `GMItemPhoto` join, and eliminated the blob from `GROUP BY`. (Verified `GMItemPhoto` has 1:1 cardinality, ensuring `SumQty`, `SumItem`, `SumAmnt`, and row counts matched perfectly—pure performance gain).
+2. **Created 9 Covering Indexes:** (`NONCLUSTERED`, `ONLINE=ON`, `DATA_COMPRESSION=PAGE`) — Avoided touching heap/clustered structures to minimize risk to the legacy VB.NET application (`backend/sql/indexes.sql`).
+3. **Eliminated Dead Join to `VPC_OrdSum_Detail`:** In `_All` (the `LEFT JOIN` selected no columns, functioning as a no-op because the `GROUP BY` deduplicated rows), restoring functionality to `_All`.
+4. **Backend Passed `@Status` Only to `_OrdDate`:** (`if (spName.endsWith('_OrdDate'))`), restoring execution for other date types.
+5. Preserved SP, index definitions, and baselines as physical files in `backend/sql/` as a Single Source of Truth (SSOT) to prevent loss during database restorations.
 
 ### Prevention & Lessons Learned:
-1. **เช็คข้อมูลจริงก่อนเสมอ (dump SP + `sys.indexes` + `sys.columns` + count):** เอกสาร (claude.md) บอกว่า index ครบ แต่ของจริงเหลือตัวเดียว — อย่าเชื่อเอกสารอย่างเดียว
-2. **ก่อนตัด join ที่อยู่ใน 段 aggregate ต้องเช็ค cardinality:** ถ้า `GMItemPhoto` เป็น 1:many การลบ join จะทำให้ยอด SUM เปลี่ยน — ที่นี่เป็น 1:1 เลยปลอดภัย (ยืนยันด้วย `HAVING COUNT(*)>1`)
-3. **แก้ SP ทีละตัว + เทียบ row/sum ก่อน-หลัง:** จับ `_All` ที่พังและ @Status drift ได้เพราะรันทดสอบทีละตัว
-4. **สร้าง index แบบ `ONLINE=ON` บน Enterprise:** ตรวจก่อนว่าไม่มี LOB column (จะ block online clustered build บน SQL 2012) — ที่นี่ไม่มี LOB ในตารางเป้าหมาย
+1. **Always Verify Real Production Schema First (dump SP + `sys.indexes` + `sys.columns` + counts):** Prior documentation claimed all indexes were present, but actual inspection revealed only one index existed. Never rely solely on documentation without live verification.
+2. **Verify Cardinality Before Removing Joins from Aggregations:** If `GMItemPhoto` had a 1-to-many relationship, removing the join would alter `SUM` totals. Here, confirmed 1:1 cardinality with `HAVING COUNT(*) > 1` beforehand.
+3. **Modify SPs Incrementally & Compare Row Counts/Sums Before and After:** Testing each SP individually caught the broken `_All` view and the `@Status` parameter drift.
+4. **Create Indexes with `ONLINE=ON` on Enterprise Editions:** Check for LOB columns first (which would block online index builds on SQL Server 2012). The target tables here contained no LOB columns.
 
 ## Issue: Over-engineering UI and Unimported Variables Cause React Crash & Hidden Elements
 **Date:** 2026-07-07
