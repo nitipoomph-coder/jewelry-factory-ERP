@@ -1,203 +1,202 @@
-# โครงสร้างและกระบวนการทำงานระบบเก่า (PCC Management System Architecture)
+# Legacy System Architecture & Operational Workflows (PCC Management System)
 
-> **เอกสารอ้างอิงเชิงลึก**: สรุปและถอดรหัสกระบวนการทำงาน, แหล่งจัดเก็บข้อมูล, ทิศทางการไหลของข้อมูล (Data Flow), และตารางฐานข้อมูลของระบบเก่าจาก Source Code จริง
-> **โฟลเดอร์ระบบต้นทาง**: `D:\IT_Yu\[1] All in general\PCC Management System\PCC Management System`
-
----
-
-## 1. ภาพรวมระบบและเทคโนโลยี (System Overview & Tech Stack)
-
-* **ประเภทโปรแกรม**: Windows Forms Application (.NET Framework / Visual Basic .NET)
-* **เครื่องมือทำรายงาน**: Crystal Reports 13 (`CrystalDecisions.CrystalReports.Engine`)
-* **ฐานข้อมูลหลัก (Database Server)**:
-  * **Server**: `<DB_SERVER>` (ตามที่ระบุใน `SetConnDB.txt` และ `DataCenter.vb`)
-  * **Database**: `dbGeneration` (ฐานข้อมูลหลักของกระบวนการผลิตและ Order)
-  * **ฐานข้อมูลสนับสนุนในเครือ**: `CostDB`, `dbEnterprise`, `dbInventory`, `dbStock`, `dbTempStock`
-* **การเชื่อมต่อไฟล์ภายนอก**:
-  * โฟลเดอร์รูปภาพสินค้า / ตัวเรือน: `\\<FILE_SERVER>\Photo\...`
-  * โฟลเดอร์คิวงาน PO และไฟล์แนบ: `\\<FILE_SERVER>\Queue\...`
+> **In-Depth Architectural Reference:** Summary and technical deconstruction of workflows, data storage repositories, data flow pipelines, and database tables derived from the legacy production codebase.
 
 ---
 
-## 2. โมดูลหลักในระบบเก่า (Core Modules)
+## 1. System Overview & Tech Stack
 
-ระบบ PCC แบ่งการทำงานออกเป็น **7 เสาหลัก**:
+* **Application Type:** Windows Forms Application (.NET Framework / Visual Basic .NET)
+* **Reporting Engine:** Crystal Reports 13 (`CrystalDecisions.CrystalReports.Engine`)
+* **Primary Database Server:**
+  * **Server:** `<DB_SERVER>` (Configured via database connection profiles)
+  * **Database:** `dbGeneration` (Core manufacturing execution and order repository)
+  * **Auxiliary Databases:** `CostDB`, `dbEnterprise`, `dbInventory`, `dbStock`, `dbTempStock`
+* **External File Storage:**
+  * High-Resolution Jewelry / Casting Photos: `\\<FILE_SERVER>\Photo\...`
+  * PO Work Queues and Attachments: `\\<FILE_SERVER>\Queue\...`
+
+---
+
+## 2. Core Modules in Legacy System
+
+The production system is partitioned into **7 operational pillars**:
 
 ```mermaid
 graph TD
-    A["1. Sales & Order Intake (SA/SD)"] --> B["2. Planning & Week Plan (OrdWeekPlanHD)"]
-    B --> C["3. FBE Facility (โรงงาน FBE)"]
-    B --> D["4. CLL Facility (โรงงาน CLL)"]
+    A["1. Sales & Order Intake (SA/SD)"] --> B["2. Planning & Scheduling (OrdWeekPlanHD)"]
+    B --> C["3. FBE Facility Line"]
+    B --> D["4. CLL Facility Line"]
     C --> E["5. Quality Control & Packing (QC/PK)"]
     D --> E
     C <--> F["6. Subcontract Outsource (SB)"]
     D <--> F
     E --> G["7. Delivery & Export (ExportDate)"]
     
-    H["Production Control & Monitor (PC)"] -.->|ติดตามทุกสเตจ| C
-    H -.->|ติดตามทุกสเตจ| D
-    H -.->|คำนวณ WIP & Forecast| E
+    H["Production Control & Monitoring (PC)"] -.->|Track all stages| C
+    H -.->|Track all stages| D
+    H -.->|Calculate WIP & Forecast| E
 ```
 
-1. **Sales & Order Processing (SA / SD)**: การรับใบสั่งซื้อ (Customer PO) และสร้าง Order
-2. **Planning & Scheduling (ORD / Plan)**: การจัดคิวเข้าสัปดาห์ผลิต (`OrdWeekPlanHD`)
-3. **FBE Production (FBE_*)**: สายการผลิตโรงงาน FBE (บันทึกแยกใบรับ `Rec` และใบส่ง `Sen`)
-4. **CLL Production (*_SCR / *_SCN)**: สายการผลิตโรงงาน CLL (**บันทึกแบบ "รับคือส่งในตัวเดียวกัน"**)
-5. **Subcontract Management (SB)**: ส่งงานจ้างเหมาภายนอก / ช่างนอกโรงงาน
-6. **QC & Packing (QC / QP / PK)**: ตรวจสอบคุณภาพ 3 ระดับ และแพ็กสินค้า
-7. **Production Control & Order Tracking (PC)**: ศูนย์ควบคุมและติดตามสถานะงานทุกแผนก
+1. **Sales & Order Processing (SA / SD):** Customer PO intake, SKU configuration, and production order creation.
+2. **Planning & Scheduling (ORD / Plan):** Weekly production quota scheduling (`OrdWeekPlanHD`).
+3. **FBE Facility Production (`FBE_*`):** Formal dual-custody production flow (separate Receive `Rec` and Send `Sen` dockets).
+4. **CLL Facility Production (`*_SCR` / `*_SCN`):** Station milestone production (**"Receipt constitutes dispatch"** milestone model).
+5. **Subcontract Management (SB):** External artisan job assignments and material tracking.
+6. **QC & Packing (QC / QP / PK):** Multi-tier quality control and barcode packaging.
+7. **Production Control & Order Tracking (PC):** Centralized multi-department WIP tracking and expediting.
 
 ---
 
-## 3. เจาะลึกความต่าง: กระบวนการ FBE vs CLL
+## 3. Operational Comparison: FBE vs. CLL Facilities
 
-ความแตกต่างระดับรากฐานระหว่าง **FBE** และ **CLL** ที่ค้นพบใน Source Code:
+Fundamental architectural differences between **FBE** and **CLL** facilities uncovered in source analysis:
 
-| มิติการทำงาน | โรงงาน FBE (`ProFac = 'FBE'`) | โรงงาน CLL (`ProFac = 'CLL'`) |
+| Operational Dimension | FBE Facility (`ProFac = 'FBE'`) | CLL Facility (`ProFac = 'CLL'`) |
 | :--- | :--- | :--- |
-| **หน้าจอในระบบ** | มีคำนำหน้า `FBE_` เช่น `FBE_PL_SCR_SenOrd.vb`, `FBE_FL_SCR_SenOrd.vb` | หน้าจอมาตรฐาน เช่น `PL_SCR_SenOrd.vb`, `FL_SCN_SenOrd.vb`, `PT_SCN_SenOrd.vb` |
-| **โครงสร้างตาราง** | **แยก 2 ด้านชัดเจน**: ตารางส่ง `{Step}SenHD/DT` และตารางรับ `{Step}RecHD/DT` | **มีเฉพาะตารางส่ง `{Step}SenHD/DT`** เท่านั้น (ไม่มีการเขียน `*Rec` เลย) |
-| **พฤติกรรมการบันทึก** | **Formal Handover**: แผนก A ส่ง `Sen` ➔ รอแผนก B ยิงรับ `Rec` | **Station Milestone**: **"รับคือส่งในตัวเดียวกัน"** ยิงครั้งเดียวถือว่าผ่านสเตจนั้น |
-| **การอัปเดตตัว Order** | เก็บเป็นประวัติการโอนย้ายในตาราง Rec/Sen | **Dual-Write**: บันทึกลงตาราง Sen พร้อมกับ **`UPDATE OrdDT` ตรงๆ ทันที** |
-| **วิธีคำนวณงานค้าง (WIP)** | $\text{WIP} = \text{RecQty} - \text{SenQty}$ (ของที่รับเข้าแผนกแต่ยังไม่ส่งออก) | $\text{WIP} = \text{Stage}_{N} - \text{Stage}_{N+1}$ (ผลต่างยอดสะสมข้ามสเตจ) |
+| **System UI Screens** | Prefixed with `FBE_` (e.g. `FBE_PL_SCR_SenOrd.vb`, `FBE_FL_SCR_SenOrd.vb`) | Standard screens (e.g. `PL_SCR_SenOrd.vb`, `FL_SCN_SenOrd.vb`, `PT_SCN_SenOrd.vb`) |
+| **Table Schema** | **Dual-sided:** Send tables `{Step}SenHD/DT` and Receive tables `{Step}RecHD/DT` | **Single-sided:** Send tables `{Step}SenHD/DT` only (No `*Rec` tables maintained) |
+| **Transaction Behavior** | **Formal Handover:** Dept A dispatches `Sen` ➔ Dept B scans receipt `Rec` | **Station Milestone:** **"Receipt constitutes dispatch"**—single scan completes stage |
+| **Order Line Updates** | Logged as custody transfer history in `Rec`/`Sen` tables | **Dual-Write:** Inserts transaction into `Sen` table and **immediately updates `OrdDT`** |
+| **WIP Calculation** | $\text{WIP} = \text{RecQty} - \text{SenQty}$ (Received minus dispatched) | $\text{WIP} = \text{Stage}_{N} - \text{Stage}_{N+1}$ (Cumulative stage differences) |
 
 ---
 
-## 4. แผนผังการไหลของข้อมูลฝั่ง CLL (CLL Data Flow)
+## 4. CLL Facility Data Flow Architecture
 
-เมื่อสถานีช่างของ CLL ทำการบันทึกงาน (ตัวอย่าง: แผนกขัด `PL_SCR_SenOrd.vb`):
+When an artisan station in the CLL facility logs job completion (Example: Polishing `PL_SCR_SenOrd.vb`):
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Artisan as ช่าง / หัวหน้าแผนก CLL
-    participant Screen as หน้าจอส่งงาน (เช่น PL_SCR_SenOrd)
-    participant SenTable as ตารางประวัติแผนก (PLSenHD / PLSenDT)
-    participant OrdDT as ตารางรายการคำสั่งผลิต (OrdDT)
-    participant WorkSlip as ตารางบัตรงานช่าง (GDWorkSlip)
+    actor Artisan as Artisan / Dept Lead (CLL)
+    participant Screen as Dispatch UI (e.g. PL_SCR_SenOrd)
+    participant SenTable as Department History (PLSenHD / PLSenDT)
+    participant OrdDT as Order Detail & Stages (OrdDT)
+    participant WorkSlip as Artisan Labor Slip (GDWorkSlip)
 
-    Artisan->>Screen: ยิงสแกน Barcode / ระบุจำนวนที่ทำเสร็จ (SenQty)
+    Artisan->>Screen: Barcode Scan / Enter completed quantity (SenQty)
     Screen->>SenTable: INSERT INTO PLSenHD (DocuNo, DocuDate, ProFac='CLL', SumSenQty)
     Screen->>SenTable: INSERT INTO PLSenDT (OrdNo, OrdLineNo, ItemNo, SenQty, SlipNo)
-    Note over Screen,OrdDT: 💥 Dual-Write ทันที (รับคือส่งในตัวเดียวกัน)
+    Note over Screen,OrdDT: Dual-Write Transaction (Receipt constitutes dispatch)
     Screen->>OrdDT: UPDATE OrdDT SET PolishQty = Sum(SenQty)
-    alt ทำครบตามยอด ItemQty
+    alt Completed equal to ItemQty
         Screen->>OrdDT: SET FPolishStatus = 'Y'
-    else ทำบางส่วน
+    else Partial Completion
         Screen->>OrdDT: SET FPolishStatus = 'P'
     end
-    Screen->>WorkSlip: INSERT INTO GDWorkSlip (บันทึกคุมบัตรงานช่างรายบุคคล)
+    Screen->>WorkSlip: INSERT INTO GDWorkSlip (Log individual artisan labor piecework)
 ```
 
 ---
 
-## 5. ตารางฐานข้อมูลและคอลัมน์สำคัญที่บันทึกข้อมูล (Database Catalog)
+## 5. Database Catalog & Key Production Tables
 
-### 5.1 ตาราง Order หลัก (Master Orders)
-* **`OrdHD` (Order Header)**
-  * `OrdNo`: เลขที่คำสั่งผลิต (Primary Key)
-  * `CustCode`: รหัสลูกค้า (เช่น N008, N098, N051, U414...)
-  * `OrdDate`: วันที่สั่งงาน
-  * `DueDate`: วันกำหนดส่งของโรงงาน
-  * `CustDueDate`: วันกำหนดส่งที่ลูกค้าต้องการ
-  * `ProFac`: โรงงานหลัก (`FBE` หรือ `CLL`)
-  * `CloseStatus`: สถานะปิด Order (`Y` = จบงานสมบูรณ์)
+### 5.1 Master Order Tables
+* **`OrdHD` (Order Header):**
+  * `OrdNo`: Production order number (Primary Key)
+  * `CustCode`: Customer code (e.g. `N008`, `N098`, `N051`, `U414`...)
+  * `OrdDate`: Order placement date
+  * `DueDate`: Factory target delivery date
+  * `CustDueDate`: Customer requested delivery date
+  * `ProFac`: Designated primary facility (`FBE` or `CLL`)
+  * `CloseStatus`: Completion flag (`Y` = Closed / complete)
 
-* **`OrdDT` (Order Detail & Stage Tracking)**
-  * `OrdNo`, `OrdLineNo`: คีย์หลักประจำรายการ
-  * `ItemNo`: รหัสสินค้าเครื่องประดับ (เช่น BBS..., BES..., BNS...)
-  * `ItemQty`: จำนวนสั่งผลิตทั้งหมด
-  * **คอลัมน์ Milestone แสดงยอดผ่านแต่ละแผนกของฝั่ง CLL**:
-    * `CastQty` / `FCastStatus`: จำนวนชิ้นที่ผ่านแผนกหล่อ (Casting)
-    * `GrindQty` / `FGrindStatus`: จำนวนชิ้นที่ผ่านแผนกแต่ง (Grind / Filing)
-    * `PolishQty` / `FPolishStatus`: จำนวนชิ้นที่ผ่านแผนกขัด (Polish)
-    * `PlateQty` / `FPlateStatus`: จำนวนชิ้นที่ผ่านแผนกชุบ (Plating)
-    * `QCQty` / `FQCStatus`: จำนวนชิ้นที่ผ่านการตรวจรับ (QC)
-    * `FinishQty`: จำนวนชิ้นที่เสร็จสมบูรณ์ 100%
-    * `StoneQty` / `FitQty`: จำนวนงานฝังพลอย / ชิ้นส่วนอะไหล่
+* **`OrdDT` (Order Detail & Stage Tracking):**
+  * `OrdNo`, `OrdLineNo`: Composite primary key
+  * `ItemNo`: Jewelry SKU (e.g. `BBS...`, `BES...`, `BNS...`)
+  * `ItemQty`: Total ordered piece count
+  * **CLL Milestone Columns (Direct throughput columns per department):**
+    * `CastQty` / `FCastStatus`: Pieces completed through Casting
+    * `GrindQty` / `FGrindStatus`: Pieces completed through Grinding / Filing
+    * `PolishQty` / `FPolishStatus`: Pieces completed through Polishing
+    * `PlateQty` / `FPlateStatus`: Pieces completed through Electroplating
+    * `QCQty` / `FQCStatus`: Pieces passed through Quality Control
+    * `FinishQty`: Finished pieces ready for dispatch
+    * `StoneQty` / `FitQty`: Gemstone setting / accessory fitting counts
 
 ---
 
-### 5.2 ตาราง Transaction ประจำแผนก (Department Movement Tables)
-มี 11 แผนกช่างหลัก โดยแยก Header (`HD`) และ Detail (`DT`):
+### 5.2 Departmental Movement Tables (11 Manufacturing Stations)
+Each workstation logs transactions via Header (`HD`) and Detail (`DT`) tables:
 
-| แผนกช่าง | รหัส | ตารางฝั่งส่ง (Send) | ตารางฝั่งรับ (Receive - FBE เท่านั้น) |
+| Workstation | Code | Dispatch Table (Send) | Receipt Table (Receive - FBE Only) |
 | :--- | :---: | :--- | :--- |
-| **1. ฝัง / แต่ง** | `GR` | `GRSenHD`, `GRSenDT` | `GRRecHD`, `GRRecDT` |
-| **2. ร่อน** | `TB` | `TBSenHD`, `TBSenDT` | `TBRecHD`, `TBRecDT` |
-| **3. ประกอบ** | `AS` | `ASSenHD`, `ASSenDT` | `ASRecHD`, `ASRecDT` |
-| **4. เลเซอร์** | `LS` | `LSSenHD`, `LSSenDT` | `LSRecHD`, `LSRecDT` |
-| **5. ตะไบ / แต่งผิว** | `FL` | `FLSenHD`, `FLSenDT` | `FLRecHD`, `FLRecDT` |
-| **6. ลิปปิ้ง / ปาดหน้า** | `LP` | `LPSenHD`, `LPSenDT` | `LPRecHD`, `LPRecDT` |
-| **7. หยอดอีพ็อกซี่** | `EP` | `EPSenHD`, `EPSenDT` | `EPRecHD`, `EPRecDT` |
-| **8. ขัดเงา** | `PL` | `PLSenHD`, `PLSenDT` | `PLRecHD`, `PLRecDT` |
-| **9. ชุบทองแดง** | `CP` | `CPSenHD`, `CPSenDT` | `CPRecHD`, `CPRecDT` |
-| **10. ตรวจรับ / QC** | `IQ` | `IQSenHD`, `IQSenDT` | `IQRecHD`, `IQRecDT` |
-| **11. ชุบสำเร็จ** | `PT` | `PTSenHD`, `PTSenDT` | `PTRecHD`, `PTRecDT` |
+| **1. Stone Setting / Bench** | `GR` | `GRSenHD`, `GRSenDT` | `GRRecHD`, `GRRecDT` |
+| **2. Tumbling** | `TB` | `TBSenHD`, `TBSenDT` | `TBRecHD`, `TBRecDT` |
+| **3. Assembly** | `AS` | `ASSenHD`, `ASSenDT` | `ASRecHD`, `ASRecDT` |
+| **4. Laser** | `LS` | `LSSenHD`, `LSSenDT` | `LSRecHD`, `LSRecDT` |
+| **5. Filing / Surface Prep** | `FL` | `FLSenHD`, `FLSenDT` | `FLRecHD`, `FLRecDT` |
+| **6. Lapping** | `LP` | `LPSenHD`, `LPSenDT` | `LPRecHD`, `LPRecDT` |
+| **7. Epoxy / Enamel** | `EP` | `EPSenHD`, `EPSenDT` | `EPRecHD`, `EPRecDT` |
+| **8. Polishing** | `PL` | `PLSenHD`, `PLSenDT` | `PLRecHD`, `PLRecDT` |
+| **9. Copper Plating** | `CP` | `CPSenHD`, `CPSenDT` | `CPRecHD`, `CPRecDT` |
+| **10. In-Process QC** | `IQ` | `IQSenHD`, `IQSenDT` | `IQRecHD`, `IQRecDT` |
+| **11. Final Plating** | `PT` | `PTSenHD`, `PTSenDT` | `PTRecHD`, `PTRecDT` |
 
-**ฟิลด์สำคัญในตาราง SenHD**:
-* `DocuNo`: เลขที่เอกสาร
-* `DocuDate`: วันที่ส่งงาน
-* `SenDept`: แผนกที่ส่ง (เช่น PL1, PL2, TA, TB...)
-* `ProFac`: **`'CLL'` หรือ `'FBE'`** (ตัวแยกมิติโรงงาน)
-* `SumSenQty`: ยอดรวมจำนวนชิ้น
+**Key Fields in `SenHD` Tables:**
+* `DocuNo`: Transaction document number
+* `DocuDate`: Dispatch date
+* `SenDept`: Dispatching department ID (e.g. `PL1`, `PL2`, `TA`, `TB`...)
+* `ProFac`: Facility identifier (`'CLL'` or `'FBE'`)
+* `SumSenQty`: Total pieces in batch
 
 ---
 
-### 5.3 ตารางคุมการผลิตและงานค้าง (Production Tracking Tables)
-* **`OrdTrackDT`**: ตารางบันทึกการติดตาม Order แบบละเอียด
-  * `QC1_Qty`, `QC1_Date`, `QC1_Fail`: ประวัติการตรวจ QC รอบที่ 1
-  * `QC2_Qty`, `QC2_Date`, `QC2_Fail`: ประวัติการตรวจ QC รอบที่ 2
-  * `QC3_Qty`, `QC3_Date`, `QC3_Fail`: ประวัติการตรวจ QC รอบที่ 3
-  * `PackScanDo`, `PackScanSen`: การสแกนบรรจุภัณฑ์
-* **`GDWorkSlip`**: บัตรคุมงานช่างรายบุคคล
+### 5.3 Production Tracking & Scheduling Tables
+* **`OrdTrackDT`**: Comprehensive order monitoring records:
+  * `QC1_Qty`, `QC1_Date`, `QC1_Fail`: Inspection results for QC Tier 1
+  * `QC2_Qty`, `QC2_Date`, `QC2_Fail`: Inspection results for QC Tier 2
+  * `QC3_Qty`, `QC3_Date`, `QC3_Fail`: Inspection results for QC Tier 3
+  * `PackScanDo`, `PackScanSen`: Packaging and barcode verification timestamps
+* **`GDWorkSlip`**: Individual artisan labor ledger:
   * `SlipID`, `SlipNo`, `DocuNo`, `OrdNo`, `ItemNo`, `Qty`
-* **`GMHoliday`**: ปฏิทินวันหยุดโรงงาน
-  * `HolDate`: วันหยุดประจำปี (ใช้คำนวณ Work Days จริง โดยตัดวันอาทิตย์และวันหยุด)
-* **`OrdWeekPlanHD`**: แผนประจำสัปดาห์
-  * `PlanYear`, `PlanWeek`, `PlanDate`: ใช้จับคู่สัปดาห์ W1-W52
+* **`GMHoliday`**: Corporate calendar:
+  * `HolDate`: Recognized factory non-working dates (used to calculate working-day lead times)
+* **`OrdWeekPlanHD`**: Master manufacturing week schedule:
+  * `PlanYear`, `PlanWeek`, `PlanDate`: Maps calendar dates to manufacturing weeks (W01–W52)
 
 ---
 
-## 6. ตรรกะการคำนวณงานค้าง (WIP Calculation Logic)
+## 6. Work-in-Progress (WIP) Calculation Logic
 
-ใน Stored Procedure ของระบบเก่า ([PC_Show_OrdTrack_Sum_All.sql](file:///d:/gemstone-lifecycle-management/Jewelry%20Factory%20System/backend/sql/_baseline/PC_Show_OrdTrack_Sum_All.sql)) เมื่อไม่มีตาราง Rec ระบบใช้ **Stage Difference (ผลต่างระหว่างสเตจ)** ดังนี้:
+In the legacy Stored Procedure ([PC_Show_OrdTrack_Sum_All.sql](file:///d:/gemstone-lifecycle-management/Jewelry%20Factory%20System/backend/sql/_baseline/PC_Show_OrdTrack_Sum_All.sql)), where Receive tables do not exist for CLL, WIP is determined via **Stage Difference (Stage Delta)**:
 
 ```sql
--- 1. งานค้างรอแต่ง (Grind Pending)
+-- 1. Grinding Backlog (Grind Pending)
 GrindPenQty = CASE WHEN CastQty = ItemQty 
                    THEN ISNULL(GrindQty,0) - ISNULL(CastQty,0) 
                    ELSE ISNULL(GrindQty,0) - ISNULL(ItemQty,0) END
 
--- 2. งานค้างรอขัด (Polish Pending)
+-- 2. Polishing Backlog (Polish Pending)
 PolishPenQty = CASE WHEN GrindQty = ItemQty 
                     THEN ISNULL(PolishQty,0) - ISNULL(GrindQty,0) 
                     ELSE ISNULL(PolishQty,0) - ISNULL(ItemQty,0) END
 
--- 3. งานค้างรอชุบ (Plate Pending)
+-- 3. Plating Backlog (Plate Pending)
 PlatePenQty = CASE WHEN PolishQty = ItemQty 
                    THEN ISNULL(PlateQty,0) - ISNULL(PolishQty,0) 
                    ELSE ISNULL(PlateQty,0) - ISNULL(ItemQty,0) END
 
--- 4. งานค้างรอ QC (QC Pending)
+-- 4. Quality Control Backlog (QC Pending)
 QCPenQty = CASE WHEN PlateQty = ItemQty 
                 THEN ISNULL(QCQty,0) - ISNULL(PlateQty,0) 
                 ELSE ISNULL(QCQty,0) - ISNULL(ItemQty,0) END
 
--- 5. งานที่ยังไม่เสร็จรวมทั้งใบ (Total Unfinished)
+-- 5. Total Unfinished Pieces
 UnFinishQty = ISNULL(OrdDT.FinishQty,0) - ISNULL(OrdDT.ItemQty,0)
 ```
 
 ---
 
-## 7. บทสรุปสำหรับการพัฒนาระบบใหม่ (Key Takeaways for New System)
+## 7. Key Takeaways for the Modern Web Platform
 
-1. **การรวมพลัง FBE + CLL**:
-   * หน้า **Production Summary** สามารถนำเสนอผลงานได้ทั้ง 2 โรงงาน
-   * **ฝั่ง FBE**: ดึงจาก `{Step}SenHD/DT WHERE ProFac = 'FBE'`
-   * **ฝั่ง CLL**: ดึงจาก `{Step}SenHD/DT WHERE ProFac = 'CLL'`
-   * ผลรวมทั้งสองคือ **Actual Factory Throughput รวมของทั้งเครือ**
-2. **การดู WIP / Bottleneck**:
-   * สามารถใช้สูตร Stage Delta ของระบบเก่ามาคำนวณหาจุดติดขัด (Bottleneck) ของโรงงาน CLL ได้โดยอัตโนมัติ โดยที่หน้างานไม่ต้องปรับวิธีการคีย์ข้อมูลแม้แต่น้อย
-3. **การแสดงผลแบบไม่ต้องคลิก Filter**:
-   * เราสามารถกางตารางแมทริกซ์ 11 แผนกช่าง พร้อมแยก FBE / CLL ในแถวเดียวกัน หรือสรุปภาพรวม 12 เดือนจบในหน้าจอเดียวตามขนาดจอ 1920×953 ได้อย่างสมบูรณ์แบบ
+1. **Unified Multi-Facility Throughput:**
+   - The modern **Production Summary** can seamlessly consolidate output across both facilities:
+     - **FBE Output:** Query `{Step}SenHD/DT WHERE ProFac = 'FBE'`
+     - **CLL Output:** Query `{Step}SenHD/DT WHERE ProFac = 'CLL'`
+     - The sum represents the true **Total Enterprise Throughput**.
+2. **Automated Bottleneck Detection:**
+   - By implementing the legacy Stage Delta algorithm in Node.js, the system dynamically identifies manufacturing bottlenecks across CLL departments in real time without altering floor data-entry practices.
+3. **High-Density Information Architecture:**
+   - Enables displaying full 11-department matrix grids and 12-month output trends on a single view, eliminating nested navigation and accelerating management oversight.
