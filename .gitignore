@@ -1,0 +1,52 @@
+# Ignore AI & IDE artifacts
+.claude/
+.codex-artifacts/
+.codex-*/
+.codex/
+.impeccable/
+.agents/
+.vscode/
+
+# Ignore environment & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Ignore runtime data & logs
+Jewelry Factory System/backend/data/*.json
+*.log
+000003.log
+LOCK
+LOG
+CURRENT
+NetworkData*
+Safe Browsing*
+frontend-vite.err.log
+frontend-vite.out.log
+
+# Ignore dependencies & build output
+node_modules/
+dist/
+build/
+.cache/
+tmp/
+temp/
+
+# Local scratch / generated files
+ItemSum_*.csv
+ItemSum_*.xlsx
+parse.cjs
+check-*.js
+get-*.js
+temp_*.tsx
+Jewelry Factory System/frontend/temp_*.tsx
+Jewelry Factory System/frontend/parse.cjs
+Jewelry Factory System/backend/check-*.js
+Jewelry Factory System/backend/get-*.js
+rewrite-*.js
+temp_*.js
+*.xlsx
+*.bundle
+!.env.example
+!**/.env.example

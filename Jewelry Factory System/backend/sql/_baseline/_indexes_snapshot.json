@@ -1,0 +1,9 @@
+[
+  {
+    "TableName": "GMCust",
+    "IndexName": "PK_GMCust",
+    "IndexType": "CLUSTERED",
+    "Uniq": true,
+    "KeyCols": "CustID"
+  }
+]

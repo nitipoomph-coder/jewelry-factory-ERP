@@ -1,0 +1,194 @@
+.erp-btn,
+.erp-icon-btn,
+.erp-segment {
+  border: 1px solid var(--erp-button-border, var(--color-border-light));
+  border-radius: var(--erp-button-radius, 6px);
+  font-family: var(--font-body);
+  font-size: var(--erp-button-font-size, var(--erp-text-dense));
+  font-weight: var(--erp-button-font-weight, 800);
+  letter-spacing: 0;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms ease, opacity 150ms ease;
+}
+
+.erp-btn {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.erp-btn--sm {
+  height: 28px;
+  padding: 0 9px;
+}
+
+.erp-btn--primary {
+  border-color: var(--color-brand-500);
+  background: var(--color-brand-500);
+  color: var(--color-text-inverse);
+}
+
+.erp-btn--secondary {
+  background: var(--color-surface-0);
+  color: var(--color-text-secondary);
+}
+
+.erp-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.erp-btn--danger {
+  border-color: color-mix(in srgb, var(--color-danger-500) 35%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-danger-500) 10%, var(--color-surface-0));
+  color: var(--color-danger-500);
+}
+
+.erp-btn:hover:not(:disabled),
+.erp-icon-btn:hover:not(:disabled),
+.erp-segment:hover {
+  border-color: color-mix(in srgb, var(--color-brand-500) 35%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-brand-500) 8%, var(--color-surface-0));
+  color: var(--color-brand-600);
+}
+
+.erp-btn:active:not(:disabled),
+.erp-icon-btn:active:not(:disabled),
+.erp-segment:active {
+  transform: scale(0.97);
+}
+
+.erp-btn:disabled,
+.erp-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.erp-btn:focus:not(:focus-visible),
+.erp-icon-btn:focus:not(:focus-visible),
+.erp-segment:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.erp-btn:focus-visible,
+.erp-icon-btn:focus-visible,
+.erp-segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-500) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.erp-btn__spinner {
+  animation: erpButtonSpin 800ms linear infinite;
+}
+
+.erp-icon-btn {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  background: var(--color-surface-0);
+  color: var(--color-text-secondary);
+}
+
+.erp-icon-btn--md {
+  width: 30px;
+  height: 30px;
+}
+
+.erp-icon-btn--view {
+  color: var(--color-info-500);
+}
+
+.erp-icon-btn--edit {
+  color: var(--color-warning-500);
+}
+
+.erp-icon-btn--refresh {
+  color: var(--color-text-secondary);
+}
+
+.erp-icon-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+}
+
+.erp-icon-btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: transparent;
+  color: var(--color-brand-600);
+}
+
+.erp-icon-btn--delete {
+  color: var(--color-danger-500);
+}
+
+.erp-icon-btn--export {
+  color: var(--color-success-500);
+}
+
+.erp-segmented {
+  position: relative;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-surface-2);
+  user-select: none;
+}
+
+.erp-segmented__indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 6px;
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-surface-900) 10%, transparent);
+  transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.erp-segment {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: none !important;
+  background: transparent !important;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0 10px;
+  white-space: nowrap;
+  font-weight: 700;
+  transition: color 0.18s ease;
+}
+
+.erp-segment:hover:not(.erp-segment--active) {
+  color: var(--color-text-secondary);
+}
+
+.erp-segment--active {
+  color: var(--color-text-primary) !important;
+  font-weight: 800 !important;
+}
+
+@keyframes erpButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

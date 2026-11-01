@@ -1,0 +1,22 @@
+/* src/components/dashboard/overview/DashboardOverview.css */
+/* Styles extracted from CardDetailPanel and StatCard to reduce TSX bloat */
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}

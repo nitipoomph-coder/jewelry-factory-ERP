@@ -1,0 +1,4 @@
+{
+  "watch": ["."],
+  "ignore": ["data/*", "data/**", "*.tmp", "scratch/*", "test_*.js"]
+}

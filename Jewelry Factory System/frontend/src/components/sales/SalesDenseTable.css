@@ -1,0 +1,356 @@
+.sales-dense-panel {
+  --sales-table-header-height: 34px;
+  --sales-table-row-height: 48px;
+  --sales-table-border: var(--color-border-light);
+  --sales-table-border-strong: var(--color-border-strong);
+  --sales-table-header-bg: var(--color-surface-2);
+  --sales-table-row-bg: var(--color-surface-0);
+  --sales-table-text: var(--color-text-primary);
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--sales-table-border);
+  border-radius: 8px;
+  background: var(--sales-table-row-bg);
+  animation: salesDensePanelIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sales-dense-panel__header {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--sales-table-border);
+  padding: 7px 10px;
+}
+
+.sales-dense-panel__title {
+  color: var(--sales-table-text);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+}
+
+.sales-dense-panel__meta {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sales-dense-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.sales-dense-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: var(--font-body);
+}
+
+.sales-dense-table th,
+.sales-dense-table td {
+  box-sizing: border-box;
+  border-right: 1px solid var(--sales-table-border-strong);
+  border-bottom: 1px solid var(--sales-table-border-strong);
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.sales-dense-table th {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  height: var(--sales-table-header-height);
+  background: var(--sales-table-header-bg);
+  text-align: center !important;
+  color: var(--sales-table-text);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+  line-height: 1.12;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sales-dense-table td {
+  height: var(--sales-table-row-height);
+  background: var(--sales-table-row-bg);
+  color: var(--sales-table-text);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background-color 140ms ease-out, color 140ms ease-out, border-color 140ms ease-out;
+}
+
+.sales-dense-table tbody tr {
+  animation: salesDenseRowIn 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sales-dense-panel--searching .sales-dense-table tbody tr,
+.sales-dense-panel--static-rows .sales-dense-table tbody tr {
+  animation: none;
+}
+
+.sales-dense-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-brand-500) 6%, var(--sales-table-row-bg));
+}
+
+.sales-dense-table--sticky-first th:first-child,
+.sales-dense-table--sticky-first td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 9;
+}
+
+.sales-dense-table--sticky-first th:first-child {
+  z-index: 12;
+}
+
+.sales-dense-table--sticky-first td:first-child {
+  background: var(--sales-table-row-bg);
+}
+
+.sales-dense-table__number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-dense-table__center {
+  text-align: center;
+}
+
+.sales-dense-table__code {
+  color: var(--sales-table-text);
+  font-weight: 900;
+}
+
+.sales-dense-table__sub {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--sales-table-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 700;
+  opacity: 0.58;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sales-dense-table__link {
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-600);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+  padding: 0;
+}
+
+.sales-dense-table__link:hover {
+  color: var(--color-brand-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sales-dense-table__tone-up {
+  color: var(--color-success-500);
+  font-weight: 900;
+}
+
+.sales-dense-table__tone-down {
+  color: var(--color-danger-500);
+  font-weight: 900;
+}
+
+.sales-dense-table__tone-muted {
+  color: var(--sales-table-text);
+  opacity: 0.58;
+}
+
+.sales-dense-badge {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-light);
+  border-radius: 4px;
+  background: var(--color-surface-1);
+  color: var(--sales-table-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 900;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.sales-dense-badge--success {
+  border-color: color-mix(in srgb, var(--color-success-500) 34%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-success-500) 10%, var(--sales-table-row-bg));
+  color: var(--color-success-500);
+}
+
+.sales-dense-badge--warning {
+  border-color: color-mix(in srgb, var(--color-warning-500) 34%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-warning-500) 10%, var(--sales-table-row-bg));
+  color: var(--color-warning-500);
+}
+
+.sales-dense-badge--danger {
+  border-color: color-mix(in srgb, var(--color-danger-500) 34%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-danger-500) 10%, var(--sales-table-row-bg));
+  color: var(--color-danger-500);
+}
+
+.sales-dense-badge--info {
+  border-color: color-mix(in srgb, var(--color-info-500) 34%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-info-500) 10%, var(--sales-table-row-bg));
+  color: var(--color-info-500);
+}
+
+.sales-dense-action {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-surface-1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out, transform 100ms ease-out;
+}
+
+.sales-dense-action:hover {
+  border-color: color-mix(in srgb, var(--color-brand-500) 36%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-brand-500) 8%, var(--color-surface-0));
+  color: var(--color-brand-600);
+}
+
+.sales-dense-action:active {
+  transform: scale(0.97);
+}
+
+.sales-dense-progress {
+  display: inline-flex;
+  width: 72px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+}
+
+.sales-dense-progress>span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand-500);
+  transition: width 180ms ease-out;
+}
+
+.sales-dense-empty {
+  height: 160px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+  text-align: center;
+}
+
+.sales-dense-loading-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.sales-dense-skeleton {
+  position: relative;
+  display: block;
+  height: 11px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sales-table-text) 10%, var(--sales-table-row-bg));
+}
+
+.sales-dense-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sales-table-text) 14%, transparent), transparent);
+  content: '';
+  transform: translateX(-110%);
+  animation: salesDenseSkeletonSweep 1.35s ease-in-out infinite;
+}
+
+.sales-dense-skeleton--photo {
+  height: 44px;
+}
+
+.sales-dense-pagination {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--sales-table-border);
+  padding: 7px 10px;
+}
+
+@keyframes salesDenseSkeletonSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  58%,
+  100% {
+    transform: translateX(115%);
+  }
+}
+
+@keyframes salesDensePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes salesDenseRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .sales-dense-panel,
+  .sales-dense-table tbody tr,
+  .sales-dense-skeleton::after {
+    animation: none;
+  }
+
+  .sales-dense-table td,
+  .sales-dense-action,
+  .sales-dense-progress>span {
+    transition: none;
+  }
+}

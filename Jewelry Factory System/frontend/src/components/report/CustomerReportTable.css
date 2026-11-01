@@ -1,0 +1,573 @@
+.customer-matrix-shell {
+  --matrix-header-height: 34px;
+  --matrix-subheader-height: 34px;
+  --matrix-row-min-height: 48px;
+  --matrix-cell-padding-x: 6px;
+  --matrix-cell-padding-y: 6px;
+  --matrix-border-color: var(--color-border-light);
+  --matrix-border-strong: var(--color-border-strong);
+  --matrix-header-bg: var(--color-surface-2);
+  --matrix-subheader-bg: var(--color-surface-1);
+  --matrix-row-bg: var(--color-surface-0);
+  --matrix-row-alt-bg: var(--matrix-row-bg);
+  --matrix-hover-bg: var(--matrix-row-bg);
+  --matrix-data-text: var(--color-text-primary);
+  --matrix-current-bg: color-mix(in srgb, var(--color-brand-500) 12%, var(--matrix-row-bg));
+  --matrix-font-size-header: var(--erp-text-dense);
+  --matrix-font-size-cell: var(--erp-text-dense);
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--matrix-border-color);
+  border-radius: 8px;
+  background: var(--matrix-row-bg);
+  animation: customerMatrixTableIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.customer-matrix-control-bar {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--matrix-border-color);
+  background: var(--matrix-row-bg);
+  padding: 5px 8px;
+}
+
+.customer-matrix-control-group {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.customer-matrix-control-spacer {
+  flex: 1;
+}
+
+.customer-matrix-search {
+  display: inline-flex;
+  width: min(240px, 34vw);
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--matrix-border-color);
+  border-radius: 6px;
+  background: var(--color-surface-1);
+  padding: 0 8px;
+  color: var(--color-text-tertiary);
+}
+
+.customer-matrix-search:focus-within {
+  border-color: color-mix(in srgb, var(--color-brand-500) 44%, var(--matrix-border-color));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-500) 14%, transparent);
+}
+
+.customer-matrix-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--matrix-data-text);
+  font-family: var(--font-body);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+.customer-matrix-search input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.customer-matrix-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+  flex-shrink: 0;
+}
+
+.customer-matrix-search-clear:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+}
+
+.customer-matrix-count {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.customer-matrix-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.customer-matrix-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: var(--font-body);
+}
+
+.customer-matrix-table th,
+.customer-matrix-table td {
+  box-sizing: border-box;
+  border-right: 1px solid var(--matrix-border-strong);
+  border-bottom: 1px solid var(--matrix-border-strong);
+  padding: var(--matrix-cell-padding-y) var(--matrix-cell-padding-x);
+  vertical-align: middle;
+}
+
+.customer-matrix-th {
+  position: sticky;
+  z-index: 20;
+  height: var(--matrix-header-height);
+  background: var(--matrix-header-bg);
+  color: var(--matrix-data-text);
+  font-size: var(--matrix-font-size-header);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  transition: background-color 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
+}
+
+.customer-matrix-th--top {
+  top: 0;
+}
+
+.customer-matrix-th--sub {
+  top: var(--matrix-header-height);
+  background: var(--matrix-subheader-bg);
+}
+
+.customer-matrix-th--customer {
+  left: 0;
+  min-width: 160px;
+  width: 160px;
+  padding: 7px 8px;
+  text-align: left;
+  z-index: 31;
+}
+
+.customer-matrix-sort-stack {
+  display: flex;
+  min-height: 58px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.customer-matrix-year-label,
+.customer-matrix-growth-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.customer-matrix-year-label span:last-child,
+.customer-matrix-growth-label span:last-child {
+  color: var(--color-brand-600);
+  font-size: var(--erp-text-meta);
+  font-weight: 800;
+}
+
+.customer-matrix-row {
+  min-height: var(--matrix-row-min-height);
+  background: var(--matrix-row-bg);
+  animation: customerMatrixRowIn 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.customer-matrix-row:nth-child(even) {
+  background: var(--matrix-row-bg);
+}
+
+.customer-matrix-shell--searching .customer-matrix-row {
+  animation: none;
+}
+
+.customer-matrix-row:hover td:not(.customer-matrix-current):not(.customer-matrix-td--growth) {
+  background: var(--matrix-hover-bg);
+}
+
+.customer-matrix-row:hover td.customer-matrix-current {
+  background: var(--matrix-current-bg);
+}
+
+.customer-matrix-td {
+  height: var(--matrix-row-min-height);
+  color: var(--matrix-data-text);
+  font-size: var(--matrix-font-size-cell);
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: background-color 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
+}
+
+.customer-matrix-td--customer,
+.customer-matrix-footer-label {
+  position: sticky;
+  left: 0;
+  z-index: 9;
+  min-width: 160px;
+  width: 160px;
+  background: inherit;
+  color: var(--matrix-data-text);
+  font-weight: 900;
+}
+
+.customer-matrix-td--number {
+  min-width: 92px;
+  width: 92px;
+  text-align: right;
+}
+
+.customer-matrix-td--total {
+  min-width: 108px;
+  width: 108px;
+  text-align: right;
+}
+
+.customer-matrix-total {
+  color: var(--matrix-data-text);
+  font-weight: 900;
+  text-align: right;
+}
+
+.customer-matrix-td--growth {
+  min-width: 118px;
+  width: 118px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.customer-matrix-th.customer-matrix-td--growth {
+  text-align: center;
+}
+
+.customer-matrix-current {
+  background: var(--matrix-current-bg);
+}
+
+.customer-matrix-total {
+  color: var(--matrix-data-text);
+  font-weight: 900;
+}
+
+.customer-matrix-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 18;
+}
+
+.customer-matrix-footer td {
+  background: var(--matrix-header-bg);
+  color: var(--matrix-data-text);
+}
+
+.customer-matrix-footer td.customer-matrix-current {
+  background: var(--matrix-current-bg);
+}
+
+.customer-matrix-empty {
+  padding: 36px;
+  color: var(--color-text-secondary);
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+  text-align: center;
+}
+
+.customer-matrix-shell--loading {
+  min-height: 420px;
+}
+
+.customer-matrix-control-bar--loading {
+  pointer-events: none;
+}
+
+.customer-matrix-loading-status {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.customer-matrix-loading-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.customer-matrix-loading-row-grid {
+  display: grid;
+  min-height: var(--matrix-row-min-height);
+  grid-template-columns: minmax(160px, 1.2fr) repeat(var(--matrix-skeleton-columns), minmax(92px, 1fr));
+  width: max-content;
+  min-width: 100%;
+}
+
+.customer-matrix-loading-row-grid--header,
+.customer-matrix-loading-row-grid--subheader {
+  position: sticky;
+  z-index: 19;
+}
+
+.customer-matrix-loading-row-grid--header {
+  top: 0;
+  min-height: var(--matrix-header-height);
+}
+
+.customer-matrix-loading-row-grid--subheader {
+  top: var(--matrix-header-height);
+  min-height: var(--matrix-subheader-height);
+}
+
+.customer-matrix-loading-row-grid--footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 18;
+}
+
+.customer-matrix-loading-row-grid--data {
+  opacity: 0;
+  animation: customerMatrixRowIn 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.customer-matrix-loading-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  border-right: 1px solid var(--matrix-border-strong);
+  border-bottom: 1px solid var(--matrix-border-strong);
+  background: var(--matrix-row-bg);
+  padding: var(--matrix-cell-padding-y) var(--matrix-cell-padding-x);
+}
+
+.customer-matrix-loading-cell--header {
+  background: var(--matrix-header-bg);
+}
+
+.customer-matrix-loading-cell--subheader {
+  background: var(--matrix-subheader-bg);
+}
+
+.customer-matrix-loading-cell--footer {
+  background: var(--matrix-header-bg);
+  border-top: 1px solid var(--matrix-border-strong);
+}
+
+.customer-matrix-loading-cell--current {
+  background: var(--matrix-current-bg);
+}
+
+.customer-matrix-loading-cell--customer {
+  position: sticky;
+  left: 0;
+  z-index: 21;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  background: inherit;
+  padding: 7px 8px;
+}
+
+.customer-matrix-loading-cell--customer.customer-matrix-loading-cell--header,
+.customer-matrix-loading-cell--customer.customer-matrix-loading-cell--subheader {
+  background: var(--matrix-header-bg);
+}
+
+.customer-matrix-skeleton {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  width: var(--matrix-skeleton-width, 70%);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--matrix-data-text) 10%, var(--matrix-row-bg));
+}
+
+.customer-matrix-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--matrix-data-text) 14%, transparent) 45%, transparent 82%);
+  content: '';
+  transform: translateX(-110%);
+  animation: customerMatrixSkeletonSweep 1.35s ease-in-out infinite;
+}
+
+.customer-matrix-skeleton--segment {
+  width: 118px;
+  height: 28px;
+}
+
+.customer-matrix-skeleton--search {
+  width: min(240px, 34vw);
+  height: 28px;
+}
+
+.customer-matrix-skeleton--icon {
+  width: 26px;
+  height: 26px;
+}
+
+.customer-matrix-loading-reload {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--matrix-border-color);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-brand-500) 8%, var(--matrix-row-bg));
+  color: var(--color-brand-600);
+}
+
+.customer-matrix-skeleton--button {
+  width: 74px;
+  height: 28px;
+}
+
+.customer-matrix-skeleton--header,
+.customer-matrix-skeleton--subheader,
+.customer-matrix-skeleton--value {
+  height: 10px;
+}
+
+.customer-matrix-skeleton--customer-label {
+  width: 82px;
+  height: 11px;
+}
+
+.customer-matrix-skeleton--sort {
+  width: 86px;
+  height: 20px;
+}
+
+.customer-matrix-skeleton--customer-id {
+  height: 11px;
+}
+
+.customer-matrix-skeleton--customer-sub {
+  width: 62%;
+  height: 8px;
+  opacity: 0.72;
+}
+
+.customer-matrix-cell-value {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.customer-matrix-currency {
+  color: var(--matrix-data-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 900;
+}
+
+.customer-matrix-muted {
+  color: var(--matrix-data-text);
+}
+
+.customer-matrix-top-item {
+  display: block;
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--matrix-data-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes customerMatrixSkeletonSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  58%,
+  100% {
+    transform: translateX(115%);
+  }
+}
+
+@keyframes customerMatrixTableIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes customerMatrixRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .customer-matrix-shell,
+  .customer-matrix-row,
+  .customer-matrix-loading-row-grid--data,
+  .customer-matrix-skeleton::after {
+    animation: none;
+  }
+
+  .customer-matrix-th,
+  .customer-matrix-td,
+  .customer-matrix-skeleton {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .customer-matrix-control-bar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .customer-matrix-control-spacer {
+    display: none;
+  }
+
+  .customer-matrix-search {
+    width: 100%;
+  }
+
+  .customer-matrix-skeleton--search {
+    width: 100%;
+  }
+
+  .customer-matrix-loading-status {
+    width: 100%;
+  }
+}

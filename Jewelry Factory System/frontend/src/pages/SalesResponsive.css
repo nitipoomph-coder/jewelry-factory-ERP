@@ -1,0 +1,149 @@
+.sales-page-frame {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sales-page-frame--dense {
+  --app-page-gutter: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+.sales-page-commandbar {
+  flex-wrap: wrap;
+}
+
+.sales-page-commandbar__left {
+  flex-wrap: wrap;
+}
+
+.sales-page-filter-popover {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.sales-page-filter-fields {
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+}
+
+.sales-report-page {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  padding-bottom: 40px;
+}
+
+.sales-report-kpis {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px var(--app-page-gutter);
+}
+
+.sales-report-table-region {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 0 var(--app-page-gutter) 32px;
+}
+
+.sales-gallery-scroll {
+  padding: 24px;
+}
+
+.sales-gallery-topbar-tools {
+  width: min(78vw, 1180px);
+  max-width: 100%;
+}
+
+.sales-gallery-period-menu {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.sales-top-items-analytics-frame {
+  height: 100%;
+  min-height: 0;
+}
+
+.sales-order-detail-frame {
+  height: 100%;
+  min-height: 0;
+}
+
+@container app-main (max-width: 1200px) {
+  .sales-gallery-scroll {
+    padding: 20px;
+  }
+
+  .sales-gallery-topbar-tools {
+    width: 100%;
+  }
+}
+
+@container app-main (max-width: 820px) {
+  .sales-order-detail-frame {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .sales-page-commandbar {
+    align-items: flex-start;
+  }
+
+  .sales-page-commandbar__left,
+  .sales-page-commandbar__right {
+    width: 100%;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .sales-page-filter-popover {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-page-filter-periods {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .sales-report-kpis {
+    padding-top: 12px;
+  }
+
+  .sales-gallery-scroll {
+    padding: 16px;
+  }
+}
+
+@container app-main (max-width: 620px) {
+  .sales-page-frame--dense {
+    --app-page-gutter: 10px;
+  }
+
+  .sales-page-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-report-kpis {
+    gap: 8px;
+  }
+
+  .sales-report-kpis > * {
+    min-width: 0 !important;
+    flex-basis: 100% !important;
+  }
+
+  .sales-gallery-scroll {
+    padding: 12px;
+  }
+}

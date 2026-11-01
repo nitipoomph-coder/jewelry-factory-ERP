@@ -1,0 +1,307 @@
+.sales-summary-page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.sales-summary-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sales-summary-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+@media (min-width: 1100px) {
+  .sales-summary-main-grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+@media (min-width: 1500px) {
+  .sales-summary-main-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+}
+
+.sales-summary-chart {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  min-height: 520px;
+}
+
+.sales-summary-chart-body {
+  flex: 1;
+  min-height: 440px;
+  height: 100%;
+}
+
+.sales-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  min-width: 0;
+  align-content: start;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.sales-summary-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sales-summary-cards::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sales-summary-cards::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 10px;
+}
+
+@media (min-width: 1100px) {
+  .sales-summary-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sales-summary-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: var(--shadow-dropdown);
+  animation: fadeInDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sales-gallery-period-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1000;
+  background: var(--color-surface-0) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--color-surface-900) 18%, transparent),
+    0 1px 3px color-mix(in srgb, var(--color-surface-900) 5%, transparent) !important;
+  animation: fadeInDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom styling for all dropdown selects inside period popup menu */
+.sales-gallery-period-menu select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' width='10' height='6' viewBox='0 0 12 7' xmlns='http://www.w3.org/2000/svg'><path d='M1 1L6 6L11 1'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 10px 6px !important;
+  padding-right: 28px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--color-border-light) !important;
+  background-color: var(--color-surface-0) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 800 !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none !important;
+}
+
+.sales-gallery-period-menu select:hover:not(:disabled) {
+  border-color: var(--color-brand-400) !important;
+  background-color: var(--color-surface-1) !important;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-card {
+  animation: fadeSlideUp 0.35s ease-out forwards;
+  will-change: transform, box-shadow;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease-in-out !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--color-surface-900) 40%, transparent) !important;
+}
+
+.kpi-card:active {
+  transform: translateY(0px) scale(0.985);
+  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--color-surface-900) 30%, transparent) !important;
+}
+
+/* Add slight animation stagger for grouped cards */
+.sales-summary-cards>.kpi-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.sales-summary-cards>.kpi-card:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+
+.sales-gallery-period-menu select:focus:not(:disabled) {
+  border-color: var(--color-brand-500) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 15%, transparent) !important;
+}
+
+.sales-gallery-period-menu select:disabled {
+  background-color: var(--color-surface-2) !important;
+  color: var(--color-text-quaternary) !important;
+  border-color: var(--color-border-light) !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Styling comparison checkbox wrappers */
+.sales-gallery-period-menu input[type="checkbox"] {
+  border-radius: 4px !important;
+  border: 1px solid var(--color-border-light) !important;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Card toolbar in Sales Summary: completely borderless, active item has light background */
+.sales-summary-toolbar .erp-segmented {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  gap: 2px !important;
+}
+
+.sales-summary-toolbar .erp-segment {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--color-text-secondary) !important;
+  font-weight: 700 !important;
+  font-size: var(--erp-text-control, 12px) !important;
+  padding: 4px 10px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+
+.sales-summary-toolbar .erp-segment:hover:not(.erp-segment--active) {
+  background: var(--color-surface-2) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.sales-summary-toolbar .erp-segment--active {
+  background: color-mix(in srgb, var(--color-brand-500) 12%, var(--color-surface-0)) !important;
+  color: var(--color-brand-600) !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@media print {
+  .sales-summary-page {
+    padding: 16px !important;   /* คืนค่า padding ให้มีขอบ (breathing room) ตอนพิมพ์ จะได้ไม่ชิดขอบกระดาษเกินไป */
+  }
+
+  /* 1. ปลดล็อกความสูงที่ผูกกับ 100vh ทั้งหมด */
+  .sales-summary-chart {
+    height: 160mm !important;   /* คืนค่า 160mm เพราะเราจะเอา KPI ไปไว้ด้านขวาแล้ว */
+    min-height: 0 !important;
+  }
+
+  .sales-summary-cards {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 2. แสดงผล 2 คอลัมน์ (กราฟซ้าย, KPI ขวา) เหมือนบนหน้าจอ */
+  .sales-summary-main-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 2.2fr) minmax(300px, 1fr) !important;
+    gap: 16px !important;
+    align-items: start !important;
+  }
+
+  /* 3. กันการ์ดแต่ละใบโดนตัดกลาง */
+  .kpi-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 4. คุมสีให้ตรงจอ */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}

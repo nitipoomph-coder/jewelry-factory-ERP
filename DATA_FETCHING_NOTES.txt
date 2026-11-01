@@ -1,0 +1,90 @@
+Top Orders / Customer Sales Data Fetching Notes
+===============================================
+
+TopOrdersGalleryPage / TopOrdersAnalyticsPage
+---------------------------------------------
+Initial load:
+- Calls /api/dashboard/years.
+- Then calls /api/dashboard/customer-summary?years=...&months=...
+
+/api/dashboard/customer-summary returns:
+- Customer totals by CustCode + year + month from OrdHD.
+- Monthly sales amount and monthly qty.
+- Best item per customer from OrdHD + OrdDT.
+- Best item per customer per year.
+- Best item per customer per year per product type.
+
+Frontend state:
+- The customer-summary response is stored in React state as custData.
+- This is in-memory only while the page is open.
+- It is not persisted to localStorage and not cached in a DB table.
+
+Frontend-only filtering:
+- Customer group.
+- Product type.
+- Search text.
+- Metric mode: amount or qty.
+- Base year selection.
+
+Refetch behavior:
+- Period/month changes refetch /api/dashboard/customer-summary.
+- Refetch is needed because totals and item summaries are recalculated from DB for the selected month range.
+
+Comparison behavior:
+- When comparison is enabled, visible customer/item pairs call:
+  /api/items/yearly-summary?pairs=customer|item,...&years=compare,base&months=...
+- Comparison data comes from OrdHD + OrdDT.
+- It returns qty, value, order count, and line count by year for visible pairs.
+
+Customer Sales Analysis
+-----------------------
+Overview page calls:
+- /api/dashboard/sales-customer-groups for customer/group KPI rows.
+- /api/dashboard/top-items?limit=30 for item/order-line rows sorted by active metric.
+
+Detail page calls:
+- /api/dashboard/sales-orders for order-level rows.
+
+Sales endpoint vocabulary:
+- Keep Sales pages limited to customer, item, amount, qty, shipped qty, due date, and Sales status.
+- Sales statuses are Open, Partial, Shipped, Late.
+- Do not duplicate production-stage detail in Sales pages.
+
+File Split Guidance
+-------------------
+Recommendation: yes, split the frontend files before adding more features.
+
+Reason:
+- TopOrdersGalleryPage.tsx and TopOrdersAnalyticsPage.tsx are already large.
+- Future changes will be safer if reusable UI and pure calculations are separated.
+
+Suggested split:
+- Keep page files responsible for route state, query params, and data orchestration.
+- Move period controls, filter dropdowns, comparison overlay/strip, item card, preview modal, and formatting helpers into frontend/src/components/topOrders/.
+- Move shared top-orders types and pure helpers into a small model file, for example frontend/src/pages/topOrdersModel.ts or frontend/src/services/topOrdersModel.ts.
+
+Backend split guidance:
+- Do not split backend SQL blindly yet.
+- If backend/routes/dashboard.js keeps growing, extract repeated sales filter builders and SQL mapping helpers first.
+- Consider a separate route file only when the sales/top-orders endpoints become a stable group with shared helpers.
+
+Domain Split Update - 2026-07-16
+--------------------------------
+Implemented the first split before deeper UI refactors. Existing API URLs are preserved.
+
+Frontend services:
+- dashboardAPI.ts now owns dashboard core and temporary compatibility re-exports.
+- customerSummaryAPI.ts owns customer summary fetching.
+- customerSalesAPI.ts owns customer sales/top-items fetching.
+- itemYearlySummaryAPI.ts owns item yearly comparison fetching.
+
+Backend routes:
+- dashboard.js now owns dashboard core.
+- customerSummary.js owns customer-summary.
+- customerSales.js owns sales analytics/top-items.
+- itemYearlySummary.js owns item yearly summary endpoints.
+- items.js stays as a compatibility wrapper.
+
+Next split candidate:
+- TopOrdersGalleryPage.tsx can later be split into components/topOrders/ and a pure model/helper file.
+- TopOrdersAnalyticsPage.tsx should remain light-touch until the new UX is confirmed.

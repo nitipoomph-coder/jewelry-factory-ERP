@@ -1,0 +1,1990 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Kanit:wght@300;400;500;600;700;800&family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* UI THEME BASE: MODERN DARK (Active default) */
+  /* Brand Hues (Blue-Indigo) */
+  --color-brand-50: oklch(0.25 0.08 245);
+  --color-brand-100: oklch(0.32 0.10 245);
+  --color-brand-200: oklch(0.40 0.12 245);
+  --color-brand-300: oklch(0.50 0.13 245);
+  --color-brand-400: oklch(0.60 0.14 245);
+  --color-brand-500: oklch(0.68 0.14 245);
+  --color-brand-600: oklch(0.78 0.11 245);
+  --color-brand-700: oklch(0.86 0.07 245);
+  --color-brand-800: oklch(0.93 0.04 245);
+  --color-brand-900: oklch(0.97 0.02 245);
+
+  /* Accent */
+  --color-accent-50: oklch(0.30 0.05 200);
+  --color-accent-100: oklch(0.40 0.10 200);
+  --color-accent-500: oklch(0.72 0.14 200);
+  --color-accent-600: oklch(0.82 0.10 200);
+
+  /* Danger */
+  --color-danger-50: oklch(0.30 0.08 25);
+  --color-danger-100: oklch(0.40 0.14 25);
+  --color-danger-200: oklch(0.50 0.16 25);
+  --color-danger-500: oklch(0.68 0.18 25);
+  --color-danger-600: oklch(0.74 0.15 25);
+  --color-danger-700: oklch(0.80 0.12 25);
+
+  /* Warning */
+  --color-warning-50: oklch(0.30 0.06 80);
+  --color-warning-500: oklch(0.75 0.16 80);
+  --color-warning-100: oklch(0.40 0.10 80);
+  --color-warning-600: oklch(0.82 0.12 80);
+
+  /* Success */
+  --color-success-50: oklch(0.30 0.06 150);
+  --color-success-100: oklch(0.40 0.10 150);
+  --color-success-500: oklch(0.70 0.16 150);
+  --color-success-600: oklch(0.76 0.13 150);
+  --color-success-700: oklch(0.82 0.10 150);
+
+  /* Info / Processing */
+  --color-info-50: oklch(0.30 0.06 220);
+  --color-info-100: oklch(0.40 0.10 220);
+  --color-info-500: oklch(0.70 0.15 220);
+  --color-info-600: oklch(0.80 0.11 220);
+
+  /* Factory Production Process Stages */
+  --color-proc-casting: oklch(0.58 0.16 250);
+  /* Soft Slate Blue */
+  --color-proc-grinding: oklch(0.58 0.16 300);
+  /* Soft Amethyst Violet */
+  --color-proc-polishing: oklch(0.60 0.16 165);
+  /* Vibrant Mint Green */
+  --color-proc-plating: oklch(0.72 0.14 85);
+  /* Rich Gold Plating */
+  --color-proc-qc: oklch(0.65 0.18 45);
+  /* Alert Orange for QC */
+  --color-proc-packing: oklch(0.52 0.15 135);
+  /* Forest Green for Final Packing */
+
+  /* Surface */
+  --color-surface-0: oklch(0.22 0.03 250);
+  --color-surface-1: oklch(0.18 0.03 250);
+  --color-surface-2: oklch(0.28 0.03 250);
+  --color-surface-800: oklch(0.12 0.02 250);
+  --color-surface-900: oklch(0.08 0.02 250);
+
+  /* Text */
+  --color-text-primary: oklch(0.95 0.01 250);
+  --color-text-secondary: oklch(0.80 0.02 250);
+  --color-text-tertiary: oklch(0.68 0.03 250);
+  --color-text-quaternary: oklch(0.66 0.02 250);
+  --text-muted: var(--color-text-tertiary);
+  --color-text-inverse: oklch(0.15 0.02 250);
+  --color-overlay-text: oklch(0.98 0.01 250);
+  --color-overlay-text-muted: oklch(0.82 0.02 250);
+  --color-product-canvas: oklch(0.99 0.002 260);
+
+  /* Border - Refined soft borders for modern enterprise UI */
+  --color-border-light: oklch(0.30 0.02 250);
+  --color-border-default: oklch(0.38 0.02 250);
+  --color-border-strong: oklch(0.48 0.02 250);
+
+  /* Sidebar */
+  --color-sidebar: oklch(0.16 0.03 250);
+  --color-sidebar-hover: oklch(0.20 0.03 250);
+  --color-sidebar-text: oklch(0.75 0.02 250);
+  --color-sidebar-text-active: oklch(0.95 0.01 250);
+  --color-sidebar-accent: oklch(0.68 0.14 245);
+  --color-sidebar-divider: oklch(0.26 0.03 250);
+
+  /* Chart Series Colors (Enterprise Corporate Palette) */
+  --color-chart-1: oklch(0.62 0.17 255);
+  --color-chart-2: oklch(0.62 0.14 165);
+  --color-chart-3: oklch(0.70 0.15 80);
+  --color-chart-4: oklch(0.60 0.17 300);
+  --color-chart-5: oklch(0.60 0.18 20);
+  --color-chart-6: oklch(0.55 0.05 255);
+
+
+
+  /* Customer Group Series Colors - WCAG Accessible per theme */
+  --color-customer-group-n008: oklch(0.72 0.12 215);
+  --color-customer-group-n044: var(--color-chart-3);
+  --color-customer-group-n098: oklch(0.75 0.16 55);
+  --color-customer-group-n051: oklch(0.72 0.15 145);
+  --color-customer-group-n083: var(--color-chart-5);
+  --color-customer-group-mlt: var(--color-chart-6);
+  --color-customer-group-general: var(--color-text-tertiary);
+
+  /* Production Summary Table Row Backgrounds */
+  --color-prod-total-row-bg: color-mix(in srgb, var(--color-chart-1) 10%, var(--color-surface-0));
+  --color-prod-avg-row-bg: color-mix(in srgb, var(--color-chart-2) 10%, var(--color-surface-0));
+
+  /* Semantic Status Role Tokens — soft bg for badges / chips */
+  --color-status-success-soft: color-mix(in srgb, var(--color-success-500) 10%, var(--color-surface-0));
+  --color-status-warning-soft: color-mix(in srgb, var(--color-warning-500) 10%, var(--color-surface-0));
+  --color-status-danger-soft: color-mix(in srgb, var(--color-danger-500) 10%, var(--color-surface-0));
+  --color-status-info-soft: color-mix(in srgb, var(--color-info-500) 10%, var(--color-surface-0));
+
+  /* Production Tracking Stepper Semantic Tokens */
+  --color-track-done: var(--color-success-500);
+  --color-track-done-text: var(--color-success-600);
+  --color-track-done-border: var(--color-success-500);
+  --color-track-done-soft: var(--color-status-success-soft);
+  --color-track-current: var(--color-warning-500);
+  --color-track-current-text: var(--color-warning-600);
+  --color-track-current-border: var(--color-warning-600);
+  --color-track-current-soft: var(--color-status-warning-soft);
+  --color-track-current-ring: color-mix(in srgb, var(--color-warning-500) 30%, transparent);
+  --color-track-pending: var(--color-surface-2);
+  --color-track-pending-text: var(--color-text-quaternary);
+  --color-track-pending-border: var(--color-border-default);
+  --color-track-line: var(--color-border-default);
+  --color-track-line-active: var(--color-success-500);
+  --color-track-progress-fill: var(--color-info-500);
+
+  /* Table Colors */
+  --color-table-header: var(--color-surface-2);
+  --color-table-row-alt: color-mix(in srgb, var(--color-surface-1) 65%, var(--color-surface-0));
+  --color-table-footer: color-mix(in srgb, var(--color-brand-500) 6%, var(--color-surface-0));
+
+  /* Fonts */
+  --font-logo: 'Cinzel', serif;
+  --font-display: 'Roboto', sans-serif;
+  --font-body: 'Roboto', sans-serif;
+
+  /* 60-30-10 role tokens: canvas / working surfaces / interaction accent */
+  --color-ui-canvas: var(--color-surface-1);
+  --color-ui-surface: var(--color-surface-0);
+  --color-ui-raised: var(--color-surface-2);
+  --color-ui-interactive: var(--color-brand-500);
+  --color-ui-interactive-hover: var(--color-brand-600);
+  --color-ui-interactive-soft: var(--color-brand-50);
+  --color-ui-on-interactive: var(--color-text-inverse);
+  --color-ui-selected: color-mix(in srgb, var(--color-brand-500) 9%, var(--color-surface-0));
+  --color-ui-focus-ring: color-mix(in srgb, var(--color-brand-500) 65%, transparent);
+
+  /* Login-specific brand palette: fixed across application themes. */
+  --color-login-parchment: #f3eee3;
+  --color-login-parchment-translucent: rgba(243, 238, 227, 0.75);
+  --color-login-ink: #15120e;
+  --color-login-ink-deep: #1d1812;
+  --color-login-ink-soft: #322c24;
+  --color-login-muted: #948c7e;
+  --color-login-sepia: #8a5f37;
+  --color-login-sepia-soft: rgba(138, 95, 55, 0.25);
+  --color-login-sepia-divider: rgba(138, 95, 55, 0.30);
+  --color-login-gold: #c9a875;
+  --color-login-gold-hover: #e3cfa3;
+  --color-login-gold-soft: rgba(201, 168, 117, 0.10);
+  --color-login-scrim: rgba(0, 0, 0, 0.60);
+  --color-login-shadow-soft: rgba(0, 0, 0, 0.20);
+  --color-login-shadow-strong: rgba(0, 0, 0, 0.50);
+  --color-login-sheen: rgba(255, 255, 255, 0.20);
+
+  /* Shared overlays and fixed-media surfaces */
+  --color-overlay-scrim: oklch(0.08 0.02 250 / 0.72);
+  --color-overlay-scrim-soft: oklch(0.08 0.02 250 / 0.46);
+  --color-tooltip-surface: oklch(0.14 0.02 250 / 0.97);
+  --color-overlay-border: oklch(0.98 0.01 250 / 0.14);
+  --color-overlay-control: oklch(0.98 0.01 250 / 0.10);
+  --color-theme-preview-royal: oklch(0.99 0.002 260);
+  --color-theme-preview-gold: oklch(0.78 0.17 85);
+  --color-theme-preview-dark: oklch(0.68 0.14 245);
+
+  /* Ranked data is a semantic exception to the interaction accent. */
+  --color-rank-1: oklch(0.72 0.15 80);
+  --color-rank-2: oklch(0.68 0.02 260);
+  --color-rank-3: oklch(0.55 0.13 55);
+  --color-on-rank: oklch(0.15 0.02 260);
+}
+
+:root {
+  /* Compact ERP typography scale */
+  --erp-text-meta: 0.625rem;
+  --erp-text-dense: 0.6875rem;
+  --erp-text-control: 0.75rem;
+  --erp-text-body: 0.8125rem;
+  --erp-text-panel: 0.875rem;
+  --erp-text-section: 1rem;
+  --erp-text-page: 1.25rem;
+  --erp-text-kpi: 1.25rem;
+  --erp-text-grand: 1.5rem;
+
+  --shadow-panel: 0 2px 12px -4px oklch(0.08 0.02 250 / 0.08);
+  --shadow-dropdown: 0 12px 40px oklch(0.08 0.02 250 / 0.16);
+  --shadow-floating: 0 16px 42px oklch(0.08 0.02 250 / 0.22);
+  --shadow-modal: 0 25px 60px oklch(0.08 0.02 250 / 0.30);
+  --shadow-inset-soft: inset 0 2px 4px oklch(0.98 0.01 250 / 0.10);
+  --shadow-inset-panel: inset 0 2px 8px oklch(0.08 0.02 250 / 0.08);
+  --shadow-pinned: 4px 0 12px -4px oklch(0.08 0.02 250 / 0.14);
+  --shadow-drawer: -20px 0 50px oklch(0.08 0.02 250 / 0.25);
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  background: var(--color-ui-canvas);
+}
+
+.app-main {
+  min-width: 0;
+  min-height: 0;
+  container: app-main / inline-size;
+  background: var(--color-ui-canvas);
+}
+
+.app-sidebar {
+  height: 100%;
+  min-height: 0;
+  transition: width 180ms ease, min-width 180ms ease, transform 180ms ease;
+}
+
+.app-sidebar-scrim {
+  display: none;
+}
+
+.app-page {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--color-ui-canvas);
+}
+
+.app-page-scroll {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.app-panel {
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  background: var(--color-ui-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.app-skeleton {
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-1) 50%, var(--color-surface-2) 75%);
+  background-size: 220% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes progressStripesMotion {
+  from {
+    background-position: 28px 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.progress-bar-stripes-active {
+  background-image: linear-gradient(
+    45deg,
+    color-mix(in srgb, white 22%, transparent) 25%,
+    transparent 25%,
+    transparent 50%,
+    color-mix(in srgb, white 22%, transparent) 50%,
+    color-mix(in srgb, white 22%, transparent) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 28px 28px;
+  animation: progressStripesMotion 1s linear infinite;
+}
+
+@keyframes donutExecutiveGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--color-warning-500) 25%, transparent));
+    opacity: 0.95;
+  }
+  50% {
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-warning-500) 55%, transparent));
+    opacity: 1;
+  }
+}
+
+@keyframes donutExecutiveSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.donut-pulse-active {
+  animation: donutExecutiveGlow 3s ease-in-out infinite;
+}
+
+.donut-loading-spin {
+  transform-origin: 59px 59px;
+  animation: donutExecutiveSpin 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.donut-shimmer-line {
+  opacity: 0;
+  filter: blur(2.5px);
+  mix-blend-mode: overlay;
+  animation: shimmerTravel 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmerTravel {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: var(--shimmer-end);
+    opacity: 0;
+  }
+}
+
+@keyframes stepPulseBlink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px var(--color-track-current-soft), 0 0 8px color-mix(in srgb, var(--color-warning-500) 60%, transparent);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 2px var(--color-track-current-soft);
+  }
+}
+
+.step-current-blink {
+  animation: stepPulseBlink 2.4s ease-in-out infinite;
+}
+
+@keyframes textBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.text-current-blink {
+  animation: textBlink 2.4s ease-in-out infinite;
+}
+
+.dashboard-stat-grid,
+.dashboard-duo-grid,
+.dashboard-triple-grid,
+.dashboard-bottom-grid,
+.dashboard-recent-grid {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.dashboard-stat-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dashboard-duo-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-triple-grid {
+  grid-template-columns: 1.2fr 1fr 1fr;
+}
+
+.dashboard-bottom-grid {
+  grid-template-columns: 1fr 1.4fr;
+}
+
+.dashboard-recent-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+}
+
+.dashboard-detail-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-detail-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(180px, 0.7fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.vendor-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.vendor-kpi-grid,
+.vendor-chart-grid {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.vendor-kpi-grid {
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+}
+
+.vendor-chart-grid {
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+}
+
+.po-tracker-page {
+  min-height: 100%;
+}
+
+.po-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.po-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.po-filter-popover {
+  max-width: min(640px, calc(100vw - 88px)) !important;
+}
+
+.order-detail-loading {
+  min-width: 780px;
+  overflow: hidden;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-ui-surface);
+}
+
+.order-detail-loading__row {
+  display: grid;
+  grid-template-columns: 90px 130px 1.4fr repeat(5, minmax(90px, 1fr));
+  gap: 16px;
+  min-height: 42px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.order-detail-loading__row--header {
+  min-height: 38px;
+  background: var(--color-surface-1);
+}
+
+.order-detail-loading__row .app-skeleton {
+  height: 12px;
+}
+
+.item-detail-table th,
+.item-detail-table td {
+  padding: 10px 12px !important;
+}
+
+/* Keep operational typography stable across themes, pages, and viewport sizes. */
+body * {
+  letter-spacing: 0 !important;
+}
+
+.app-sidebar {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+}
+.app-sidebar.is-closed {
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
+}
+.app-sidebar-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background-color: oklch(0% 0 0 / 0.5);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out forwards;
+  display: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+@media (max-width: 819px) {
+  .app-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 20;
+    transform: translateX(0);
+  }
+  .app-sidebar.is-closed {
+    transform: translateX(-100%);
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+  }
+  .app-sidebar-scrim {
+    display: block;
+  }
+}
+
+.app-content-frame {
+  --app-page-gutter: 24px;
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.app-content-frame--dashboard {
+  max-width: 1860px;
+}
+
+.app-content-frame--dashboard-wide {
+  max-width: 2400px;
+}
+
+.app-content-frame--workspace {
+  max-width: none;
+}
+
+.app-page-content {
+  padding: var(--app-page-gutter);
+}
+
+.app-page-inline {
+  padding-inline: var(--app-page-gutter);
+}
+
+.app-topbar__left,
+.app-topbar__right,
+.app-topbar__page-actions {
+  min-width: 0;
+}
+
+.app-topbar__search {
+  width: 320px;
+  min-width: 220px;
+  flex: 0 1 320px;
+}
+
+.app-topbar__page-actions {
+  display: flex;
+  align-items: center;
+}
+
+@container app-main (max-width: 1200px) {
+  .app-content-frame {
+    --app-page-gutter: 20px;
+  }
+
+  .app-topbar__row,
+  .app-topbar__right {
+    gap: 12px;
+  }
+
+  .app-topbar__search {
+    width: 260px;
+    flex-basis: 260px;
+  }
+
+  .dashboard-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-triple-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-triple-grid> :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-recent-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vendor-kpi-grid {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+
+  .po-kpi-grid {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  }
+}
+
+@container app-main (max-width: 1120px) {
+  .app-content-frame {
+    --app-page-gutter: 16px;
+  }
+
+  .app-topbar__row,
+  .app-topbar__right {
+    flex-wrap: wrap;
+  }
+
+  .app-topbar__left {
+    flex: 1 1 auto;
+  }
+
+  .app-topbar__right {
+    width: 100%;
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .app-topbar__search {
+    flex: 1 1 240px;
+    width: auto;
+  }
+
+  .app-topbar__divider {
+    display: none;
+  }
+
+  .app-topbar__page-actions {
+    order: 1;
+    max-width: 100%;
+    flex: 1 1 auto;
+    overflow: visible;
+    padding-bottom: 2px;
+  }
+
+  .app-topbar__system-actions {
+    order: 2;
+  }
+
+  .dashboard-page-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dashboard-page-header__controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vendor-chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .po-toolbar__modes,
+  .po-toolbar__actions {
+    width: 100%;
+  }
+
+  .po-toolbar__actions {
+    justify-content: flex-end;
+  }
+
+  .po-kpi-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .order-detail-summarybar,
+  .order-detail-filterbar {
+    align-items: flex-start !important;
+  }
+
+  .order-detail-summarybar__identity,
+  .order-detail-filterbar__left,
+  .order-detail-filterbar__right {
+    width: 100%;
+  }
+
+  .order-detail-actions,
+  .order-detail-filterbar__right {
+    flex-wrap: wrap;
+  }
+
+  .item-detail-master__notes {
+    flex-basis: 100% !important;
+    border-top: 1px solid var(--color-border-light);
+    border-left: 0 !important;
+  }
+
+  .document-summary {
+    width: 240px;
+  }
+
+  .dashboard-detail-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr);
+  }
+
+  .dashboard-detail-summary> :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container app-main (max-width: 620px) {
+  .app-content-frame {
+    --app-page-gutter: 12px;
+  }
+
+  .app-topbar {
+    padding-block: 10px;
+  }
+
+  .app-topbar__row {
+    gap: 8px;
+  }
+
+  .app-topbar__left {
+    gap: 8px;
+  }
+
+  .app-topbar__breadcrumbs {
+    display: none;
+  }
+
+  .app-topbar__right {
+    gap: 6px;
+  }
+
+  .app-topbar__search {
+    order: 3;
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .app-topbar__page-actions {
+    order: 4;
+    flex-basis: 100%;
+  }
+
+  .app-topbar__system-actions {
+    margin-left: auto;
+    padding-left: 0;
+  }
+
+  .dashboard-stat-grid,
+  .dashboard-duo-grid,
+  .dashboard-triple-grid,
+  .dashboard-recent-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-recent-grid>* {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .dashboard-detail-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .dashboard-detail-summary> :last-child {
+    grid-column: auto;
+  }
+
+  .vendor-filter-bar>* {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .vendor-filter-bar>*>div {
+    width: 100% !important;
+  }
+
+  .vendor-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .po-toolbar {
+    padding: 12px !important;
+  }
+
+  .po-toolbar__modes>*,
+  .po-toolbar__actions {
+    width: 100%;
+  }
+
+  .po-toolbar__modes>* {
+    min-width: 0;
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .po-segmented {
+    width: 100%;
+  }
+
+  .po-toolbar__actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .po-filter-popover {
+    width: calc(100vw - 80px) !important;
+    max-width: calc(100vw - 80px) !important;
+    padding: 14px !important;
+  }
+
+  .po-filter-popover>* {
+    width: 100%;
+  }
+
+  .po-filter-popover input,
+  .po-filter-popover [style*="width"] {
+    max-width: 100%;
+  }
+
+  .po-filter-date-field {
+    min-width: 0 !important;
+  }
+
+  .po-date-range,
+  .po-date-inputs {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .po-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .po-pagination {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .po-pagination> :last-child {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .order-detail-summarybar,
+  .order-detail-filterbar {
+    padding: 12px !important;
+  }
+
+  .order-detail-summarybar__identity {
+    gap: 14px !important;
+  }
+
+  .order-detail-summarybar__identity>[style*="width: 1px"] {
+    display: none;
+  }
+
+  .order-detail-actions {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .order-detail-filterbar__left {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 10px !important;
+  }
+
+  .order-detail-filterbar__left>* {
+    max-width: 100%;
+  }
+
+  .order-detail-segmented {
+    max-width: calc(100vw - 88px);
+    overflow-x: auto;
+  }
+
+  .order-detail-filterbar__right {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .order-detail-search {
+    width: 100% !important;
+  }
+
+  .item-detail-actionbar {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .item-detail-master__identity,
+  .item-detail-master__spec,
+  .item-detail-master__notes {
+    flex-basis: 100% !important;
+    padding: 16px !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+  }
+
+  .item-detail-master__identity,
+  .item-detail-master__spec {
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .item-detail-images {
+    height: auto !important;
+    flex-direction: column;
+  }
+
+  .item-detail-images>* {
+    min-height: 180px;
+  }
+
+  .item-detail-fields {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .item-detail-tabs {
+    overflow-x: auto;
+  }
+
+  .item-detail-tabs>* {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .document-workspace {
+    flex-direction: column;
+  }
+
+  .document-summary {
+    width: 100%;
+    max-height: 220px;
+    min-height: 150px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-overlay-border);
+  }
+
+  .document-form {
+    min-height: 0;
+    padding: 12px !important;
+  }
+
+  .document-toolbar {
+    min-height: 48px;
+    height: auto;
+    padding: 6px 10px;
+  }
+
+  .document-list {
+    height: 56px;
+  }
+}
+
+@media (max-width: 819px) {
+  .app-sidebar--expanded {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(270px, calc(100vw - 52px));
+    min-width: min(270px, calc(100vw - 52px));
+  }
+
+  .app-sidebar--collapsed {
+    width: 52px;
+    min-width: 52px;
+  }
+
+  .app-sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    display: block;
+    border: 0;
+    background: var(--color-overlay-scrim-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer base {
+  .theme-modern-dark {
+    color-scheme: dark;
+    --theme-calendar-invert: invert(1);
+    --theme-dark-invert: invert(1);
+  }
+
+  :root:has(body.theme-modern-dark) {
+    color-scheme: dark;
+  }
+
+  button:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--color-ui-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* WCAG 2.1: Visually hidden but accessible to screen readers */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* UI THEME: DARK GOLD (override, enable later) */
+  .theme-dark-gold {
+    color-scheme: dark;
+    --theme-calendar-invert: invert(0.85) sepia(1) saturate(5) hue-rotate(15deg);
+    --theme-dark-invert: invert(1);
+    /* Executive Gold */
+    --color-brand-50: oklch(0.28 0.03 85);
+    --color-brand-100: oklch(0.36 0.05 85);
+    --color-brand-200: oklch(0.48 0.07 85);
+    --color-brand-300: oklch(0.58 0.10 85);
+    --color-brand-400: oklch(0.68 0.13 85);
+
+    --color-brand-500: oklch(0.78 0.17 85);
+    --color-brand-600: oklch(0.70 0.15 85);
+
+    --color-brand-700: oklch(0.58 0.12 85);
+    --color-brand-800: oklch(0.46 0.09 85);
+    --color-brand-900: oklch(0.34 0.06 85);
+
+    --color-accent-500: oklch(0.75 0.15 240);
+    --color-accent-600: oklch(0.85 0.10 240);
+
+    --color-surface-0: oklch(0.18 0.015 260);
+    /* Working surfaces */
+    --color-surface-1: oklch(0.12 0.01 260);
+    /* Main canvas */
+    --color-surface-2: oklch(0.23 0.02 260);
+    /* Hover */
+    --color-surface-800: oklch(0.09 0.01 260);
+    --color-surface-900: oklch(0.06 0.01 260);
+
+    --color-text-primary: oklch(0.96 0.01 85);
+    --color-text-secondary: oklch(0.84 0.015 85);
+    --color-text-tertiary: oklch(0.72 0.015 85);
+    --color-text-quaternary: oklch(0.65 0.01 85);
+
+    --color-text-inverse: oklch(0.12 0.01 85);
+    --color-border-light: oklch(0.28 0.015 80);
+    --color-border-default: oklch(0.36 0.02 80);
+    --color-border-strong: oklch(0.46 0.025 80);
+
+    --color-sidebar: oklch(0.10 0.01 260);
+    --color-sidebar-hover: oklch(0.18 0.02 260);
+
+    --color-sidebar-text: oklch(0.78 0.015 85);
+    --color-sidebar-text-active: oklch(0.95 0.02 85);
+
+    --color-sidebar-accent: var(--color-brand-500);
+    --color-sidebar-divider: oklch(0.25 0.01 260);
+
+    /* Chart Series Colors */
+    --color-chart-1: oklch(0.75 0.16 80);
+    --color-chart-2: oklch(0.70 0.16 150);
+    --color-chart-3: oklch(0.58 0.16 300);
+    --color-chart-4: oklch(0.65 0.18 340);
+    --color-chart-5: oklch(0.62 0.20 25);
+    --color-chart-6: oklch(0.72 0.14 200);
+
+    /* Customer Group Series Colors */
+    --color-customer-group-n008: oklch(0.74 0.12 215);
+    --color-customer-group-n044: oklch(0.78 0.16 65);
+    --color-customer-group-n098: oklch(0.76 0.16 55);
+    --color-customer-group-n051: oklch(0.73 0.15 145);
+    --color-customer-group-n083: oklch(0.68 0.16 285);
+    --color-customer-group-mlt: oklch(0.74 0.14 200);
+    --color-customer-group-general: oklch(0.78 0.03 85);
+
+    /* Success - warm teal-green that blends with gold */
+    --color-success-50: oklch(0.25 0.04 160);
+    --color-success-100: oklch(0.35 0.08 160);
+    --color-success-500: oklch(0.68 0.12 160);
+    --color-success-600: oklch(0.75 0.10 160);
+    --color-success-700: oklch(0.82 0.08 160);
+
+    /* Danger - warm rose-red that blends with gold */
+    --color-danger-50: oklch(0.25 0.05 30);
+    --color-danger-100: oklch(0.35 0.10 30);
+    --color-danger-500: oklch(0.67 0.15 30);
+    --color-danger-600: oklch(0.74 0.13 30);
+    --color-danger-700: oklch(0.81 0.10 30);
+
+    /* Warning - slightly warmer than brand gold */
+    --color-warning-50: oklch(0.25 0.04 60);
+    --color-warning-500: oklch(0.72 0.14 60);
+    --color-warning-600: oklch(0.80 0.10 60);
+
+    /* Process colors tuned for warm palette */
+    --color-proc-casting: oklch(0.55 0.12 220);
+    --color-proc-grinding: oklch(0.55 0.12 290);
+    --color-proc-polishing: oklch(0.58 0.12 170);
+    --color-proc-plating: oklch(0.70 0.12 90);
+    --color-proc-qc: oklch(0.62 0.14 50);
+    --color-proc-packing: oklch(0.50 0.10 140);
+
+    /* Semantic Status Soft Badges for Dark Gold */
+    --color-status-success-soft: color-mix(in srgb, var(--color-success-500) 18%, var(--color-surface-0));
+    --color-status-warning-soft: color-mix(in srgb, var(--color-warning-500) 18%, var(--color-surface-0));
+    --color-status-danger-soft: color-mix(in srgb, var(--color-danger-500) 18%, var(--color-surface-0));
+    --color-status-info-soft: color-mix(in srgb, var(--color-info-500) 18%, var(--color-surface-0));
+
+    --color-track-done-soft: color-mix(in srgb, var(--color-success-500) 20%, var(--color-surface-0));
+    --color-track-done-text: var(--color-success-500);
+    --color-track-done-border: color-mix(in srgb, var(--color-success-500) 40%, transparent);
+
+    --color-track-current-soft: color-mix(in srgb, var(--color-warning-500) 20%, var(--color-surface-0));
+    --color-track-current-text: var(--color-warning-500);
+    --color-track-current-border: color-mix(in srgb, var(--color-warning-500) 45%, transparent);
+    --color-track-current-ring: color-mix(in srgb, var(--color-warning-500) 30%, transparent);
+
+    --color-track-pending: var(--color-surface-2);
+    --color-track-pending-text: var(--color-text-tertiary);
+    --color-track-pending-border: var(--color-border-default);
+    --color-track-line: var(--color-border-default);
+    --color-track-line-active: var(--color-success-500);
+
+    /* Table Colors */
+    --color-table-header: var(--color-surface-2);
+    --color-table-row-alt: color-mix(in srgb, var(--color-surface-1) 65%, var(--color-surface-0));
+    --color-table-footer: color-mix(in srgb, var(--color-brand-500) 6%, var(--color-surface-0));
+    --color-prod-total-row-bg: color-mix(in srgb, var(--color-chart-1) 15%, var(--color-surface-0));
+    --color-prod-avg-row-bg: color-mix(in srgb, var(--color-chart-2) 15%, var(--color-surface-0));
+  }
+
+  :root:has(body.theme-dark-gold) {
+    color-scheme: dark;
+  }
+
+  /* UI THEME: ROYAL WHITE (override, default) */
+  .theme-royal-white {
+    color-scheme: light;
+    --theme-calendar-invert: invert(0.2);
+    --theme-dark-invert: invert(0);
+    /* Brand Hues (Royal Blue - Better contrast for primary UI) */
+    --color-brand-50: oklch(0.96 0.02 260);
+    --color-brand-100: oklch(0.92 0.04 260);
+    --color-brand-200: oklch(0.85 0.06 260);
+    --color-brand-300: oklch(0.75 0.08 260);
+    --color-brand-400: oklch(0.65 0.12 260);
+    --color-brand-500: oklch(0.40 0.16 260);
+    /* Main Royal Blue */
+    --color-brand-600: oklch(0.30 0.14 260);
+    --color-brand-700: oklch(0.25 0.10 260);
+    --color-brand-800: oklch(0.20 0.08 260);
+    --color-brand-900: oklch(0.15 0.06 260);
+
+    /* Accent Hues (Gold - For highlights) */
+    --color-accent-50: oklch(0.98 0.02 80);
+    --color-accent-100: oklch(0.95 0.05 80);
+    --color-accent-500: oklch(0.65 0.16 80);
+    /* Rich Gold */
+    --color-accent-600: oklch(0.55 0.14 80);
+
+    /* Surface (White & Light Gray) */
+    --color-surface-0: oklch(0.99 0.002 260);
+    --color-surface-1: oklch(0.97 0.005 260);
+    --color-surface-2: oklch(0.94 0.010 260);
+    --color-surface-800: oklch(0.20 0.04 260);
+    --color-surface-900: oklch(0.15 0.06 260);
+
+    /* Text (Darker for light background) */
+    --color-text-primary: oklch(0.15 0.02 260);
+    --color-text-secondary: oklch(0.35 0.02 260);
+    --color-text-tertiary: oklch(0.48 0.01 260);
+    --color-text-quaternary: oklch(0.51 0.01 260);
+    --text-muted: var(--color-text-tertiary);
+    --color-text-inverse: oklch(0.99 0.01 260);
+
+    /* Border - Refined, subtle light gray borders for modern enterprise UI */
+    --color-border-light: oklch(0.89 0.005 260);
+    --color-border-default: oklch(0.82 0.008 260);
+    --color-border-strong: oklch(0.70 0.015 260);
+
+    /* Sidebar (Crisp White with Gold/Blue accents) */
+    --color-sidebar: var(--color-surface-0);
+    --color-sidebar-hover: oklch(0.96 0.01 260);
+    --color-sidebar-text: oklch(0.40 0.02 260);
+    --color-sidebar-text-active: oklch(0.25 0.10 260);
+    /* Darker blue active text */
+    --color-sidebar-accent: var(--color-brand-500);
+    /* One interaction accent across navigation */
+    --color-sidebar-divider: oklch(0.94 0.01 260);
+
+    /* Warning (override for light) */
+    --color-warning-50: oklch(0.96 0.04 80);
+    --color-warning-500: oklch(0.52 0.15 80);
+    --color-warning-600: oklch(0.47 0.13 80);
+
+    /* Success & Danger overrides for light mode backgrounds & text */
+    --color-success-50: oklch(0.95 0.05 150);
+    --color-success-500: oklch(0.48 0.14 150);
+    --color-success-600: oklch(0.40 0.13 150);
+    --color-success-700: oklch(0.34 0.11 150);
+    --color-danger-50: oklch(0.95 0.05 25);
+    --color-danger-500: oklch(0.52 0.18 25);
+    --color-danger-600: oklch(0.42 0.16 25);
+    --color-danger-700: oklch(0.35 0.14 25);
+    --color-info-50: oklch(0.95 0.04 220);
+    --color-info-500: oklch(0.48 0.14 220);
+    --color-info-600: oklch(0.40 0.12 220);
+
+    /* Chart Series Colors */
+    --color-chart-1: oklch(0.65 0.18 70);
+    --color-chart-2: oklch(0.55 0.16 150);
+    --color-chart-3: oklch(0.50 0.16 300);
+    --color-chart-4: oklch(0.55 0.18 340);
+    --color-chart-5: oklch(0.52 0.20 25);
+    --color-chart-6: oklch(0.55 0.14 200);
+
+    /* Customer Group Series Colors */
+    --color-customer-group-n008: oklch(0.45 0.14 215);
+    --color-customer-group-n044: oklch(0.58 0.17 70);
+    --color-customer-group-n098: oklch(0.48 0.16 55);
+    --color-customer-group-n051: oklch(0.42 0.15 145);
+    --color-customer-group-n083: oklch(0.46 0.18 285);
+    --color-customer-group-mlt: oklch(0.50 0.15 200);
+    --color-customer-group-general: oklch(0.46 0.03 260);
+
+    /* Process Colors (Darker for Light Mode contrast) */
+    --color-proc-casting: oklch(0.40 0.16 250);
+    --color-proc-grinding: oklch(0.40 0.16 300);
+    --color-proc-polishing: oklch(0.45 0.14 165);
+    --color-proc-plating: oklch(0.55 0.14 85);
+    --color-proc-qc: oklch(0.50 0.16 45);
+    --color-proc-packing: oklch(0.40 0.12 135);
+
+    /* Semantic Status Soft Badges for Light Mode */
+    --color-status-success-soft: color-mix(in srgb, var(--color-success-500) 12%, var(--color-surface-0));
+    --color-status-warning-soft: color-mix(in srgb, var(--color-warning-500) 14%, var(--color-surface-0));
+    --color-status-danger-soft: color-mix(in srgb, var(--color-danger-500) 12%, var(--color-surface-0));
+    --color-status-info-soft: color-mix(in srgb, var(--color-info-500) 12%, var(--color-surface-0));
+
+    --color-track-done-soft: color-mix(in srgb, var(--color-success-500) 14%, var(--color-surface-0));
+    --color-track-done-text: var(--color-success-700);
+    --color-track-done-border: color-mix(in srgb, var(--color-success-500) 30%, transparent);
+
+    --color-track-current-soft: color-mix(in srgb, var(--color-warning-500) 16%, var(--color-surface-0));
+    --color-track-current-text: var(--color-warning-600);
+    --color-track-current-border: color-mix(in srgb, var(--color-warning-500) 35%, transparent);
+    --color-track-current-ring: color-mix(in srgb, var(--color-warning-500) 25%, transparent);
+
+    --color-track-pending: var(--color-surface-2);
+    --color-track-pending-text: var(--color-text-secondary);
+    --color-track-pending-border: var(--color-border-default);
+    --color-track-line: var(--color-border-default);
+    --color-track-line-active: var(--color-success-500);
+
+    /* Table Colors */
+    --color-table-header: var(--color-surface-2);
+    --color-table-row-alt: color-mix(in srgb, var(--color-surface-1) 65%, var(--color-surface-0));
+    --color-table-footer: color-mix(in srgb, var(--color-brand-500) 6%, var(--color-surface-0));
+    --color-prod-total-row-bg: color-mix(in srgb, var(--color-chart-1) 15%, var(--color-surface-0));
+    --color-prod-avg-row-bg: color-mix(in srgb, var(--color-chart-2) 15%, var(--color-surface-0));
+  }
+
+  :root:has(body.theme-royal-white) {
+    color-scheme: light;
+  }
+
+  body.theme-royal-white {
+    --po-negative-bg: color-mix(in srgb, var(--color-danger-500) 12%, transparent);
+  }
+
+  /* Universal custom style overrides for native date pickers and inputs */
+  input[type="date"] {
+    color-scheme: inherit;
+    font-family: inherit;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: var(--theme-calendar-invert, none);
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Universal select and option theme compliance */
+  select {
+    color-scheme: inherit;
+    background-color: var(--color-ui-surface);
+    color: var(--color-text-primary);
+  }
+
+  select option {
+    background-color: var(--color-ui-surface);
+    color: var(--color-text-primary);
+  }
+}
+
+/* Base Styles */
+body {
+  /* Resolve role aliases on the themed element so palette overrides apply. */
+  --color-ui-canvas: var(--color-surface-1);
+  --color-ui-surface: var(--color-surface-0);
+  --color-ui-raised: var(--color-surface-2);
+  --color-ui-interactive: var(--color-brand-500);
+  --color-ui-interactive-hover: var(--color-brand-600);
+  --color-ui-interactive-soft: var(--color-brand-50);
+  --color-ui-on-interactive: var(--color-text-inverse);
+  --color-ui-selected: color-mix(in srgb, var(--color-brand-500) 9%, var(--color-surface-0));
+  --color-ui-focus-ring: color-mix(in srgb, var(--color-brand-500) 65%, transparent);
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  background: var(--color-ui-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-sidebar-divider);
+  border-radius: 2px;
+}
+
+.content-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 3px;
+}
+
+/* Animations */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger-1 {
+  animation-delay: 0ms;
+}
+
+.stagger-2 {
+  animation-delay: 60ms;
+}
+
+.stagger-3 {
+  animation-delay: 120ms;
+}
+
+/* Hide print-only elements by default (screen mode) */
+.print-only {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT STYLESHEET (High Fidelity Theme & Full Page Capture)
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+
+  /* Force exact color reproduction across all themes */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Clear viewport-locking flex/overflow limits so full page prints */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-main,
+  .content-scrollbar,
+  .app-page-content,
+  .sales-summary-page,
+  .customer-trends-page {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* ── Hide non-printable UI elements ── */
+  aside,
+  header.app-topbar,
+  .app-sidebar-scrim,
+  .toast-notification,
+  .sales-gallery-period-menu,
+  .sales-summary-popover,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Make app-shell single-column so sidebar gap disappears */
+  .app-shell {
+    display: block !important;
+  }
+
+  /* ── Voucher / Invoice print-only support ── */
+  body:has(.print-only) {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body:has(.print-only) button {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Prevent page breaks inside signature blocks and table rows */
+  .page-break-avoid {
+    page-break-inside: avoid !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+}
+
+.stagger-4 {
+  animation-delay: 180ms;
+}
+
+.stagger-5 {
+  animation-delay: 240ms;
+}
+
+/* ============================================
+   2026 SIDEBAR MODERNIZATION, Animations & Utilities
+   ============================================ */
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes subtleBreathe {
+
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Hero image overlay for sidebar footer section */
+.sidebar-hero-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-hero-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--hero-bg-url);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.08;
+  filter: saturate(0.3) brightness(1.2);
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.sidebar-hero-bg:hover::before {
+  opacity: 0.14;
+}
+
+/* Active navigation uses one brand tint and a labeled state. */
+.nav-accent-bar {
+  position: relative;
+}
+
+.nav-accent-bar.active {
+  background: var(--color-ui-interactive-soft);
+}
+
+/* Scroll area fade gradients */
+.scroll-fade-container {
+  position: relative;
+}
+
+.scroll-fade-container::before,
+.scroll-fade-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 24px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.scroll-fade-container::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--color-sidebar), transparent);
+}
+
+.scroll-fade-container::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--color-sidebar), transparent);
+}
+
+.scroll-fade-container.fade-top::before {
+  opacity: 1;
+}
+
+.scroll-fade-container.fade-bottom::after {
+  opacity: 1;
+}
+
+/* Sidebar brand accent line */
+.brand-accent-line {
+  height: 2px;
+  background: var(--color-ui-interactive);
+  border-radius: 1px;
+}
+
+/* Active group dot pulse */
+.group-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-brand-500);
+  --pulse-color: var(--color-brand-500);
+}
+
+/* Sub-item active indicator */
+.sub-item-active-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-brand-500);
+  flex-shrink: 0;
+}
+
+/* Nav item hover micro-animation */
+.nav-item-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-item-hover:hover {
+  transform: translateX(2px);
+}
+
+/* Badge pill */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
+  font-family: var(--font-display);
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Dashboard Micro-animations */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.88;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CCTV IT AUDIT REPORT (Audit module) — screen + A4 landscape print
+   Status is shown as text symbols (✓ ✗ -), never checkbox squares.
+   ═══════════════════════════════════════════════════════════ */
+.cctv-sheet {
+  page: cctv-landscape;
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: var(--erp-text-body);
+}
+
+.cctv-sheet__title {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-size: var(--erp-text-section);
+  font-weight: 700;
+}
+
+.cctv-sheet__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.375rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: var(--erp-text-control);
+}
+
+.cctv-meta-field {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.cctv-meta-field__label {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.cctv-input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.cctv-input:focus-visible,
+.cctv-status:focus-visible,
+.cctv-toggle:focus-visible {
+  outline: 2px solid var(--color-ui-interactive);
+  outline-offset: 1px;
+}
+
+.cctv-table-wrap {
+  overflow-x: auto;
+}
+
+.cctv-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.cctv-table th,
+.cctv-table td {
+  height: 28px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-strong);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cctv-table th {
+  background: var(--color-table-header);
+  font-weight: 600;
+}
+
+.cctv-table .cctv-cell--text {
+  text-align: left;
+}
+
+.cctv-table .cctv-action-cell {
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Holiday separator: merged gray band */
+.cctv-row-holiday td {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.cctv-row-holiday td.cctv-action-cell {
+  background: transparent;
+}
+
+.cctv-status {
+  width: 100%;
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cctv-status--ok {
+  color: var(--color-success-600);
+}
+
+.cctv-status--ng {
+  color: var(--color-danger-600);
+}
+
+.cctv-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.cctv-toggle:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+}
+
+.cctv-signatures {
+  display: flex;
+  justify-content: space-around;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  break-inside: avoid;
+}
+
+.cctv-signature {
+  flex: 1;
+  max-width: 18rem;
+  text-align: center;
+}
+
+.cctv-signature__line {
+  height: 2.5rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid var(--color-text-primary);
+}
+
+.cctv-signature__date {
+  margin-top: 0.375rem;
+  font-size: var(--erp-text-control);
+}
+
+@page cctv-landscape {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  /* Paper is always white/black regardless of the active theme */
+  .cctv-sheet {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12px;
+  }
+
+  .cctv-sheet__title {
+    font-size: 16px;
+  }
+
+  .cctv-table th,
+  .cctv-table td {
+    height: 22px;
+    border-color: #000000;
+    color: #000000;
+    font-size: 12px;
+  }
+
+  .cctv-table th {
+    background: #eeeeee;
+  }
+
+  /* Gray band for holidays must survive printing */
+  .cctv-row-holiday td {
+    background: #d9d9d9;
+    color: #000000;
+  }
+
+  .cctv-row-holiday td.cctv-action-cell {
+    background: transparent;
+  }
+
+  /* ✓ / ✗ are distinguishable by glyph, safe on monochrome printers */
+  .cctv-status,
+  .cctv-status--ok,
+  .cctv-status--ng {
+    color: #000000;
+    font-size: 12px;
+  }
+
+  .cctv-input {
+    border-bottom: 0;
+    color: #000000;
+    font-size: 12px;
+  }
+
+  .cctv-meta-field__label,
+  .cctv-signature__date {
+    color: #000000;
+  }
+
+  .cctv-signature__line {
+    border-bottom-color: #000000;
+  }
+
+  .cctv-table-wrap {
+    overflow: visible;
+  }
+}
