@@ -97,7 +97,7 @@ The authoritative Single Source of Truth view powering three key web modules:
 #### 📌 Business Logic & Data Normalization:
 1. **Order Status:** Filters strictly for `ISNULL(OrdStatus, '') <> 'C'` (excludes canceled orders).
 2. **Customer Status:** Filters strictly for `ISNULL(CustStatus, 'Y') = 'Y'` (active clients only).
-3. **Order Prefix Exclusions:** Excludes `SUBSTRING(OrdNo, 1, 3) NOT IN ('BBL', 'BBD', 'BBK', 'BBT', 'BBP')` (filtering out internal, trial, or semi-finished jobs per finished goods reporting standards).
+3. **Order Prefix Exclusions:** Excludes `SUBSTRING(OrdNo, 1, 3) NOT IN ('BBP', 'BBK', 'BBS', 'BBL', 'BBT', 'BBD')` (filtering out internal, trial, or semi-finished jobs per finished goods reporting standards).
 4. **Currency Standardization ($ USD):** Implements `ISNULL(DT.ItemExchAmnt, DT.ItemAmnt)` to convert foreign currencies (EUR, GBP, etc.) into USD using actual transaction rates, ensuring 100% reconciliation with corporate financial statements.
 5. **Product Type Classification:**
    - `BBS`: Bracelet / Bangle

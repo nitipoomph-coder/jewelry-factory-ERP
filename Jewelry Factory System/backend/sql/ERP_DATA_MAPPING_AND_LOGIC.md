@@ -90,12 +90,15 @@ WHERE
     -- 2. Include active customers only
     AND (ISNULL(CUST.CustStatus, 'Y') = 'Y') 
     
-    -- 3. Filter for standard production prefixes only (Exclude BBI Samples, BBQ Quotes, BBX)
-    AND (SUBSTRING(HD.OrdNo, 1, 3) IN ('BBC', 'BBS', 'BBE', 'BBL', 'BBR', 'BBT', 'BBP'))
+    -- 3. Order prefix filter (differs per view, see note below)
+    --    VW_Web_OrderTrends:   SUBSTRING(HD.OrdNo, 1, 3) IN ('BBC', 'BBS', 'BBE', 'BBL', 'BBR', 'BBT', 'BBP')
+    --    VW_Web_SalesDashboard: SUBSTRING(HD.OrdNo, 1, 3) NOT IN ('BBP', 'BBK', 'BBS', 'BBL', 'BBT', 'BBD')
     
     -- 4. Exclude test samples, R&D trials, and internal buffer stock (TOP, Test, Testing, Stock, Empty POs)
     AND (LTRIM(RTRIM(ISNULL(HD.PONo, ''))) NOT IN ('', 'TOP', 'Test', 'Testing', 'Stock', 'STOCK'));
 ```
+
+> **Note:** The prefix rule (3) is the only filter that differs between the two views. Verified against `sql/views/VW_Web_OrderTrends.sql` and `sql/views/VW_Web_SalesDashboard.sql`. Rules 1, 2 and 4 are identical in both.
 
 ### 💡 Why `ISNULL(DT.ItemExchAmnt, DT.ItemAmnt)`?
 For overseas clients invoiced in foreign currencies (e.g. EUR, GBP), `ItemExchAmnt` holds the converted **USD** amount based on transaction-date exchange rates. This normalizes all customer revenue into a single standardized currency ($ USD), aligning 100% with corporate financial statements.

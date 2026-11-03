@@ -24,13 +24,13 @@ When running scripts to refactor state (`growthYearA` to `growthComparisons`), t
 **Component:** Topbar.tsx
 
 ### Symptoms:
-After standardizing the Topbar.tsx component, the user noticed the fonts looked different. The title text reverted to the browser default font rather than using ar(--font-display) and ar(--font-logo).
+After standardizing the Topbar.tsx component, the user noticed the fonts looked different. The title text reverted to the browser default font rather than using `var(--font-display)` and `var(--font-logo)`.
 
 ### Root Cause:
-I attempted to apply the font by adding ont-display to the Tailwind className. However, ont-display and ont-logo were not actually configured as utility classes in Tailwind. Because Tailwind didn't recognize the class, it did nothing.
+I attempted to apply the font by adding `font-display` to the Tailwind className. However, `font-display` and `font-logo` were not actually configured as utility classes in Tailwind. Because Tailwind didn't recognize the class, it did nothing.
 
 ### Prevention & Lessons Learned:
-1. **Always Verify Tailwind Config for Custom Classes:** Do not assume that because a CSS variable like --font-display exists, a corresponding Tailwind class ont-display also exists.
+1. **Always Verify Tailwind Config for Custom Classes:** Do not assume that because a CSS variable like --font-display exists, a corresponding Tailwind class `font-display` also exists.
 2. **Use Inline Styles for Unconfigured Variables:** If a custom font or CSS variable is not mapped to a Tailwind class, use inline styles (e.g., style={{ fontFamily: 'var(--font-display)' }}) to guarantee it is applied correctly, mirroring how the rest of the codebase handles it.
 
 ## Issue: Dangling Code Fragment Causes Severe Syntax Error
@@ -286,19 +286,18 @@ Browser state checks covered empty blur, Username focus, Username filled blur, a
 
 ## Issue: Matrix Table Ignored Global Toolbar Filters
 **Date:** 2026-08-07
-**Component:** \CustomerReportPage.tsx\ and \CustomerDashboardLayout.tsx\
+**Component:** `CustomerReportPage.tsx` and `CustomerDashboardLayout.tsx`
 
 ### Symptoms:
 The user selected specific filter values (e.g., Months: Jan, Feb) in the global toolbar popover, but the Customer Matrix table still rendered columns for unselected months (Jun, Jul, Aug, Sep).
 
 ### Root Cause:
-The \CustomerReportPage.tsx\ component originally had its own local sidebar filter component (\CustomerReportFilters.tsx\). When the local sidebar was removed to comply with UI design rules (Toolbar + Popover + Chips), the local states (\selMonths\, \selGroups\, \aseYear\) in \CustomerReportPage.tsx\ were left initializing from \searchParams\ only once on mount. They were never wired up to the \useOutletContext\ provided by the new \CustomerDashboardLayout.tsx\ which managed the global toolbar state.
+The `CustomerReportPage.tsx` component originally had its own local sidebar filter component (`CustomerReportFilters.tsx`). When the local sidebar was removed to comply with UI design rules (Toolbar + Popover + Chips), the local states (`selMonths`, `selGroups`, `baseYear`) in `CustomerReportPage.tsx` were left initializing from `searchParams` only once on mount. They were never wired up to the `useOutletContext` provided by the new `CustomerDashboardLayout.tsx` which managed the global toolbar state.
 
 ### Fix:
-1. Removed all unused local state definitions from \CustomerReportPage.tsx\.
-2. Imported \useOutletContext\ and mapped the global \selectedYears\, \selectedMonths\, and \selGroups\ directly to the active variables used by the Matrix table.
-3. Cleaned up remaining unused imports across the frontend project to ensure \
-pm run build\ completed successfully.
+1. Removed all unused local state definitions from `CustomerReportPage.tsx`.
+2. Imported `useOutletContext` and mapped the global `selectedYears`, `selectedMonths`, and `selGroups` directly to the active variables used by the Matrix table.
+3. Cleaned up remaining unused imports across the frontend project to ensure `npm run build` completed successfully.
 
 ### Prevention & Lessons Learned:
 1. **Context Mapping After UI Refactors:** When moving local component filters to a global layout toolbar, always ensure child Outlets are updated to consume the new `useOutletContext` instead of relying on stale local state or one-time URL parsing.
