@@ -310,7 +310,7 @@ Files to create or edit after approval:
 - `backend/routes/topOrdersGallery.js`
 - `backend/routes/customerReportMatrix.js`
 - `backend/sql/README.md`
-- `sales-db-views.md`
+- `docs/sales/sales-db-views.md`
 
 ## Safety Rule
 

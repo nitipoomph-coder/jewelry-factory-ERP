@@ -241,4 +241,4 @@ Let `itemQty` represent total line item quantity:
 4. **Code Quality Verification:**
    - Verify frontend changes using `npx tsc --noEmit` in `Jewelry Factory System/frontend`.
    - Run design token verification via `npm run lint:colors`.
-   - Record bug fixes in `debug-history.md`.
+   - Record bug fixes in `docs/debug-history.md`.

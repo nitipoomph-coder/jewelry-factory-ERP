@@ -12,7 +12,7 @@ Covered surfaces:
 - Top item gallery: `TopOrdersGalleryPage.tsx`, `/dashboard/top-orders`
 - Sales dashboard (legacy redirect): `/dashboard/sales` -> `/dashboard/customer`
 
-Sales menu naming and breadcrumb rules live in `sales-menu.md`.
+Sales menu naming and breadcrumb rules live in `docs/sales/sales-menu.md`.
 
 ## Dashboard API Endpoints
 Protected dashboard endpoints:

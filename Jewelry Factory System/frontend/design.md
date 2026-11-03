@@ -1,6 +1,6 @@
 # Jewelry Factory System Design Standard
 
-This file is the frontend implementation contract. The canonical product guidance is in the repository root `DESIGN.md`; color tokens live in `src/index.css`.
+This file is the frontend implementation contract. The canonical product guidance is in `docs/design/DESIGN.md`; color tokens live in `src/index.css`.
 
 ## 1. Product Character
 
@@ -44,7 +44,7 @@ Every exception must include a second cue such as text, icon, value, ordering, o
 - Use `--shadow-panel`, `--shadow-dropdown`, `--shadow-floating`, or `--shadow-modal`; do not hardcode shadow colors.
 - Selected tabs, filters, and chips use brand border/text with `--color-ui-selected` or `--color-ui-interactive-soft`.
 - Focus uses `--color-ui-focus-ring` and must remain visible in every theme.
-- Tables remain compact, align numbers right, and use sticky headers when useful. Analytics tables follow the wide frame, fixed column sizing, single-value deduplication, and rank token rules defined in DESIGN.md.
+- Tables remain compact, align numbers right, and use sticky headers when useful. Analytics tables follow the wide frame, fixed column sizing, single-value deduplication, and rank token rules defined in docs/design/DESIGN.md.
 - View switchers live in the filter toolbar and navigate with router state; do not repeat page titles in hero headers or add duplicate refresh buttons.
 - Loading skeletons must match the final content footprint and cover only the content outlet, not the app shell.
 - Use Lucide icons for commands; pair unfamiliar icons with tooltips.

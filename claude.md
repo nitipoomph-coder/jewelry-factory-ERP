@@ -152,9 +152,24 @@ Displays top-ranked products in an adaptive Gallery Card Grid with year-over-yea
 ```
 gemstone-lifecycle-management/
 ├── claude.md                          # ← This file (project context)
-├── debug-history.md                   # 🔧 Debug history and resolution log
-├── PRODUCT.md                         # 📋 Product overview document
-├── production_stages_mapping_log.md   # 📋 Production stages mapping reference
+├── README.md                          # 📖 Public project overview
+├── start.md                           # 🤖 AI onboarding guide (entry point to docs/)
+├── DATA_FETCHING_NOTES.txt            # 📝 Top Orders / Customer Sales data fetching notes
+├── docs/
+│   ├── debug-history.md               # 🔧 Debug history and resolution log
+│   ├── GIT_WORKFLOW_GUIDE.md          # Multi-device Git workflow
+│   ├── design/
+│   │   ├── DESIGN.md                  # 🎨 Design system (canonical)
+│   │   └── PRODUCT.md                 # 📋 Product overview document
+│   ├── sales/
+│   │   ├── dashboard.md               # Dashboard / report screens
+│   │   ├── sales-menu.md              # Sales Analytics menu, naming, breadcrumbs
+│   │   └── sales-db-views.md          # Sales SQL view preparation (TEST DB only)
+│   └── legacy/
+│       ├── LEGACY_PCC_SYSTEM_ARCHITECTURE.md
+│       ├── LEGACY_PO_TRACKER_ARCHITECTURE.md
+│       ├── PO_TRACKER_REVAMP_PLAN.md
+│       └── production_stages_mapping_log.md  # 📋 Production stages mapping reference
 │
 └── Jewelry Factory System/
     ├── .gitignore
@@ -355,7 +370,7 @@ gemstone-lifecycle-management/
 4. **Git**: Never commit `.env`, `node_modules/`, `dist/`, or temporary test scripts.
 5. **📋 Documentation Rule**: Whenever adding, modifying, or deleting features or fixing bugs, documentation must remain synchronized:
    - `claude.md`: Update Folder Structure, Business Modules, API Endpoints, and relevant domain sections.
-   - `debug-history.md`: Document encountered issues, root causes, and resolutions (for bugs and critical errors only).
+   - `docs/debug-history.md`: Document encountered issues, root causes, and resolutions (for bugs and critical errors only).
 6. **🔍 File Integrity Check Rule**: Before and after modifying any file, thoroughly review every line to avoid missing code, unclosed JSX tags, or syntax errors from regex replacements.
 7. **🧹 Safe Refactoring & De-duplication Rule**: When tasked with cleaning up or removing duplication, follow this sequence strictly to prevent regression and scope creep:
    - **Find duplication through evidence, not memory**: Use Grep to locate references before removing or merging any component, function, or keyframe.
@@ -539,7 +554,7 @@ npm run dev
 | `noCache`  | string | —         | Flag to bypass cache             |
 
 ### Dashboard and Sales Analytics Details
-Dashboard/report endpoint details moved to dashboard.md. Sales menu/navigation details moved to sales-menu.md.
+Dashboard/report endpoint details moved to docs/sales/dashboard.md. Sales menu/navigation details moved to docs/sales/sales-menu.md.
 
 ### Documents — Unified DocumentLayout (Protected)
 
@@ -879,9 +894,9 @@ This standard applies to every dashboard, report, KPI, chart, and infographic in
 
 ## Split Domain Documents
 
-Detailed dashboard/report guidance has moved to dashboard.md.
+Detailed dashboard/report guidance has moved to docs/sales/dashboard.md.
 
-Detailed Sales Analytics menu, naming, breadcrumb, and Customer Trends guidance has moved to sales-menu.md.
+Detailed Sales Analytics menu, naming, breadcrumb, and Customer Trends guidance has moved to docs/sales/sales-menu.md.
 
 ## Subcontract Management — Planned Module
 

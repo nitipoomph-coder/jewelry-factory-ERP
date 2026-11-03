@@ -3,7 +3,7 @@
 ## Scope
 This file owns Sales Analytics sidebar structure, user-facing names, breadcrumbs, routes, and Sales flow boundaries.
 
-Dashboard/report behavior lives in `dashboard.md`.
+Dashboard/report behavior lives in `docs/sales/dashboard.md`.
 
 ## Sidebar Structure
 Sales Analytics sidebar must stay flat. Do not add a nested `Summary` sub-parent under `Sales Analytics`.
