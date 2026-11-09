@@ -343,7 +343,8 @@ gemstone-lifecycle-management/
         ├── package.json
         │
         ├── middleware/
-        │   └── authMiddleware.js      # 🔐 JWT verification middleware (Bearer token)
+        │   ├── authMiddleware.js      # 🔐 JWT verification + requireRole / requireMenu / requireMenuByPath / hasMenu
+        │   └── apiMenuRules.js        # 🔐 API → menu permission map (ids match frontend menuConfig)
         │
         ├── routes/
         │   ├── auth.js                # 🔐 /api/auth — Login & Admin verification
@@ -1194,13 +1195,22 @@ A user may open a page when their `allowedMenus` is unrestricted (`null`), conta
 - `clearStoredAuth()` removes `auth_token`, `auth_role`, `auth_user`, `auth_allowed_menus` (logout, 401, IP ban).
 - Permission changes made by an admin apply to the web UI at the user's next login.
 
-### Backend (real enforcement) — `requireMenu(menuIds, { exceptPaths })` in `middleware/authMiddleware.js`
-| API | Required menu (item or group) | Exceptions |
-|-----|-------------------------------|------------|
+### Backend (real enforcement) — `middleware/authMiddleware.js` + `middleware/apiMenuRules.js`
+- `requireMenu(menuIds, { exceptPaths })` for page-owned APIs; `requireMenuByPath(rules, label)` for shared prefixes (first matching rule wins, `menus: null` = any signed-in user, **unmatched path = denied**); `hasMenu(user, menuIds)` for in-route checks.
+- The API → menu map lives in `middleware/apiMenuRules.js` (ids must match `menuConfig.ts`).
+
+| API | Required menu (item or group) | Notes |
+|-----|-------------------------------|-------|
 | `/api/orders` | `po-tracker` / `order-tracker` | — |
-| `/api/order-tracking` | `fbe-order-track` / `order-tracker` | — (also `requireRole('admin','sales')`) |
-| `/api/production-summary` | `pro-sum` / `order-tracker` | `/holidays` (shared with CCTV Report) |
+| `/api/order-tracking` | `fbe-order-track` / `order-tracker` | also `requireRole('admin','sales')` |
+| `/api/production-summary` | `pro-sum` / `order-tracker` | `/holidays` open (shared with CCTV Report) |
 | `/api/production-forecast` | `pro-forecast` / `order-tracker` | — |
+| `/api/dashboard/years` | any signed-in user | year list metadata |
+| `/api/dashboard` (`/`), `/detail/:cardType` | `home` | Factory Overview |
+| `/api/dashboard/customer-summary` | `dash-cust` / `dash-matrix` / `sales-dashboard` | Sales Summary + Customer Report Matrix |
+| `/api/dashboard/sales-*`, `/top-items` | `dash-cust` / `sales-dashboard` | Order Trends / Order List (`/dashboard/sales-customer-detail` web route mapped the same) |
+| `/api/items/*` | `dash-top-orders` / `dash-top-orders-analytics` / `sales-dashboard` | Top Item Gallery + Top Items Qty |
+| `/api/search` | any signed-in user | PO / Order / Customer results only searched and returned for users with `po-tracker` / `order-tracker`; Item results for everyone |
+
 - Denied → `403 { ok: false, error: 'Forbidden: You do not have access to this page' }`. Reads permissions live, so changes apply to APIs immediately.
-- **Not gated yet (shared by several pages, needs a per-endpoint audit):** `/api/dashboard`, `/api/items`, `/api/search`.
-- When adding a page-owned API, gate it with the page's item id + group id, and keep the ids in sync with `menuConfig.ts`.
+- When adding an endpoint: page-owned → `requireMenu` with the page's item id + group id; under `/api/dashboard` → add a rule to `DASHBOARD_MENU_RULES` (otherwise it is denied).

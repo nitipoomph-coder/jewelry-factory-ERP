@@ -68,6 +68,19 @@ const requireRole = (...roles) => (req, res, next) => {
  * options.exceptPaths: sub-paths (relative to the mount point) shared with other pages
  * that must not be gated by this menu, e.g. '/holidays'.
  */
+/** True when the user's allowedMenus contain '*' or any of `menuIds` (read live from permissionService). */
+const hasMenu = (user, menuIds) => {
+  if (!user || !user.username) return false;
+  const permissionService = require('../services/permissionService');
+  const allowed = permissionService.getUserPermissions(user.username, user.role) || [];
+  return allowed.includes('*') || menuIds.some(id => allowed.includes(id));
+};
+
+const denyMenu = (req, res, reason) => {
+  console.warn(`⛔ [MENU DENIED] ${req.user.username} → ${req.method} ${req.originalUrl} (${reason})`);
+  return res.status(403).json({ ok: false, error: 'Forbidden: You do not have access to this page' });
+};
+
 const requireMenu = (menuIds, options = {}) => {
   const exceptPaths = options.exceptPaths || [];
   return (req, res, next) => {
@@ -77,16 +90,30 @@ const requireMenu = (menuIds, options = {}) => {
     if (!req.user || !req.user.username) {
       return res.status(401).json({ ok: false, error: 'Unauthorized: No user found' });
     }
-
-    const permissionService = require('../services/permissionService');
-    const allowed = permissionService.getUserPermissions(req.user.username, req.user.role) || [];
-    if (allowed.includes('*') || menuIds.some(id => allowed.includes(id))) {
-      return next();
-    }
-
-    console.warn(`⛔ [MENU DENIED] ${req.user.username} → ${req.method} ${req.originalUrl} (needs one of: ${menuIds.join(', ')})`);
-    return res.status(403).json({ ok: false, error: 'Forbidden: You do not have access to this page' });
+    if (hasMenu(req.user, menuIds)) return next();
+    return denyMenu(req, res, `needs one of: ${menuIds.join(', ')}`);
   };
 };
 
-module.exports = { authMiddleware, requireRole, requireMenu };
+/**
+ * Per-path menu guard for API prefixes shared by several pages (must run after authMiddleware).
+ * `rules` is an ordered list of { match: (path) => boolean, menus: string[] | null };
+ * the first matching rule wins. `menus: null` = any signed-in user (non-sensitive metadata).
+ * A path that matches no rule is DENIED (fail closed) — add a rule when adding an endpoint.
+ */
+const requireMenuByPath = (rules, label) => (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  if (!req.user || !req.user.username) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized: No user found' });
+  }
+
+  const rule = rules.find(r => r.match(req.path));
+  if (!rule) {
+    console.warn(`⚠️ [MENU RULE MISSING] ${label}: no menu rule for ${req.method} ${req.path} — denied`);
+    return denyMenu(req, res, `no menu rule for ${label}${req.path}`);
+  }
+  if (rule.menus === null || hasMenu(req.user, rule.menus)) return next();
+  return denyMenu(req, res, `needs one of: ${rule.menus.join(', ')}`);
+};
+
+module.exports = { authMiddleware, requireRole, requireMenu, requireMenuByPath, hasMenu };

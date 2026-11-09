@@ -21,6 +21,8 @@ export const SALES_HOME_PATH = '/dashboard/customer';
 /** Detail pages that are not menu entries but belong to one (path → owning menu ids). */
 const DETAIL_ROUTE_OWNERS: { path: string; ids: string[] }[] = [
   { path: '/dashboard/detail', ids: ['home'] },
+  // Order List drill-down from Order Trends; its API (/api/dashboard/sales-orders) requires Sales Summary
+  { path: '/dashboard/sales-customer-detail', ids: ['dash-cust', 'sales-dashboard'] },
 ];
 
 const MAX_RETURN_TO_LENGTH = 2048;
