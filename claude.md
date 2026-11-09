@@ -1019,6 +1019,8 @@ Inside route handlers, add only short section labels for important boxes/queries
    - `status = 0` (**Pending / Waiting**): No intake document recorded for this stage yet.
 5. **Concurrency Guards (2026-11-09, `/track`)**:
    - All `/track` reads use `WITH (NOLOCK)`: the legacy VB.NET system writes these tables all day, and `OrdNo` lookups scan whole tables (see index note below), so locking reads deadlocked (error 1205).
+   - Same policy applied to the global Topbar search (`routes/search.js`, all 4 queries). Other display-only routes still without NOLOCK: `poTracker.js` (read paths only — never the remark read-before-UPDATE), `productionDashboard.js`, `topOrdersGallery.js`, `productionSummary.js`, `orderLinesIssues.js`.
+   - Known pre-existing issue: search queries use `TOP 10` without `ORDER BY`, so results for the same term can differ between calls.
    - `queryWithDeadlockRetry` retries a deadlocked query twice (200 ms, 600 ms); if it still fails the API returns **503** `"The database is busy right now..."`.
    - The step loop skips a step only when its table is missing (error 208). Any other SQL error fails the request — never show a false `Pending` step.
    - `ordLineNo` must be numeric (`OrdDT.OrdLineNo` is INT) → otherwise **400**.
