@@ -129,7 +129,7 @@ router.get('/order/:ordNo', async (req, res) => {
         SELECT 
           OrdNo, OrdDate, DueDate, PONo, CustCode, 
           SumOrdQty, OrdStatus
-        FROM OrdHD 
+        FROM OrdHD WITH (NOLOCK) 
         WHERE OrdNo = @ordNo
       `);
 
@@ -150,7 +150,7 @@ router.get('/order/:ordNo', async (req, res) => {
           d.ItemDesc,
           d.ItemQty,
           d.ItemStone
-        FROM OrdDT d
+        FROM OrdDT d WITH (NOLOCK)
         WHERE d.OrdNo = @ordNo
         ORDER BY d.OrdLineNo
       `);
@@ -178,7 +178,7 @@ router.get('/document/:docuNo', async (req, res) => {
       .input('docuNo', sql.VarChar, docuNo)
       .query(`
         SELECT * 
-        FROM ${config.headerTable} 
+        FROM ${config.headerTable} WITH (NOLOCK) 
         WHERE DocuNo = @docuNo
       `);
 
@@ -192,7 +192,7 @@ router.get('/document/:docuNo', async (req, res) => {
       .input('docID', sql.Int, header[config.idCol])
       .query(`
         SELECT d.*
-        FROM ${config.detailTable} d
+        FROM ${config.detailTable} d WITH (NOLOCK)
         WHERE d.${config.idCol} = @docID
         ORDER BY d.ListNo
       `);
@@ -224,7 +224,7 @@ router.get('/documents/:docType', async (req, res) => {
     // Count Total
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM ${config.headerTable}
+      FROM ${config.headerTable} WITH (NOLOCK)
       WHERE DocuNo LIKE @prefix + '%'
       ${search ? `AND DocuNo LIKE '%' + @search + '%'` : ''}
     `;
@@ -240,7 +240,7 @@ router.get('/documents/:docType', async (req, res) => {
     let queryStr = `
       SELECT
         ${config.selectFields}
-      FROM ${config.headerTable}
+      FROM ${config.headerTable} WITH (NOLOCK)
       WHERE DocuNo LIKE @prefix + '%'
     `;
     

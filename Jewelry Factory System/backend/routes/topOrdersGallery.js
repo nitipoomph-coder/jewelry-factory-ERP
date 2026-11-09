@@ -190,9 +190,9 @@ router.get('/yearly-summary', async (req, res) => {
           SUM(ISNULL(ISNULL(d.ItemExchAmnt, d.ItemAmnt), 0)) AS value,
           COUNT(DISTINCT h.OrdNo) AS orderCount,
           COUNT(*) AS lineCount
-        FROM OrdHD h
-        INNER JOIN OrdDT d ON d.OrdNo = h.OrdNo
-        LEFT JOIN GMCust c ON c.CustCode = h.CustCode
+        FROM OrdHD h WITH (NOLOCK)
+        INNER JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
+        LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
         WHERE (${pairClauses})
           AND h.OrdDate IS NOT NULL
           AND ${dateClause}
@@ -251,9 +251,9 @@ router.get('/yearly-summary', async (req, res) => {
         SUM(ISNULL(ISNULL(d.ItemExchAmnt, d.ItemAmnt), 0)) AS value,
         COUNT(DISTINCT h.OrdNo) AS orderCount,
         COUNT(*) AS lineCount
-      FROM OrdHD h
-      INNER JOIN OrdDT d ON d.OrdNo = h.OrdNo
-      LEFT JOIN GMCust c ON c.CustCode = h.CustCode
+      FROM OrdHD h WITH (NOLOCK)
+      INNER JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
+      LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
       WHERE (UPPER(LTRIM(RTRIM(ISNULL(d.ItemNo, '')))) IN (${styleParams}) OR UPPER(LTRIM(RTRIM(ISNULL(LEFT(d.ItemNo, 8), '')))) IN (${styleParams}))
         AND h.OrdDate IS NOT NULL
         AND ${dateClause}
@@ -314,9 +314,9 @@ router.get('/:styleNo/yearly-summary', async (req, res) => {
         SUM(ISNULL(ISNULL(d.ItemExchAmnt, d.ItemAmnt), 0)) AS value,
         COUNT(DISTINCT h.OrdNo) AS orderCount,
         COUNT(*) AS lineCount
-      FROM OrdHD h
-      INNER JOIN OrdDT d ON d.OrdNo = h.OrdNo
-      LEFT JOIN GMCust c ON c.CustCode = h.CustCode
+      FROM OrdHD h WITH (NOLOCK)
+      INNER JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
+      LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
       WHERE (UPPER(LTRIM(RTRIM(ISNULL(d.ItemNo, '')))) = UPPER(@styleNo) OR UPPER(LTRIM(RTRIM(ISNULL(LEFT(d.ItemNo, 8), '')))) = UPPER(@styleNo))
         AND h.OrdDate IS NOT NULL
         AND ${dateClause}
@@ -416,7 +416,7 @@ router.get('/salespersons', async (req, res) => {
     const pool = await getPool();
     const result = await pool.request().query(`
       SELECT DISTINCT LTRIM(RTRIM(SalesName)) AS salesName
-      FROM VW_Web_SalesDashboard
+      FROM VW_Web_SalesDashboard WITH (NOLOCK)
       WHERE SalesName IS NOT NULL AND LTRIM(RTRIM(SalesName)) <> ''
       ORDER BY salesName ASC
     `);
@@ -478,7 +478,7 @@ router.get('/top-gallery', async (req, res) => {
         MONTH(${dateField}) AS OrdMonth,
         SUM(ISNULL(ItemQty, 0)) AS TotalQty,
         SUM(ISNULL(ItemAmnt, 0)) AS TotalAmnt
-      FROM VW_Web_SalesDashboard
+      FROM VW_Web_SalesDashboard WITH (NOLOCK)
       WHERE ${dateClause}
         AND ItemNo IS NOT NULL AND LTRIM(RTRIM(ItemNo)) <> ''
         ${salesCondition}

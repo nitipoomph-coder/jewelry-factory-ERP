@@ -356,7 +356,7 @@ router.get('/group/:cust/:addr/:kind/:mat/:duedate', async (req, res) => {
         poFilter = `
           AND h.PONo IN (
             SELECT PONo
-            FROM OrdHD
+            FROM OrdHD WITH (NOLOCK)
             WHERE CustCode = h.CustCode
             GROUP BY PONo
             HAVING COUNT(OrdNo) = 1
@@ -393,9 +393,9 @@ router.get('/group/:cust/:addr/:kind/:mat/:duedate', async (req, res) => {
           d.ExportQty,
           d.Recvmark, d.Enamark, d.Crysmark, d.Assemmark,
           d.Shelfmark, d.Packmark, d.Prodmark
-        FROM OrdHD h
-        LEFT JOIN GMCust c ON c.CustCode = h.CustCode
-        LEFT JOIN OrdDT d ON d.OrdNo = h.OrdNo
+        FROM OrdHD h WITH (NOLOCK)
+        LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
+        LEFT JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
         WHERE h.CustCode = @cust
           AND ISNULL(h.CustMultiAddr, '') = ISNULL(@addr, '')
           AND (
@@ -527,9 +527,9 @@ router.get('/by-po/:poNo', async (req, res) => {
           d.Crysmark AS CryRemark, d.Assemmark AS AsmRemark,
           d.Shelfmark AS ShfRemark, d.Packmark AS PkRemark,
           d.Prodmark AS ProdRemark
-        FROM OrdHD h
-        LEFT JOIN GMCust c ON c.CustCode = h.CustCode
-        LEFT JOIN OrdDT d ON d.OrdNo = h.OrdNo
+        FROM OrdHD h WITH (NOLOCK)
+        LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
+        LEFT JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
         WHERE h.PONo = @poNo
         ${extraFilters}
         ORDER BY h.OrdNo, d.OrdLineNo
@@ -643,9 +643,9 @@ router.get('/:ordNo', async (req, res) => {
           d.Recvmark, d.Enamark, d.Crysmark, d.Assemmark,
           d.Shelfmark, d.Packmark, d.Prodmark,
           h.ExpInvNo, h.CenInvNo, h.ExpInvDate, h.CenInvDate, h.ExpAWBNo, h.CenAWBNo
-        FROM OrdHD h
-        LEFT JOIN GMCust c ON c.CustCode = h.CustCode
-        LEFT JOIN OrdDT d ON d.OrdNo = h.OrdNo
+        FROM OrdHD h WITH (NOLOCK)
+        LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
+        LEFT JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
         WHERE ${whereClause}
         ORDER BY h.OrdNo, d.OrdLineNo
       `);

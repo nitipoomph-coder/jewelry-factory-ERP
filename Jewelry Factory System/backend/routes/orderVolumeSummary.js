@@ -33,7 +33,7 @@ router.get('/sales-monthly-analytics', async (req, res) => {
         SUM(ISNULL(v.ExportQty * v.ItemPrice, 0)) AS shippedAmount,
         CASE WHEN COUNT(DISTINCT v.OrdNo) = 0 THEN 0 ELSE CAST(SUM(v.ItemQty) AS FLOAT) / COUNT(DISTINCT v.OrdNo) END AS avgQtyPerOrder,
         CASE WHEN COUNT(DISTINCT v.OrdNo) = 0 THEN 0 ELSE CAST(SUM(v.ItemAmnt) AS FLOAT) / COUNT(DISTINCT v.OrdNo) END AS avgAmountPerOrder
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       GROUP BY YEAR(${dateExpr}), MONTH(${dateExpr})
       ORDER BY year, month
@@ -64,7 +64,7 @@ router.get('/sales-risk-analytics', async (req, res) => {
           v.OpenQty AS openQty,
           v.ItemAmnt AS amount,
           v.CustDueDate AS custDueDate
-        FROM ${SALES_ANALYTICS_VIEW} v
+        FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
         WHERE ${whereSql} AND v.OpenQty > 0
       )
       SELECT
@@ -105,7 +105,7 @@ router.get('/sales-weekly-analytics', async (req, res) => {
         SUM(v.OpenQty) AS gapQty,
         SUM(v.ItemAmnt) AS amount,
         SUM(ISNULL(v.ExportQty * v.ItemPrice, 0)) AS shippedAmount
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       GROUP BY YEAR(${dateExpr}), DATEPART(iso_week, ${dateExpr})
       ORDER BY year, week
@@ -138,7 +138,7 @@ router.get('/sales-delivery-outlook', async (req, res) => {
         SUM(v.ItemAmnt) AS totalAmount,
         SUM(ISNULL(v.ExportQty * v.ItemPrice, 0)) AS shippedAmount,
         SUM(CASE WHEN v.ItemQty > 0 THEN v.ItemAmnt * (CAST(v.OpenQty AS FLOAT) / v.ItemQty) ELSE 0 END) AS openAmount
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       GROUP BY v.DueRiskBucket;
 
@@ -149,7 +149,7 @@ router.get('/sales-delivery-outlook', async (req, res) => {
         COUNT(1) AS lineCount,
         SUM(v.OpenQty) AS openQty,
         SUM(CASE WHEN v.ItemQty > 0 THEN v.ItemAmnt * (CAST(v.OpenQty AS FLOAT) / v.ItemQty) ELSE 0 END) AS openAmount
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql} AND v.OpenQty > 0 AND v.CurrentDepartment <> 'Shipped'
       GROUP BY v.CurrentDepartment
       ORDER BY openQty DESC;
@@ -164,7 +164,7 @@ router.get('/sales-delivery-outlook', async (req, res) => {
         SUM(v.ItemAmnt) AS totalAmount,
         SUM(CASE WHEN v.DueRiskBucket = 'Overdue' THEN v.OpenQty ELSE 0 END) AS overdueQty,
         SUM(CASE WHEN v.DueRiskBucket = 'Due in 15 Days' THEN v.OpenQty ELSE 0 END) AS due15Qty
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       GROUP BY v.CustCode
       ORDER BY openQty DESC;
@@ -228,7 +228,7 @@ router.get('/sales-orders', async (req, res) => {
         v.DaysToCustDue AS daysToCustDue,
         v.DueRiskBucket AS dueRiskBucket,
         v.CurrentDepartment AS currentDepartment
-      FROM ${SALES_ANALYTICS_VIEW} v
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       ORDER BY v.OrdDate DESC, v.OrdNo
     `);

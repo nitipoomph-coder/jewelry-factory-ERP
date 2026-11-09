@@ -69,7 +69,7 @@ router.get('/customer-summary', async (req, res) => {
         ItemNo,
         ProductType
       INTO #FilteredSales
-      FROM VW_Web_SalesDashboard
+      FROM VW_Web_SalesDashboard WITH (NOLOCK)
       WHERE ${sargableDateCondition}
         AND ISNULL(CustStatus, 'Y') = 'Y'
         ${typeCondition};
