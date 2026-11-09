@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { getPool, sql } = require('../db');
+const { hasMenu } = require('../middleware/authMiddleware');
+const { PO_TRACKER_MENUS } = require('../middleware/apiMenuRules');
 
 // รูปเสิร์ฟจาก network path (/api/photos/ps|cad/:itemNo) — search คืน itemNo ให้ frontend ประกอบ URL เอง
 // All reads are display-only → WITH (NOLOCK) so the global search never waits on (or deadlocks with)
 // the legacy VB.NET writers on OrdHD/OrdDT/GMCust. See docs/debug-history.md (FBE Order Tracker Deadlock).
+// PO / Order / Customer results open PO Tracker pages → only searched for users with PO Tracker permission.
 
 router.get('/', async (req, res) => {
   try {
@@ -19,9 +22,10 @@ router.get('/', async (req, res) => {
     const likeQuery = `%${queryText}%`;
     const prefixQuery = `${queryText}%`;
     const results = [];
+    const canOpenPoTracker = hasMenu(req.user, PO_TRACKER_MENUS);
 
     // Search POs (OrdHD by PONo)
-    if (!searchType || searchType === 'po') {
+    if (canOpenPoTracker && (!searchType || searchType === 'po')) {
       const poResult = await pool.request()
         .input('q', sql.NVarChar, likeQuery)
         .input('qPrefix', sql.NVarChar, prefixQuery)
@@ -47,7 +51,7 @@ router.get('/', async (req, res) => {
     }
 
     // Search Orders (OrdHD by OrdNo)
-    if (!searchType || searchType === 'order') {
+    if (canOpenPoTracker && (!searchType || searchType === 'order')) {
       const orderResult = await pool.request()
         .input('q', sql.NVarChar, likeQuery)
         .input('qPrefix', sql.NVarChar, prefixQuery)
@@ -97,7 +101,7 @@ router.get('/', async (req, res) => {
     }
 
     // Search Customers (GMCust) — show CustCode only; never expose CustName
-    if (!searchType || searchType === 'customer') {
+    if (canOpenPoTracker && (!searchType || searchType === 'customer')) {
       const custResult = await pool.request()
         .input('q', sql.NVarChar, likeQuery)
         .input('qPrefix', sql.NVarChar, prefixQuery)
