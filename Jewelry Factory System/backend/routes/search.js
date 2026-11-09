@@ -8,6 +8,8 @@ const { PO_TRACKER_MENUS } = require('../middleware/apiMenuRules');
 // All reads are display-only → WITH (NOLOCK) so the global search never waits on (or deadlocks with)
 // the legacy VB.NET writers on OrdHD/OrdDT/GMCust. See docs/debug-history.md (FBE Order Tracker Deadlock).
 // PO / Order / Customer results open PO Tracker pages → only searched for users with PO Tracker permission.
+// Deterministic order (same term → same results): PO/Order newest OrdDate first, Items most recently ordered
+// first, Customers by code. Line-1 ItemNo via OUTER APPLY TOP 1 because OrdDT has duplicate (OrdNo, OrdLineNo).
 
 router.get('/', async (req, res) => {
   try {
@@ -31,11 +33,12 @@ router.get('/', async (req, res) => {
         .input('qPrefix', sql.NVarChar, prefixQuery)
         .query(`
           WITH FilteredPOs AS (
-            SELECT TOP 10 h.OrdNo, h.PONo, h.EXNo, h.CustCode, c.SalesName,
+            SELECT TOP 10 h.OrdNo, h.OrdDate, h.PONo, h.EXNo, h.CustCode, c.SalesName,
             (SELECT SUM(ISNULL(ItemQty, 0)) FROM OrdDT WITH (NOLOCK) WHERE OrdNo = h.OrdNo) AS Qty
             FROM OrdHD h WITH (NOLOCK)
             LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
             WHERE h.PONo LIKE @qPrefix OR h.PONo LIKE @q OR h.EXNo LIKE @qPrefix OR h.EXNo LIKE @q
+            ORDER BY h.OrdDate DESC, h.OrdNo DESC
           )
           SELECT 
             ISNULL(f.PONo, ISNULL(f.EXNo, '')) + '-' + f.OrdNo AS id, 
@@ -45,7 +48,11 @@ router.get('/', async (req, res) => {
             '/po-tracker?fPO=' + ISNULL(f.PONo, ISNULL(f.EXNo, f.OrdNo)) AS path,
             d.ItemNo AS itemNo
           FROM FilteredPOs f
-          LEFT JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = f.OrdNo AND d.OrdLineNo = '1'
+          OUTER APPLY (
+            SELECT TOP 1 ItemNo FROM OrdDT WITH (NOLOCK)
+            WHERE OrdNo = f.OrdNo AND OrdLineNo = 1 ORDER BY ItemNo
+          ) d
+          ORDER BY f.OrdDate DESC, f.OrdNo DESC
         `);
       results.push(...poResult.recordset);
     }
@@ -57,10 +64,11 @@ router.get('/', async (req, res) => {
         .input('qPrefix', sql.NVarChar, prefixQuery)
         .query(`
           WITH FilteredOrders AS (
-            SELECT TOP 10 h.OrdNo, h.PONo, h.CustCode, c.SalesName
+            SELECT TOP 10 h.OrdNo, h.OrdDate, h.PONo, h.CustCode, c.SalesName
             FROM OrdHD h WITH (NOLOCK)
             LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode = h.CustCode
             WHERE h.OrdNo LIKE @qPrefix
+            ORDER BY h.OrdDate DESC, h.OrdNo DESC
           )
           SELECT 
             f.OrdNo AS id, 
@@ -70,7 +78,11 @@ router.get('/', async (req, res) => {
             '/po-tracker/ord/' + f.OrdNo AS path,
             d.ItemNo AS itemNo
           FROM FilteredOrders f
-          LEFT JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = f.OrdNo AND d.OrdLineNo = '1'
+          OUTER APPLY (
+            SELECT TOP 1 ItemNo FROM OrdDT WITH (NOLOCK)
+            WHERE OrdNo = f.OrdNo AND OrdLineNo = 1 ORDER BY ItemNo
+          ) d
+          ORDER BY f.OrdDate DESC, f.OrdNo DESC
         `);
       results.push(...orderResult.recordset);
     }
@@ -82,11 +94,12 @@ router.get('/', async (req, res) => {
         .input('qPrefix', sql.NVarChar, prefixQuery)
         .query(`
           WITH FilteredItems AS (
-            SELECT TOP 10 d.ItemNo, MAX(d.ItemMat) AS ItemMat, MAX(h.CustCode) AS CustCode
+            SELECT TOP 10 d.ItemNo, MAX(d.ItemMat) AS ItemMat, MAX(h.CustCode) AS CustCode, MAX(h.OrdDate) AS LastOrdDate
             FROM OrdDT d WITH (NOLOCK)
             JOIN OrdHD h WITH (NOLOCK) ON h.OrdNo = d.OrdNo
             WHERE d.ItemNo LIKE @qPrefix OR d.ItemDesc LIKE @qPrefix
             GROUP BY d.ItemNo
+            ORDER BY MAX(h.OrdDate) DESC, d.ItemNo
           )
           SELECT 
             f.ItemNo AS id, 
@@ -96,6 +109,7 @@ router.get('/', async (req, res) => {
             '/item-detail/' + f.ItemNo AS path,
             f.ItemNo AS itemNo
           FROM FilteredItems f
+          ORDER BY f.LastOrdDate DESC, f.ItemNo
         `);
       results.push(...itemResult.recordset);
     }
@@ -114,6 +128,7 @@ router.get('/', async (req, res) => {
             '/po-tracker?fCust=' + c.CustCode AS path
           FROM GMCust c WITH (NOLOCK)
           WHERE c.CustCode LIKE @qPrefix OR c.CustName LIKE @q
+          ORDER BY c.CustCode
         `);
       results.push(...custResult.recordset.map(r => ({ ...r, itemNo: null })));
     }

@@ -195,7 +195,7 @@ gemstone-lifecycle-management/
     │       │   │   ├── AppLayout.tsx        # Shell layout (Sidebar + Topbar + Outlet)
     │       │   │   ├── DocumentLayout.tsx   # 🏗️ Unified Document Layout (IoC/Slot Injection)
     │       │   │   ├── Sidebar.tsx          # Left nav sidebar (role-based menu filtering)
-    │       │   │   └── Topbar.tsx           # Top bar (search, theme switcher, breadcrumb)
+    │       │   │   └── Topbar.tsx           # Top bar (theme switcher, breadcrumb) — no global search box
     │       │   ├── dashboard/
     │       │   │   ├── StatCard.tsx              # Dashboard stat card component
     │       │   │   ├── CardDetailPanel.tsx       # Dashboard card drill-down panel (YoY comparison)
@@ -1003,8 +1003,8 @@ Inside route handlers, add only short section labels for important boxes/queries
    - `status = 0` (**Pending / Waiting**): No intake document recorded for this stage yet.
 5. **Concurrency Guards (2026-11-09, `/track`)**:
    - All `/track` reads use `WITH (NOLOCK)`: the legacy VB.NET system writes these tables all day, and `OrdNo` lookups scan whole tables (see "Database Indexes (Current State)"), so locking reads deadlocked (error 1205).
-   - Same policy applied to the global Topbar search (`routes/search.js`, all 4 queries). Other display-only routes still without NOLOCK: `poTracker.js` (read paths only — never the remark read-before-UPDATE), `productionDashboard.js`, `topOrdersGallery.js`, `productionSummary.js`, `orderLinesIssues.js`.
-   - Known pre-existing issue: search queries use `TOP 10` without `ORDER BY`, so results for the same term can differ between calls.
+   - Same policy applied to the global search API (`routes/search.js`, all 4 queries). Other display-only routes still without NOLOCK: `poTracker.js` (read paths only — never the remark read-before-UPDATE), `productionDashboard.js`, `topOrdersGallery.js`, `productionSummary.js`, `orderLinesIssues.js`.
+   - Global search API (`/api/search`): deterministic order — PO/Order newest `OrdDate` first, Items most recently ordered first, Customers by code; line-1 `ItemNo` via `OUTER APPLY TOP 1` (OrdDT has duplicate keys). **No page calls it yet** (`fetchSearch` in `poTrackerAPI.ts` is unused; there is no search box in the Topbar). Very short terms that match most rows (e.g. `BB`) take ~3–5 s because results must be sorted — if a search box is added, debounce input and require ≥ 3 characters.
    - `queryWithDeadlockRetry` retries a deadlocked query twice (200 ms, 600 ms); if it still fails the API returns **503** `"The database is busy right now..."`.
    - The step loop skips a step only when its table is missing (error 208). Any other SQL error fails the request — never show a false `Pending` step.
    - `ordLineNo` must be numeric (`OrdDT.OrdLineNo` is INT) → otherwise **400**.
