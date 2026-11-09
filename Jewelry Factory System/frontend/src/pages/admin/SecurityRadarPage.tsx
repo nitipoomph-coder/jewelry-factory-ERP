@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { adminAuditAPI, type ThreatSummary, type AuditEvent, type BannedIP } from '../../services/adminAuditAPI';
 import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errors';
 
 export default function SecurityRadarPage() {
   const { showToast } = useToast();
@@ -52,10 +53,8 @@ export default function SecurityRadarPage() {
   const [manualBanReason, setManualBanReason] = useState('');
   const [manualBanDuration, setManualBanDuration] = useState(15);
 
-  const fetchData = async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    else setIsRefreshing(true);
-
+  // Network part only. Callers set the loading flags; the initial load relies on isLoading starting as true.
+  const loadData = async () => {
     try {
       const [sumData, logsData, bannedData] = await Promise.all([
         adminAuditAPI.getSummary(),
@@ -67,17 +66,23 @@ export default function SecurityRadarPage() {
         setLogs(logsData.items);
         setBannedIPs(bannedData);
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('[SecurityRadar] Fetch error:', err);
-      showToast(err.message || 'Failed to load security metrics', 'error');
+      showToast(getErrorMessage(err, 'Failed to load security metrics'), 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
+  const fetchData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    else setIsRefreshing(true);
+    await loadData();
+  };
+
   useEffect(() => {
-    fetchData();
+    loadData();
   }, []);
 
   // Auto-refresh interval (every 10 seconds)
@@ -95,8 +100,8 @@ export default function SecurityRadarPage() {
       await adminAuditAPI.simulateThreat(type);
       showToast(`Simulation triggered: ${type}`, 'success');
       await fetchData(true);
-    } catch (err: any) {
-      showToast(err.message || 'Simulation failed', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Simulation failed'), 'error');
     } finally {
       setIsSimulating(false);
     }
@@ -107,8 +112,8 @@ export default function SecurityRadarPage() {
       const res = await adminAuditAPI.unbanIP(ip);
       showToast(res.message || `IP ${ip} released from jail`, 'success');
       await fetchData(true);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to unban IP', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to unban IP'), 'error');
     }
   };
 
@@ -129,8 +134,8 @@ export default function SecurityRadarPage() {
       setManualBanIp('');
       setManualBanReason('');
       await fetchData(true);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to ban IP', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to ban IP'), 'error');
     }
   };
 

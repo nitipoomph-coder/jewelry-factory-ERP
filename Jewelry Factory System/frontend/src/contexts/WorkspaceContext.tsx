@@ -44,25 +44,27 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const navigate = useNavigate();
 
   // Initialize: Prioritize path deduction, then localStorage, fallback to PCC
-  const [workspace, setWorkspaceState] = useState<AppWorkspace>(() => {
+  const [storedWorkspace, setWorkspaceState] = useState<AppWorkspace>(() => {
     const fromPath = getWorkspaceFromPath(location.pathname);
     if (fromPath) return fromPath;
     const saved = localStorage.getItem(STORAGE_KEY) as AppWorkspace | null;
     return saved === 'INVENTORY' ? 'INVENTORY' : 'PCC';
   });
 
-  // When pathname changes (e.g. user clicked a link or changed route), auto-sync workspace
+  // The route decides the workspace whenever it belongs to one; routes without a workspace keep the last one.
+  // Remember the route's workspace during render (React "adjust state on prop change" pattern, no effect).
+  const fromPath = getWorkspaceFromPath(location.pathname);
+  if (fromPath && fromPath !== storedWorkspace) {
+    setWorkspaceState(fromPath);
+  }
+  const workspace = fromPath ?? storedWorkspace;
+
   useEffect(() => {
-    const fromPath = getWorkspaceFromPath(location.pathname);
-    if (fromPath && fromPath !== workspace) {
-      setWorkspaceState(fromPath);
-      localStorage.setItem(STORAGE_KEY, fromPath);
-    }
-  }, [location.pathname, workspace]);
+    localStorage.setItem(STORAGE_KEY, workspace);
+  }, [workspace]);
 
   const setWorkspace = (ws: AppWorkspace) => {
     setWorkspaceState(ws);
-    localStorage.setItem(STORAGE_KEY, ws);
   };
 
   // Switch workspace and navigate to landing page

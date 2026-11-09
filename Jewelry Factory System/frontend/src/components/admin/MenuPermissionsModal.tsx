@@ -13,6 +13,7 @@ import {
 import { menuConfig } from '../../config/menuConfig';
 import { adminUsersAPI, type ManagedUser } from '../../services/adminUsersAPI';
 import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errors';
 
 interface MenuPermissionsModalProps {
   isOpen: boolean;
@@ -114,7 +115,7 @@ export default function MenuPermissionsModal({
   const handleToggleItem = (itemId: string, groupId: string) => {
     setSelectedIds(prev => {
       const isSelected = prev.includes(itemId);
-      let next = isSelected ? prev.filter(id => id !== itemId) : [...prev, itemId];
+      const next = isSelected ? prev.filter(id => id !== itemId) : [...prev, itemId];
 
       // If item was checked, ensure parent group is also in the list so group shows
       if (!isSelected && !next.includes(groupId)) {
@@ -181,8 +182,8 @@ export default function MenuPermissionsModal({
 
       onSaved();
       onClose();
-    } catch (err: any) {
-      showToast(err.message || 'เกิดข้อผิดพลาดในการบันทึกสิทธิ์', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'เกิดข้อผิดพลาดในการบันทึกสิทธิ์'), 'error');
     } finally {
       setIsSaving(false);
     }

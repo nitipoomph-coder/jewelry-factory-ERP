@@ -4,6 +4,7 @@ import NavGroup from '../navigation/NavGroup';
 import { menuConfig } from '../../config/menuConfig';
 import { getActiveGroupId } from '../../utils/navigationUtils';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { getStoredAllowedMenus } from '../../utils/authRedirect';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,13 +18,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const { workspace } = useWorkspace();
 
   const role = (localStorage.getItem('auth_role') || 'sales').toLowerCase();
-  const rawAllowedMenus = localStorage.getItem('auth_allowed_menus');
-  let allowedMenus: string[] | null = null;
-  try {
-    if (rawAllowedMenus) {
-      allowedMenus = JSON.parse(rawAllowedMenus);
-    }
-  } catch (e) {}
+  // Same parsing/validation as the route guard (null = unrestricted)
+  const allowedMenus = getStoredAllowedMenus();
 
   const isGroupAllowed = (groupId: string, items?: { id: string }[]) => {
     if (!allowedMenus) return true;

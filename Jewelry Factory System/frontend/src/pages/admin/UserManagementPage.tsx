@@ -14,6 +14,7 @@ import {
 } from '../../services/adminUsersAPI';
 import { useToast } from '../../contexts/ToastContext';
 import UserAccessDrawer from '../../components/admin/UserAccessDrawer';
+import { getErrorMessage } from '../../utils/errors';
 
 export default function UserManagementPage() {
   const { showToast } = useToast();
@@ -31,10 +32,8 @@ export default function UserManagementPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
 
-  const fetchUsers = async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    else setIsRefreshing(true);
-
+  // Network part only. Callers set the loading flags; the initial load relies on isLoading starting as true.
+  const loadUsers = async () => {
     try {
       const data = await adminUsersAPI.getUsers();
       startTransition(() => {
@@ -45,17 +44,23 @@ export default function UserManagementPage() {
           if (updated) setSelectedUser(updated);
         }
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('[UserManagement] Fetch error:', err);
-      showToast(err.message || 'Failed to load user directory', 'error');
+      showToast(getErrorMessage(err, 'Failed to load user directory'), 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
+  const fetchUsers = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    else setIsRefreshing(true);
+    await loadUsers();
+  };
+
   useEffect(() => {
-    fetchUsers();
+    loadUsers();
   }, []);
 
   // Filtered users

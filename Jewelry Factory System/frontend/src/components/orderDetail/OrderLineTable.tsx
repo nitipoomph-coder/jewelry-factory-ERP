@@ -9,6 +9,11 @@ import { ORDER_DETAIL_COLUMNS, type OrderDetailColumn } from '../../config/order
 import { formatColumnValue } from './format';
 import { psPhotoUrl, attachPhotoFallback } from '../../utils/photoUrl';
 
+/** Global cursor while a column is being resized (kept outside the component: DOM side effect). */
+function setBodyCursor(cursor: string) {
+  document.body.style.cursor = cursor;
+}
+
 // รูปดึงfrom network path (ps ก่อน, onError fallback ไป cad, ถ้าไม่มีทั้งคู่จะซ่อนรูปเผยไอคอน placeholder ด้านหลัง)
 // วางไอคอนเป็น layer ด้านหลัง + <img> ทับด้านบน (key={itemNo} รีเซ็ตทุกครั้งที่สลับ item) — ไม่ต้องใช้ state/effect
 function PhotoThumbCell({ line, onPhotoClick }: { line: Record<string, unknown>, onPhotoClick?: (itemNo: string) => void }) {
@@ -101,12 +106,12 @@ export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhoto
       resizingCol.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
+      setBodyCursor('');
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-    document.body.style.cursor = 'col-resize';
+    setBodyCursor('col-resize');
   };
 
   const renderCell = (col: OrderDetailColumn, line: Record<string, unknown>, rowIdx: number) => {

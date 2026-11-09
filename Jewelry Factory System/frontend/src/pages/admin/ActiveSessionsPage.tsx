@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { adminAuditAPI, type ActiveSession } from '../../services/adminAuditAPI';
 import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errors';
 
 function renderPageIcon(iconName?: string) {
   switch (iconName) {
@@ -89,6 +90,8 @@ function renderActionIcon(actionType?: string) {
 export default function ActiveSessionsPage() {
   const { showToast } = useToast();
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
+  // Reference time for "Active Now / Idle" badges, refreshed with every fetch (auto-refresh: 10 s)
+  const [now, setNow] = useState(() => Date.now());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -98,24 +101,31 @@ export default function ActiveSessionsPage() {
   const [sessionToKill, setSessionToKill] = useState<ActiveSession | null>(null);
   const [isKilling, setIsKilling] = useState(false);
 
-  const fetchSessions = async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    else setIsRefreshing(true);
-
+  // Network part only. Callers set the loading flags; the initial load relies on isLoading starting as true.
+  const loadSessions = async () => {
     try {
       const data = await adminAuditAPI.getSessions();
       setSessions(data);
-    } catch (err: any) {
+      setNow(Date.now());
+    } catch (err) {
       console.error('[ActiveSessions] Fetch error:', err);
-      showToast(err.message || 'Failed to load active sessions', 'error');
+      showToast(getErrorMessage(err, 'Failed to load active sessions'), 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
+  const fetchSessions = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    else setIsRefreshing(true);
+    await loadSessions();
+  };
+
   useEffect(() => {
-    fetchSessions();
+    // Initial load from a callback (not synchronously in the effect body); cancelled if unmounted first
+    const timer = setTimeout(loadSessions, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // 10s auto-refresh
@@ -140,8 +150,8 @@ export default function ActiveSessionsPage() {
       } else {
         showToast(result.message || 'Failed to terminate session', 'error');
       }
-    } catch (err: any) {
-      showToast(err.message || 'Error terminating session', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Error terminating session'), 'error');
     } finally {
       setIsKilling(false);
     }
@@ -162,7 +172,7 @@ export default function ActiveSessionsPage() {
   });
 
   const getActiveStatusBadge = (lastActiveAt: string) => {
-    const diffMs = Date.now() - new Date(lastActiveAt).getTime();
+    const diffMs = now - new Date(lastActiveAt).getTime();
     if (diffMs < 45000) {
       return {
         label: 'Active Now',

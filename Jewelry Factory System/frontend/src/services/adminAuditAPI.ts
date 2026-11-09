@@ -11,7 +11,7 @@ export interface AuditEvent {
   ip: string;
   status: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'WARNING' | 'INFO';
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  details: Record<string, any>;
+  details: Record<string, unknown>;
 }
 
 export interface ThreatSummary {

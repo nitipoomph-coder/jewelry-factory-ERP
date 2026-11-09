@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X,
   Shield,
@@ -18,10 +18,12 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronsUpDown,
+  type LucideIcon,
 } from 'lucide-react';
 import { menuConfig } from '../../config/menuConfig';
 import { adminUsersAPI, type ManagedUser } from '../../services/adminUsersAPI';
 import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errors';
 
 interface UserAccessDrawerProps {
   isOpen: boolean;
@@ -31,7 +33,7 @@ interface UserAccessDrawerProps {
 }
 
 // Icon mapper for menu groups
-const GROUP_ICONS: Record<string, any> = {
+const GROUP_ICONS: Record<string, LucideIcon> = {
   home: Home,
   'sales-dashboard': TrendingUp,
   'order-tracker': LayoutList,
@@ -44,60 +46,42 @@ const GROUP_ICONS: Record<string, any> = {
   'admin-security': ShieldAlert,
 };
 
-export default function UserAccessDrawer({
+// All individual menu item IDs across all groups (menuConfig is static)
+const ALL_ITEM_IDS: string[] = menuConfig.flatMap(g => [g.id, ...(g.items || []).map(item => item.id)]);
+
+// Total leaf items count
+const TOTAL_LEAF_COUNT = menuConfig.reduce((count, g) => count + (g.items && g.items.length > 0 ? g.items.length : 1), 0);
+
+/** Initial selection for an opened user: '*' expands to every menu id. */
+function getInitialSelection(user: ManagedUser): string[] {
+  const raw = user.allowedMenus || [];
+  return raw.includes('*') ? [...ALL_ITEM_IDS] : [...raw];
+}
+
+export default function UserAccessDrawer(props: UserAccessDrawerProps) {
+  if (!props.isOpen || !props.user) return null;
+  // Remount per opened user so the editor always starts from that user's saved permissions
+  return <UserAccessDrawerContent key={props.user.username} {...props} user={props.user} />;
+}
+
+function UserAccessDrawerContent({
   isOpen,
   onClose,
   user,
   onSaved,
-}: UserAccessDrawerProps) {
+}: UserAccessDrawerProps & { user: ManagedUser }) {
   const { showToast } = useToast();
   const drawerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // All individual menu item IDs across all groups
-  const allItemIds = useMemo(() => {
-    const ids: string[] = [];
-    menuConfig.forEach(g => {
-      ids.push(g.id);
-      if (g.items) {
-        g.items.forEach(item => ids.push(item.id));
-      }
-    });
-    return ids;
-  }, []);
+  const allItemIds = ALL_ITEM_IDS;
+  const totalLeafCount = TOTAL_LEAF_COUNT;
 
-  // Total leaf items count
-  const totalLeafCount = useMemo(() => {
-    let count = 0;
-    menuConfig.forEach(g => {
-      if (g.items && g.items.length > 0) {
-        count += g.items.length;
-      } else {
-        count += 1;
-      }
-    });
-    return count;
-  }, []);
-
-  // Selected menu IDs
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Selected menu IDs (fresh on every open — see UserAccessDrawer)
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => getInitialSelection(user));
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-
-  // Synchronize state when user changes or drawer opens
-  useEffect(() => {
-    if (user && isOpen) {
-      const raw = user.allowedMenus || [];
-      if (raw.includes('*')) {
-        setSelectedIds([...allItemIds]);
-      } else {
-        setSelectedIds([...raw]);
-      }
-      setSearchQuery('');
-      setCollapsedGroups({});
-    }
-  }, [user, isOpen, allItemIds]);
 
   // Handle keyboard shortcut Esc
   useEffect(() => {
@@ -109,8 +93,6 @@ export default function UserAccessDrawer({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  if (!isOpen || !user) return null;
 
   const isAllSelected = allItemIds.length > 0 && allItemIds.every(id => selectedIds.includes(id));
 
@@ -128,7 +110,7 @@ export default function UserAccessDrawer({
   const handleToggleItem = (itemId: string, groupId: string) => {
     setSelectedIds(prev => {
       const isSelected = prev.includes(itemId);
-      let next = isSelected ? prev.filter(id => id !== itemId) : [...prev, itemId];
+      const next = isSelected ? prev.filter(id => id !== itemId) : [...prev, itemId];
 
       // If child is selected, ensure parent group is present
       if (!isSelected && !next.includes(groupId)) {
@@ -202,8 +184,8 @@ export default function UserAccessDrawer({
 
       onSaved();
       onClose();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update user permissions', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to update user permissions'), 'error');
     } finally {
       setIsSaving(false);
     }

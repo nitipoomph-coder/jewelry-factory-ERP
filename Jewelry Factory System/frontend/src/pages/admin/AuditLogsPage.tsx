@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { adminAuditAPI, type AuditEvent } from '../../services/adminAuditAPI';
 import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errors';
 
 export default function AuditLogsPage() {
   const { showToast } = useToast();
@@ -48,8 +49,8 @@ export default function AuditLogsPage() {
       showToast(res.message || 'Audit logs have been cleared', 'success');
       setShowClearModal(false);
       await fetchLogs(1);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to clear logs', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to clear logs'), 'error');
     } finally {
       setIsClearing(false);
     }
@@ -72,9 +73,9 @@ export default function AuditLogsPage() {
       setTotal(data.total);
       setPage(data.page);
       setTotalPages(data.totalPages);
-    } catch (err: any) {
+    } catch (err) {
       console.error('[AuditLogs] Fetch error:', err);
-      showToast(err.message || 'Failed to fetch audit logs', 'error');
+      showToast(getErrorMessage(err, 'Failed to fetch audit logs'), 'error');
     } finally {
       setIsLoading(false);
     }
