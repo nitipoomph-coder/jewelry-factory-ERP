@@ -458,8 +458,11 @@ export default function FBEOrderTrackPage() {
                 id="fbe-order-line-input"
                 name="orderLine"
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={ordLineNo}
-                onChange={(e) => setOrdLineNo(e.target.value)}
+                // Digits only, max 5 (OrdLineNo is numeric, nvarchar(5) in step tables) — also cleans pasted text
+                onChange={(e) => setOrdLineNo(e.target.value.replace(/\D/g, '').slice(0, 5))}
                 aria-required="true"
                 className="focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:outline-none"
                 style={{

@@ -23,6 +23,34 @@ const PRODUCTION_STEPS = [
     { prefix: 'PT', deptCode: '', en: 'Plating', th: 'ชุบ' },
 ];
 
+// ── Concurrency guards for /track ──
+// The legacy VB.NET system writes OrdDT and the {XX}Sen/Rec tables all day, and the
+// lookup columns (OrdNo) have no usable index, so every lookup scans whole tables.
+// Reads therefore use WITH (NOLOCK) so they never wait on or hold shared locks against
+// those writers, and retry briefly if SQL Server still picks us as deadlock victim.
+// (OPTION (MAXDOP 1) was measured ~2x slower on these unindexed scans, so it is not used.)
+const SQL_ERROR_DEADLOCK = 1205;
+const SQL_ERROR_INVALID_OBJECT = 208;
+const DEADLOCK_RETRY_DELAYS_MS = [200, 600];
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** Runs a read query, retrying on deadlock (error 1205). `buildRequest` must return a fresh request each call. */
+async function queryWithDeadlockRetry(buildRequest, sqlText, label) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await buildRequest().query(sqlText);
+        } catch (err) {
+            if (err.number === SQL_ERROR_DEADLOCK && attempt < DEADLOCK_RETRY_DELAYS_MS.length) {
+                console.warn(`⚠️ [DEADLOCK RETRY] ${label} — attempt ${attempt + 1}/${DEADLOCK_RETRY_DELAYS_MS.length}`);
+                await sleep(DEADLOCK_RETRY_DELAYS_MS[attempt]);
+                continue;
+            }
+            throw err;
+        }
+    }
+}
+
 /**
  * GET /api/order-tracking/suggest
  * Query params: q (string, minimum 2 chars)
@@ -81,29 +109,35 @@ router.get('/track', async (req, res) => {
     const cleanOrdNo = ordNo.trim();
     const cleanLineNo = ordLineNo ? ordLineNo.trim() : '';
 
+    // OrdDT.OrdLineNo is INT — reject non-numeric input instead of failing inside SQL
+    if (cleanLineNo && !/^\d+$/.test(cleanLineNo)) {
+        return res.status(400).json({ error: 'Line No. must be a number' });
+    }
+
     try {
         const pool = await getPool();
 
         // 1) ดึงข้อมูลหัวออเดอร์ (OrdHD + OrdDT)
         let ordSql = `
-      SELECT 
+      SELECT
         hd.CustCode, hd.OrdDate, hd.DueDate, hd.PONo, hd.ProFac,
         dt.ItemNo, dt.ItemMat, dt.ItemCust, dt.ItemDesc,
         dt.ItemStone, dt.ItemPlate, dt.ItemSize, dt.ItemQty,
         dt.OrdLineNo
-      FROM OrdHD hd
-      LEFT OUTER JOIN OrdDT dt ON dt.OrdNo = hd.OrdNo
+      FROM OrdHD hd WITH (NOLOCK)
+      LEFT OUTER JOIN OrdDT dt WITH (NOLOCK) ON dt.OrdNo = hd.OrdNo
       WHERE hd.OrdNo = @ordNo
     `;
         if (cleanLineNo) {
             ordSql += ` AND dt.OrdLineNo = @ordLineNo`;
         }
 
-        const ordReq = pool.request();
-        ordReq.input('ordNo', sql.NVarChar, cleanOrdNo);
-        if (cleanLineNo) ordReq.input('ordLineNo', sql.NVarChar, cleanLineNo);
-
-        const ordResult = await ordReq.query(ordSql);
+        const ordResult = await queryWithDeadlockRetry(() => {
+            const ordReq = pool.request();
+            ordReq.input('ordNo', sql.NVarChar, cleanOrdNo);
+            if (cleanLineNo) ordReq.input('ordLineNo', sql.Int, parseInt(cleanLineNo, 10));
+            return ordReq;
+        }, ordSql, `track ${cleanOrdNo} header`);
 
         if (!ordResult.recordset || ordResult.recordset.length === 0) {
             return res.status(404).json({ error: 'Order not found in system' });
@@ -131,19 +165,20 @@ router.get('/track', async (req, res) => {
             MAX(h.DocuDate) AS DocuDate,
             MAX(h.DocuStatus) AS DocuStatus,
             ISNULL(SUM(d.SenQty), 0) AS SenQty
-          FROM ${pfx}SenHD h
-          INNER JOIN ${pfx}SenDT d ON h.${pfx}SenID = d.${pfx}SenID
+          FROM ${pfx}SenHD h WITH (NOLOCK)
+          INNER JOIN ${pfx}SenDT d WITH (NOLOCK) ON h.${pfx}SenID = d.${pfx}SenID
           WHERE h.ProFac = 'FBE' AND d.OrdNo = @ordNo
         `;
                 if (cleanLineNo) senSql += ` AND d.OrdLineNo = @ordLineNo`;
                 if (dept) senSql += ` AND h.SenDept = @deptCode`;
 
-                const sReq = pool.request();
-                sReq.input('ordNo', sql.NVarChar, cleanOrdNo);
-                if (cleanLineNo) sReq.input('ordLineNo', sql.NVarChar, cleanLineNo);
-                if (dept) sReq.input('deptCode', sql.NVarChar, dept);
-
-                const sRes = await sReq.query(senSql);
+                const sRes = await queryWithDeadlockRetry(() => {
+                    const sReq = pool.request();
+                    sReq.input('ordNo', sql.NVarChar, cleanOrdNo);
+                    if (cleanLineNo) sReq.input('ordLineNo', sql.NVarChar, cleanLineNo);
+                    if (dept) sReq.input('deptCode', sql.NVarChar, dept);
+                    return sReq;
+                }, senSql, `track ${cleanOrdNo} ${pfx}Sen ${dept}`);
                 if (sRes.recordset && sRes.recordset.length > 0) {
                     const row = sRes.recordset[0];
                     senQty = Number(row.SenQty || 0);
@@ -152,7 +187,10 @@ router.get('/track', async (req, res) => {
                     senStatus = row.DocuStatus || '';
                 }
             } catch (err) {
-                // ข้ามหากตารางไม่มี
+                // Skip only when the step table does not exist; any other error (e.g. deadlock
+                // after retries) must fail the request instead of silently showing "Pending".
+                if (err.number !== SQL_ERROR_INVALID_OBJECT) throw err;
+                console.warn(`⚠️ [TRACK] ${pfx}SenHD/DT not found — step skipped`);
             }
 
             // 2.2) ฝั่งรับงาน {XX}RecHD / {XX}RecDT
@@ -162,19 +200,20 @@ router.get('/track', async (req, res) => {
             SUBSTRING(MAX(ISNULL(CONVERT(VARCHAR(8), h.DocuDate, 112), '00000000') + ISNULL(h.DocuNo, '')), 9, 100) AS DocuNo,
             MAX(h.DocuDate) AS DocuDate,
             ISNULL(SUM(d.RecQty), 0) AS RecQty
-          FROM ${pfx}RecHD h
-          INNER JOIN ${pfx}RecDT d ON h.${pfx}RecID = d.${pfx}RecID
+          FROM ${pfx}RecHD h WITH (NOLOCK)
+          INNER JOIN ${pfx}RecDT d WITH (NOLOCK) ON h.${pfx}RecID = d.${pfx}RecID
           WHERE h.ProFac = 'FBE' AND d.OrdNo = @ordNo
         `;
                 if (cleanLineNo) recSql += ` AND d.OrdLineNo = @ordLineNo`;
                 if (dept) recSql += ` AND h.RecDept = @deptCode`;
 
-                const rReq = pool.request();
-                rReq.input('ordNo', sql.NVarChar, cleanOrdNo);
-                if (cleanLineNo) rReq.input('ordLineNo', sql.NVarChar, cleanLineNo);
-                if (dept) rReq.input('deptCode', sql.NVarChar, dept);
-
-                const rRes = await rReq.query(recSql);
+                const rRes = await queryWithDeadlockRetry(() => {
+                    const rReq = pool.request();
+                    rReq.input('ordNo', sql.NVarChar, cleanOrdNo);
+                    if (cleanLineNo) rReq.input('ordLineNo', sql.NVarChar, cleanLineNo);
+                    if (dept) rReq.input('deptCode', sql.NVarChar, dept);
+                    return rReq;
+                }, recSql, `track ${cleanOrdNo} ${pfx}Rec ${dept}`);
                 if (rRes.recordset && rRes.recordset.length > 0) {
                     const row = rRes.recordset[0];
                     recQty = Number(row.RecQty || 0);
@@ -182,7 +221,8 @@ router.get('/track', async (req, res) => {
                     recDocDate = row.DocuDate || null;
                 }
             } catch (err) {
-                // ข้ามหากตารางไม่มี
+                if (err.number !== SQL_ERROR_INVALID_OBJECT) throw err;
+                console.warn(`⚠️ [TRACK] ${pfx}RecHD/DT not found — step skipped`);
             }
 
             // 2.3) กำหนดสถานะ: 2=เสร็จ (เขียว), 1=กำลังทำ (ส้ม), 0=ยังไม่เริ่ม (เทา)
@@ -240,6 +280,10 @@ router.get('/track', async (req, res) => {
         });
 
     } catch (err) {
+        if (err.number === SQL_ERROR_DEADLOCK) {
+            console.error(`❌ [TRACK] Deadlock persisted after retries for ${cleanOrdNo}`);
+            return res.status(503).json({ error: 'The database is busy right now. Please try again in a moment.' });
+        }
         console.error('Order tracking query error:', err);
         return res.status(500).json({ error: 'Failed to fetch order tracking: ' + err.message });
     }
