@@ -114,29 +114,29 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
           <button
             type="button"
             onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all cursor-pointer border-0"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-fixed-slate-800 dark:text-fixed-slate-100 hover:bg-fixed-slate-100 dark:hover:bg-fixed-slate-800/60 transition-all cursor-pointer border-0"
             title="Switch Workspace"
             aria-label="Switch Workspace"
           >
             <div className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 ${
               workspace === 'PCC'
-                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-fixed-indigo-50 dark:bg-fixed-indigo-950/60 text-fixed-indigo-600 dark:text-fixed-indigo-400'
+                : 'bg-fixed-emerald-50 dark:bg-fixed-emerald-950/60 text-fixed-emerald-600 dark:text-fixed-emerald-400'
             }`}>
               {workspace === 'PCC' ? <Layers size={13} /> : <Boxes size={13} />}
             </div>
             <span className="font-semibold tracking-tight">
               {workspace === 'PCC' ? 'Production Control' : 'Inventory & Supply'}
             </span>
-            <ChevronDown size={12} className="text-slate-400" />
+            <ChevronDown size={12} className="text-fixed-slate-400" />
           </button>
 
           {/* Switcher Dropdown (Concise & Modern) */}
           {showWorkspaceMenu && (
             <div
-              className="absolute left-0 mt-2 w-56 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-1.5 z-[120] flex flex-col gap-1 bg-white dark:bg-slate-900"
+              className="absolute left-0 mt-2 w-56 rounded-2xl border border-fixed-slate-100 dark:border-fixed-slate-800 shadow-xl p-1.5 z-[120] flex flex-col gap-1 bg-fixed-white dark:bg-fixed-slate-900"
             >
-              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-fixed-slate-400">
                 Workspace
               </div>
 
@@ -149,21 +149,21 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
                 }}
                 className={`flex items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer border-0 ${
                   workspace === 'PCC'
-                    ? 'bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 font-semibold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    ? 'bg-fixed-indigo-50/80 dark:bg-fixed-indigo-950/40 text-fixed-indigo-950 dark:text-fixed-indigo-200 font-semibold'
+                    : 'text-fixed-slate-700 dark:text-fixed-slate-300 hover:bg-fixed-slate-50 dark:hover:bg-fixed-slate-800/40'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                     workspace === 'PCC'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                      ? 'bg-fixed-indigo-600 text-fixed-white'
+                      : 'bg-fixed-slate-100 dark:bg-fixed-slate-800 text-fixed-slate-500'
                   }`}>
                     <Layers size={14} />
                   </div>
                   <span className="text-xs font-semibold">Production Control</span>
                 </div>
-                {workspace === 'PCC' && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
+                {workspace === 'PCC' && <Check size={14} className="text-fixed-indigo-600 dark:text-fixed-indigo-400" />}
               </button>
 
               {/* Choice 2: Inventory & Supply */}
@@ -175,21 +175,21 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
                 }}
                 className={`flex items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer border-0 ${
                   workspace === 'INVENTORY'
-                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 font-semibold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    ? 'bg-fixed-emerald-50/80 dark:bg-fixed-emerald-950/40 text-fixed-emerald-950 dark:text-fixed-emerald-200 font-semibold'
+                    : 'text-fixed-slate-700 dark:text-fixed-slate-300 hover:bg-fixed-slate-50 dark:hover:bg-fixed-slate-800/40'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                     workspace === 'INVENTORY'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                      ? 'bg-fixed-emerald-600 text-fixed-white'
+                      : 'bg-fixed-slate-100 dark:bg-fixed-slate-800 text-fixed-slate-500'
                   }`}>
                     <Boxes size={14} />
                   </div>
                   <span className="text-xs font-semibold">Inventory & Supply</span>
                 </div>
-                {workspace === 'INVENTORY' && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                {workspace === 'INVENTORY' && <Check size={14} className="text-fixed-emerald-600 dark:text-fixed-emerald-400" />}
               </button>
             </div>
           )}

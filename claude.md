@@ -835,7 +835,8 @@ This standard applies to every dashboard, report, KPI, chart, and infographic in
 - Keep the same meaning and series color consistent across the system. Do not assign decorative colors to categories with no analytical purpose.
 - Color must never be the only identifier; use labels, icons, patterns, ordering, or text as a second cue.
 - Provide visible keyboard focus, sufficient contrast in every theme, screen-reader names, and readable labels at all supported sizes.
-- Never write raw hex, rgb, hsl, oklch, named colors, or hardcoded Tailwind colors into components; add design tokens in `src/index.css` and run `npm run lint:colors` (`npm run lint` enforces this automatically).
+- Never write raw hex, rgb, hsl, oklch, named colors, or hardcoded Tailwind colors into components; add design tokens in `src/index.css` and run `npm run lint:colors` (`npm run lint` enforces this automatically). The codebase currently passes `npm run lint` with 0 color violations and 0 ESLint errors — keep it that way.
+- **Fixed palette (`--color-fixed-*`)**: theme-independent tokens (Tailwind v4 palette values + a few named chart/tooltip/trend values) used by screens intentionally designed with fixed colors: admin security console pages, CCTV report, Topbar workspace switcher, Top Analytics sparklines. Use them as normal utilities (`bg-fixed-slate-900/95`, `dark:text-fixed-indigo-300`). New UI must prefer role tokens (`--color-ui-*`, text, border, status); add a fixed token only when a design is deliberately theme-independent.
 
 ### Data Integrity
 

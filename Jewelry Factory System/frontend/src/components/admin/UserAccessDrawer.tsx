@@ -213,7 +213,7 @@ function UserAccessDrawerContent({
     <div className="fixed inset-0 z-[1000] flex justify-end">
       {/* ── Backdrop ───────────────────────────────────────────────────────────── */}
       <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+        className="fixed inset-0 bg-fixed-slate-950/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -231,8 +231,8 @@ function UserAccessDrawerContent({
             <div
               className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shrink-0 shadow-xs ${
                 isAdmin
-                  ? 'bg-purple-500/15 text-purple-400'
-                  : 'bg-emerald-500/15 text-emerald-400'
+                  ? 'bg-fixed-purple-500/15 text-fixed-purple-400'
+                  : 'bg-fixed-emerald-500/15 text-fixed-emerald-400'
               }`}
             >
               {initial}
@@ -245,18 +245,18 @@ function UserAccessDrawerContent({
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 ${
                     isAdmin
-                      ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
-                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-fixed-purple-100 dark:bg-fixed-purple-950/60 text-fixed-purple-700 dark:text-fixed-purple-300'
+                      : 'bg-fixed-emerald-100 dark:bg-fixed-emerald-950/60 text-fixed-emerald-700 dark:text-fixed-emerald-300'
                   }`}
                 >
                   <Shield size={10} />
                   {isAdmin ? 'Administrator' : 'Sales / Operator'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <div className="flex items-center gap-2 text-xs text-fixed-slate-500 dark:text-fixed-slate-400 mt-0.5">
                 <span className="font-mono">@{user.username}</span>
                 <span className="opacity-40">•</span>
-                <span className="inline-flex items-center gap-1 truncate text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1 truncate text-fixed-slate-500 dark:text-fixed-slate-400">
                   <Building2 size={11} />
                   {user.department || 'General Operations'}
                 </span>
@@ -267,7 +267,7 @@ function UserAccessDrawerContent({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl text-fixed-slate-400 hover:text-fixed-slate-700 dark:hover:text-fixed-slate-200 hover:bg-fixed-slate-100 dark:hover:bg-fixed-slate-800 transition-colors cursor-pointer shrink-0"
             title="Close (Esc)"
           >
             <X size={18} />
@@ -275,24 +275,24 @@ function UserAccessDrawerContent({
         </div>
 
         {/* ─── Search & Bulk Actions Bar (Modern Frameless) ────────────────────────── */}
-        <div className="px-6 py-3.5 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/40">
+        <div className="px-6 py-3.5 bg-fixed-white dark:bg-fixed-slate-900 shrink-0 flex items-center justify-between gap-3 border-b border-fixed-slate-100 dark:border-fixed-slate-800/40">
           <div className="relative flex-1">
             <Search
               size={14}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fixed-slate-400"
             />
             <input
               type="text"
               placeholder="Search menus by title, code, or route..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-slate-100/80 dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-hidden focus:ring-2 focus:ring-indigo-500/20 placeholder:text-slate-400 transition-colors border-0"
+              className="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-fixed-slate-100/80 dark:bg-fixed-slate-800 text-fixed-slate-900 dark:text-fixed-slate-100 outline-hidden focus:ring-2 focus:ring-fixed-indigo-500/20 placeholder:text-fixed-slate-400 transition-colors border-0"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fixed-slate-400 hover:text-fixed-slate-600 dark:hover:text-fixed-slate-200 cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -303,7 +303,7 @@ function UserAccessDrawerContent({
             <button
               type="button"
               onClick={handleToggleAllGroups}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-fixed-slate-600 dark:text-fixed-slate-300 hover:text-fixed-slate-900 dark:hover:text-fixed-white hover:bg-fixed-slate-100 dark:hover:bg-fixed-slate-800 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
               title={areAnyCollapsed ? 'Expand All Categories' : 'Collapse All Categories'}
             >
               <ChevronsUpDown size={12} />
@@ -312,14 +312,14 @@ function UserAccessDrawerContent({
             <button
               type="button"
               onClick={handleSelectAll}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-fixed-slate-100 dark:bg-fixed-slate-800 hover:bg-fixed-slate-200 dark:hover:bg-fixed-slate-700 text-fixed-slate-800 dark:text-fixed-slate-200 transition-colors cursor-pointer whitespace-nowrap"
             >
               Select All
             </button>
             <button
               type="button"
               onClick={handleClearAll}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer whitespace-nowrap"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-fixed-slate-500 dark:text-fixed-slate-400 hover:text-fixed-rose-600 hover:bg-fixed-rose-50 dark:hover:bg-fixed-rose-950/30 transition-colors cursor-pointer whitespace-nowrap"
             >
               Clear
             </button>
@@ -329,11 +329,11 @@ function UserAccessDrawerContent({
         {/* ─── Scrollable Menu Hierarchy List (Frameless Modern Flow) ─────────────── */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-3.5 content-scrollbar bg-slate-50/50 dark:bg-slate-900"
+          className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-3.5 content-scrollbar bg-fixed-slate-50/50 dark:bg-fixed-slate-900"
           style={{ overscrollBehavior: 'contain' }}
         >
           {filteredGroups.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-400">
+            <div className="p-12 text-center text-xs text-fixed-slate-400">
               No menus match "{searchQuery}"
             </div>
           ) : (
@@ -358,11 +358,11 @@ function UserAccessDrawerContent({
               return (
                 <div
                   key={group.id}
-                  className="shrink-0 rounded-2xl bg-white dark:bg-slate-800/40 p-2 sm:p-2.5 shadow-xs border border-slate-200/40 dark:border-slate-800/40 transition-all"
+                  className="shrink-0 rounded-2xl bg-fixed-white dark:bg-fixed-slate-800/40 p-2 sm:p-2.5 shadow-xs border border-fixed-slate-200/40 dark:border-fixed-slate-800/40 transition-all"
                 >
                   {/* ── Category Header Row (Frameless & Sleek) ── */}
                   <div
-                    className="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-700/30 transition-colors cursor-pointer select-none"
+                    className="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-fixed-slate-100/80 dark:hover:bg-fixed-slate-700/30 transition-colors cursor-pointer select-none"
                     onClick={() => childItems.length > 0 && handleToggleCollapse(group.id)}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -374,38 +374,38 @@ function UserAccessDrawerContent({
                         }}
                         onClick={e => e.stopPropagation()}
                         onChange={() => handleToggleGroup(group.id, childIds)}
-                        className="w-4 h-4 rounded text-indigo-600 bg-transparent border-slate-400 dark:border-slate-600 focus:ring-0 cursor-pointer shrink-0"
+                        className="w-4 h-4 rounded text-fixed-indigo-600 bg-transparent border-fixed-slate-400 dark:border-fixed-slate-600 focus:ring-0 cursor-pointer shrink-0"
                       />
 
-                      <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded-lg bg-fixed-indigo-50 dark:bg-fixed-indigo-950/60 text-fixed-indigo-600 dark:text-fixed-indigo-400 flex items-center justify-center shrink-0">
                         <IconComponent size={13} />
                       </div>
 
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                      <span className="text-xs font-bold text-fixed-slate-800 dark:text-fixed-slate-100 truncate">
                         {group.label}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       {group.workspace && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-fixed-slate-100 dark:bg-fixed-slate-800 text-fixed-slate-600 dark:text-fixed-slate-400 font-semibold">
                           {group.workspace}
                         </span>
                       )}
                       <span
                         className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-bold ${
                           activeCount === totalCount
-                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                            ? 'bg-fixed-emerald-100 dark:bg-fixed-emerald-950/60 text-fixed-emerald-700 dark:text-fixed-emerald-300'
                             : activeCount > 0
-                            ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
-                            : 'bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400'
+                            ? 'bg-fixed-indigo-100 dark:bg-fixed-indigo-950/60 text-fixed-indigo-700 dark:text-fixed-indigo-300'
+                            : 'bg-fixed-slate-100 text-fixed-slate-500 dark:text-fixed-slate-400'
                         }`}
                       >
                         {activeCount} / {totalCount} active
                       </span>
 
                       {childItems.length > 0 && (
-                        <div className="text-slate-400 p-0.5">
+                        <div className="text-fixed-slate-400 p-0.5">
                           {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                         </div>
                       )}
@@ -424,8 +424,8 @@ function UserAccessDrawerContent({
                               key={item.id}
                               className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-all ${
                                 isChecked
-                                  ? 'bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-100 font-semibold'
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-700/30'
+                                  ? 'bg-fixed-indigo-50/80 dark:bg-fixed-indigo-950/40 text-fixed-indigo-950 dark:text-fixed-indigo-100 font-semibold'
+                                  : 'text-fixed-slate-700 dark:text-fixed-slate-300 hover:bg-fixed-slate-100/70 dark:hover:bg-fixed-slate-700/30'
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
@@ -433,19 +433,19 @@ function UserAccessDrawerContent({
                                   type="checkbox"
                                   checked={isChecked}
                                   onChange={() => handleToggleItem(item.id, group.id)}
-                                  className="w-3.5 h-3.5 rounded text-indigo-600 bg-transparent border-slate-400 dark:border-slate-600 focus:ring-0 cursor-pointer shrink-0"
+                                  className="w-3.5 h-3.5 rounded text-fixed-indigo-600 bg-transparent border-fixed-slate-400 dark:border-fixed-slate-600 focus:ring-0 cursor-pointer shrink-0"
                                 />
                                 <span className="truncate">{item.label}</span>
                               </div>
 
                               <div className="flex items-center gap-2 shrink-0 ml-2">
                                 {item.code && (
-                                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-fixed-amber-100 dark:bg-fixed-amber-950/60 text-fixed-amber-800 dark:text-fixed-amber-300">
                                     {item.code}
                                   </span>
                                 )}
                                 {item.path && (
-                                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                                  <span className="text-[10px] font-mono text-fixed-slate-400 dark:text-fixed-slate-500">
                                     {item.path}
                                   </span>
                                 )}
@@ -455,7 +455,7 @@ function UserAccessDrawerContent({
                         })
                       ) : (
                         // Single item without children (e.g. Factory Overview)
-                        <div className="px-3 py-1.5 text-xs text-slate-400 dark:text-slate-500 font-mono">
+                        <div className="px-3 py-1.5 text-xs text-fixed-slate-400 dark:text-fixed-slate-500 font-mono">
                           {group.path}
                         </div>
                       )}
@@ -487,7 +487,7 @@ function UserAccessDrawerContent({
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer shadow-xs flex items-center gap-2 disabled:opacity-50 active:scale-95 border-0"
+              className="px-5 py-2 rounded-xl text-xs font-semibold bg-fixed-indigo-600 hover:bg-fixed-indigo-500 text-fixed-white transition-all cursor-pointer shadow-xs flex items-center gap-2 disabled:opacity-50 active:scale-95 border-0"
             >
               <CheckCircle2 size={14} />
               <span>{isSaving ? 'Saving...' : `Save Permissions (${activeLeafCount})`}</span>

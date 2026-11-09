@@ -52,7 +52,7 @@ function DimeStockSparkline({
   const usableW = Math.max(10, width - padX * 2);
   const usableH = Math.max(10, height - padTop - padBottom);
 
-  const strokeColor = isPositive ? '#10B981' : '#F43F5E';
+  const strokeColor = isPositive ? 'var(--color-fixed-trend-up)' : 'var(--color-fixed-trend-down)';
   const gradId = `dime-grad-${(id || 'spark').replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const values = dataPoints.map(p => p.value);
@@ -172,7 +172,7 @@ function DimeStockSparkline({
               cy={activePt.y}
               r="4"
               fill={strokeColor}
-              stroke="#ffffff"
+              stroke="var(--color-fixed-on-chart)"
               strokeWidth="1.5"
             />
           </>
@@ -216,7 +216,7 @@ function DimeStockSparkline({
               cx={lastPt.x}
               cy={lastPt.y}
               r="1.5"
-              fill="#ffffff"
+              fill="var(--color-fixed-on-chart)"
             />
           </g>
         )}
@@ -225,14 +225,14 @@ function DimeStockSparkline({
       {/* Floating Hover Tooltip (like Dime app price scrubber) */}
       {activePt && (
         <div
-          className="absolute z-30 pointer-events-none px-2 py-1 rounded bg-slate-900/95 text-white text-[10px] tabular-nums whitespace-nowrap shadow-xl flex items-center gap-1.5 -top-7 transition-all -translate-x-1/2 border border-slate-700/50"
+          className="absolute z-30 pointer-events-none px-2 py-1 rounded bg-fixed-slate-900/95 text-fixed-white text-[10px] tabular-nums whitespace-nowrap shadow-xl flex items-center gap-1.5 -top-7 transition-all -translate-x-1/2 border border-fixed-slate-700/50"
           style={{
             left: `${Math.min(85, Math.max(15, (activePt.x / width) * 100))}%`,
           }}
         >
-          <span className="font-semibold text-slate-300">{activePt.label}:</span>
-          <span className="font-bold text-emerald-400">{fmtCompactPrice(activePt.value)}</span>
-          <span className="text-slate-400 text-[9px]">({fmtQty(activePt.qty)} pcs)</span>
+          <span className="font-semibold text-fixed-slate-300">{activePt.label}:</span>
+          <span className="font-bold text-fixed-emerald-400">{fmtCompactPrice(activePt.value)}</span>
+          <span className="text-fixed-slate-400 text-[9px]">({fmtQty(activePt.qty)} pcs)</span>
         </div>
       )}
     </div>
@@ -713,7 +713,7 @@ function AnalyticsTableRow({
               <span 
                 className="font-bold text-[11px] tabular-nums shrink-0"
                 style={{
-                  color: isPositive ? '#059669' : '#dc2626',
+                  color: isPositive ? 'var(--color-fixed-trend-up-text)' : 'var(--color-fixed-trend-down-text)',
                 }}
                 title={`Period Trend Change: ${pctChange > 0 ? '+' : ''}${pctChange.toFixed(1)}%`}
               >
