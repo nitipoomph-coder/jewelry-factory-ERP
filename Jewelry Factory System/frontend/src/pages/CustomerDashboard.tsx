@@ -34,7 +34,7 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
     dynamicActiveGroups,
     isFiltered,
     resetFilters
-  } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'this-month', 'last-month', 'custom'] }, custData);
+  } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'this-month', 'last-month', 'custom'] });
 
   const selectedYears = periodSetup.committed.selectedYears;
   const selectedMonths = periodSetup.committed.selectedMonths;

@@ -36,8 +36,10 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
           alert(`[SECURITY JAIL / IP BANNED]\n\n${data.message || 'Your IP has been temporarily blocked.'}`);
           window.location.href = '/login';
         }
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { /* non-JSON 403 body: not an IP ban, nothing to do */ });
+    } catch {
+      // response.clone() can throw if the body was already consumed; the caller still gets the response
+    }
   }
 
   return response;

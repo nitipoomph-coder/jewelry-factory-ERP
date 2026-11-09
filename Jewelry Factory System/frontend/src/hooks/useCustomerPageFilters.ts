@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ACTIVE_GROUP_IDS, ALL_GROUPS, getCustomerGroupId, type CustomerGroup } from '../config/customerGroups';
+import { ACTIVE_GROUP_IDS, ALL_GROUPS, type CustomerGroup } from '../config/customerGroups';
 import { usePeriodSetup, type PeriodSetupConfig, type PeriodPreset } from './usePeriodSetup';
 import { parseListParam } from '../utils/periodUtils';
-import type { CustomerSummaryRow } from './useCustomerSalesData';
 
 export const ALL_GROUP_IDS = ALL_GROUPS.map((group: CustomerGroup) => group.id);
 
@@ -16,7 +15,7 @@ export function parseGroups(value: string | null) {
   return parseListParam(value).filter(groupId => groupIds.has(groupId));
 }
 
-export function useCustomerPageFilters(availableYears: string[], configOverrides?: Partial<PeriodSetupConfig>, custData: CustomerSummaryRow[] = []) {
+export function useCustomerPageFilters(availableYears: string[], configOverrides?: Partial<PeriodSetupConfig>) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Global Filter States
