@@ -471,5 +471,5 @@ Searching an order in FBE Order Tracker intermittently showed: *"Transaction (Pr
 3. **Measure before adding query hints**: `MAXDOP 1` looked safe on paper but doubled latency on unindexed scans.
 4. **Verify documented indexes against the live catalog** (`sys.indexes`) before reasoning about performance — the documented index set was not present.
 
-**Follow-up (2026-11-09):** Global Topbar search (`routes/search.js`) moved to `WITH (NOLOCK)` on all OrdHD/OrdDT/GMCust reads. Verified with the same terms before/after: result counts equal, every PO/order row still matches its predicate, deterministic terms identical; latency unchanged (median 1.06 s → 0.95 s). Note: `TOP 10` without `ORDER BY` already made results vary between identical calls before this change.
+**Follow-up (2026-11-09):** Global search API (`routes/search.js`, not yet called by any page) moved to `WITH (NOLOCK)` on all OrdHD/OrdDT/GMCust reads. Verified with the same terms before/after: result counts equal, every PO/order row still matches its predicate, deterministic terms identical; latency unchanged (median 1.06 s → 0.95 s). Note: `TOP 10` without `ORDER BY` already made results vary between identical calls before this change.
 
