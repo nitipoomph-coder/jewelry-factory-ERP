@@ -88,9 +88,9 @@ router.get('/year', async (req, res) => {
           MONTH(hd.DocuDate) AS M,
           oh.CustCode,
           SUM(ISNULL(dt.${qtyCol}, 0)) AS Q
-        FROM ${hdTable} hd
-          INNER JOIN ${dtTable} dt ON dt.${idCol} = hd.${idCol}
-          LEFT OUTER JOIN OrdHD oh ON oh.OrdNo = dt.OrdNo
+        FROM ${hdTable} hd WITH (NOLOCK)
+          INNER JOIN ${dtTable} dt WITH (NOLOCK) ON dt.${idCol} = hd.${idCol}
+          LEFT OUTER JOIN OrdHD oh WITH (NOLOCK) ON oh.OrdNo = dt.OrdNo
         WHERE hd.DocuDate >= @yearStart AND hd.DocuDate < @yearEnd
           AND hd.ProFac = 'FBE'
           AND oh.CustCode IN (${CUST_IN_CLAUSE})
@@ -146,7 +146,7 @@ router.get('/week', async (req, res) => {
       .input('toWeek', sql.Int, toWeek)
       .query(`
         SELECT PlanWeek, CONVERT(date, PlanDate) AS PlanDate
-        FROM OrdWeekPlanHD
+        FROM OrdWeekPlanHD WITH (NOLOCK)
         WHERE PlanYear = @planYear
           AND PlanWeek >= @fromWeek AND PlanWeek <= @toWeek
         ORDER BY PlanDate
@@ -215,9 +215,9 @@ router.get('/week', async (req, res) => {
           CONVERT(date, hd.DocuDate) AS D,
           oh.CustCode,
           SUM(ISNULL(dt.${qtyCol}, 0)) AS Q
-        FROM ${hdTable} hd
-          INNER JOIN ${dtTable} dt ON dt.${idCol} = hd.${idCol}
-          LEFT OUTER JOIN OrdHD oh ON oh.OrdNo = dt.OrdNo
+        FROM ${hdTable} hd WITH (NOLOCK)
+          INNER JOIN ${dtTable} dt WITH (NOLOCK) ON dt.${idCol} = hd.${idCol}
+          LEFT OUTER JOIN OrdHD oh WITH (NOLOCK) ON oh.OrdNo = dt.OrdNo
         WHERE hd.DocuDate >= @dateFrom AND hd.DocuDate < @dateTo
           AND hd.ProFac = 'FBE'
           AND oh.CustCode IN (${CUST_IN_CLAUSE})
@@ -275,9 +275,9 @@ router.get('/month', async (req, res) => {
           DAY(hd.DocuDate) AS D,
           oh.CustCode,
           SUM(ISNULL(dt.${qtyCol}, 0)) AS Q
-        FROM ${hdTable} hd
-          INNER JOIN ${dtTable} dt ON dt.${idCol} = hd.${idCol}
-          LEFT OUTER JOIN OrdHD oh ON oh.OrdNo = dt.OrdNo
+        FROM ${hdTable} hd WITH (NOLOCK)
+          INNER JOIN ${dtTable} dt WITH (NOLOCK) ON dt.${idCol} = hd.${idCol}
+          LEFT OUTER JOIN OrdHD oh WITH (NOLOCK) ON oh.OrdNo = dt.OrdNo
         WHERE hd.DocuDate >= @dateFrom AND hd.DocuDate < @dateTo
           AND hd.ProFac = 'FBE'
           AND oh.CustCode IN (${CUST_IN_CLAUSE})
@@ -338,9 +338,9 @@ router.get('/daily', async (req, res) => {
           CONVERT(date, hd.DocuDate) AS D,
           oh.CustCode,
           SUM(ISNULL(dt.${qtyCol}, 0)) AS Q
-        FROM ${hdTable} hd
-          INNER JOIN ${dtTable} dt ON dt.${idCol} = hd.${idCol}
-          LEFT OUTER JOIN OrdHD oh ON oh.OrdNo = dt.OrdNo
+        FROM ${hdTable} hd WITH (NOLOCK)
+          INNER JOIN ${dtTable} dt WITH (NOLOCK) ON dt.${idCol} = hd.${idCol}
+          LEFT OUTER JOIN OrdHD oh WITH (NOLOCK) ON oh.OrdNo = dt.OrdNo
         WHERE hd.DocuDate >= @dateFrom AND hd.DocuDate <= @dateTo
           AND hd.ProFac = 'FBE'
           AND oh.CustCode IN (${CUST_IN_CLAUSE})
@@ -392,7 +392,7 @@ router.get('/holidays', async (req, res) => {
       .input('yearEnd', sql.DateTime, new Date(year + 1, 0, 1))
       .query(`
         SELECT CONVERT(date, HolDate) AS HolDate
-        FROM GMHoliday
+        FROM GMHoliday WITH (NOLOCK)
         WHERE HolDate >= @yearStart AND HolDate < @yearEnd
         ORDER BY HolDate
       `);
@@ -416,7 +416,7 @@ router.get('/max-week', async (req, res) => {
       .input('planYear', sql.Int, year)
       .query(`
         SELECT ISNULL(MAX(PlanWeek), 52) AS MaxWeek
-        FROM OrdWeekPlanHD
+        FROM OrdWeekPlanHD WITH (NOLOCK)
         WHERE PlanYear = @planYear
       `);
 
