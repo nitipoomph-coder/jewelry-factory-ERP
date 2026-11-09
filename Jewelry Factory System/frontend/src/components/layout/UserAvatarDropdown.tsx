@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { clearStoredAuth } from '../../utils/authRedirect';
 
 export default function UserAvatarDropdown() {
   const navigate = useNavigate();
@@ -69,9 +70,7 @@ export default function UserAvatarDropdown() {
 
   // Standard Logout flow
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_role');
-    localStorage.removeItem('auth_user');
+    clearStoredAuth();
     setIsOpen(false);
     navigate('/login');
   };

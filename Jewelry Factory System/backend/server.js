@@ -245,18 +245,22 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // ─── Routes ────────────────────────────────────────────────────────────────────
-const { authMiddleware, requireRole } = require('./middleware/authMiddleware');
+const { authMiddleware, requireRole, requireMenu } = require('./middleware/authMiddleware');
+
+// Per-user menu guards for APIs owned by a single page (ids must match frontend menuConfig).
+// Item id + its group id ('order-tracker' = Production group). Shared APIs (/api/dashboard, /api/search, /api/items) are not gated yet.
+const PRODUCTION_GROUP = 'order-tracker';
 
 app.use('/api/auth', authLimiter, require('./routes/auth'));   // Login API (rate limited)
 app.use('/api/admin/audit', authMiddleware, requireRole('admin'), require('./routes/adminAudit')); // 🛡️ Zero-DB Admin Security & Audit
 app.use('/api/admin/users', authMiddleware, requireRole('admin'), require('./routes/adminUsers')); // 👥 Admin User Management
-app.use('/api/orders', authMiddleware, require('./routes/poTracker'));
+app.use('/api/orders', authMiddleware, requireMenu(['po-tracker', PRODUCTION_GROUP]), require('./routes/poTracker'));
 app.use('/api/dashboard', authMiddleware, require('./routes/productionDashboard'));
 app.use('/api/dashboard', authMiddleware, require('./routes/customerReportMatrix'));
 app.use('/api/dashboard', authMiddleware, require('./routes/orderVolumeSummary'));
-app.use('/api/production-summary', authMiddleware, require('./routes/productionSummary'));
-app.use('/api/production-forecast', authMiddleware, require('./routes/productionForecast'));
-app.use('/api/order-tracking', authMiddleware, requireRole('admin', 'sales'), require('./routes/orderTracking')); // 👈 ป้องกันสิทธิ์ตรงนี้
+app.use('/api/production-summary', authMiddleware, requireMenu(['pro-sum', PRODUCTION_GROUP], { exceptPaths: ['/holidays'] }), require('./routes/productionSummary')); // /holidays is shared with CCTV Report
+app.use('/api/production-forecast', authMiddleware, requireMenu(['pro-forecast', PRODUCTION_GROUP]), require('./routes/productionForecast'));
+app.use('/api/order-tracking', authMiddleware, requireRole('admin', 'sales'), requireMenu(['fbe-order-track', PRODUCTION_GROUP]), require('./routes/orderTracking'));
 app.use('/api/items', authMiddleware, require('./routes/topOrdersGallery'));
 app.use('/api/search', authMiddleware, require('./routes/search'));
 app.use('/api/procurement', authMiddleware, requireRole('admin'), require('./routes/procurementReceiving'));

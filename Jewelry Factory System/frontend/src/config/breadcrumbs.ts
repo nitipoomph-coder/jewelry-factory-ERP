@@ -95,4 +95,9 @@ export const BREADCRUMBS = {
     { label: groupLabel },
     { label: displayTitle },
   ],
+
+  NO_ACCESS: [
+    { label: 'Access' },
+    { label: 'No Access' },
+  ],
 } satisfies Record<string, BreadcrumbItem[] | ((...args: string[]) => BreadcrumbItem[])>;

@@ -1,5 +1,5 @@
 // src/utils/fetchWithAuth.ts
-import { buildLoginPath } from './authRedirect';
+import { buildLoginPath, clearStoredAuth } from './authRedirect';
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('auth_token');
@@ -23,9 +23,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   if (response.status === 401) {
     // Token is missing, invalid, or expired
     console.error('[fetchWithAuth] Unauthorized! Redirecting to login...');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_role');
-    localStorage.removeItem('auth_user');
+    clearStoredAuth();
     // Keep the current page so the user returns here after signing in again
     window.location.href = buildLoginPath(window.location.pathname + window.location.search + window.location.hash);
   } else if (response.status === 403) {
@@ -34,9 +32,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       clone.json().then(data => {
         if (data?.error === 'IP_TEMPORARILY_BANNED') {
           console.error('[fetchWithAuth] IP Banned! Ejecting user...');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_role');
-          localStorage.removeItem('auth_user');
+          clearStoredAuth();
           alert(`[SECURITY JAIL / IP BANNED]\n\n${data.message || 'Your IP has been temporarily blocked.'}`);
           window.location.href = '/login';
         }
