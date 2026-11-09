@@ -7,6 +7,7 @@ import UserAvatarDropdown from './UserAvatarDropdown';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useTopbarActions } from '../../contexts/TopbarActionContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { FACTORY_OVERVIEW_PATH } from '../../utils/authRedirect';
 
 interface GlobalTopbarProps {
   isSidebarOpen?: boolean;
@@ -79,12 +80,12 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
           </button>
         )}
 
-        {/* Wordmark JEWELRY Factory system (links to home /) */}
+        {/* Wordmark JEWELRY Factory system (links to "/" → role home) */}
         <button
           type="button"
           onClick={() => navigate('/')}
           className="flex items-center select-none cursor-pointer border-none bg-transparent p-0 transition-opacity hover:opacity-85 shrink-0 gap-1.5"
-          title="Factory Overview"
+          title="Home"
         >
           <span
             className="text-[17px] sm:text-[18px] font-black tracking-[0.14em] uppercase font-display"
@@ -197,8 +198,8 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
         {/* Subtle vertical separator */}
         <div className="h-4 w-px bg-[var(--color-border-light)] mx-1 sm:mx-1.5 shrink-0" />
 
-        {/* Back Button (shown on non-root routes) - borderless */}
-        {location.pathname !== '/' && (
+        {/* Back Button (hidden on Factory Overview) - borderless */}
+        {location.pathname !== FACTORY_OVERVIEW_PATH && (
           <button
             type="button"
             onClick={() => navigate(-1)}

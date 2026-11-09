@@ -6,7 +6,7 @@ export const menuConfig: NavMenuGroup[] = [
     id: 'home',
     label: 'Factory Overview',
     icon: 'home',
-    path: '/',
+    path: '/dashboard/overview',
     accentColor: 'var(--color-brand-500)',
     roles: ['admin'],
     section: 'Overview',

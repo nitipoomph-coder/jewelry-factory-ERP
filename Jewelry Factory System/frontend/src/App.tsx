@@ -31,70 +31,55 @@ import {
   customerTrendsPathFromSearch,
   LEGACY_CUSTOMER_TRENDS_PATH,
 } from './utils/customerTrendsUrl';
-import { menuConfig } from './config/menuConfig';
+import {
+  getHomePathForRole,
+  buildLoginPath,
+  isRouteAllowedForRole,
+  resolvePostLoginPath,
+  RETURN_TO_PARAM,
+  FACTORY_OVERVIEW_PATH,
+} from './utils/authRedirect';
 
-function isRouteAllowedForRole(pathname: string, role: string): boolean {
-  const normalizedRole = (role || '').toLowerCase();
-  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
-
-  for (const group of menuConfig) {
-    if (group.path) {
-      const groupPath = group.path.replace(/\/+$/, '') || '/';
-      const isMatch = groupPath === '/' ? normalizedPath === '/' : (normalizedPath === groupPath || normalizedPath.startsWith(groupPath + '/'));
-      if (isMatch) {
-        if (group.roles && !group.roles.includes(normalizedRole)) {
-          return false;
-        }
-      }
-    }
-
-    if (group.items) {
-      for (const item of group.items) {
-        if (item.path) {
-          const itemPath = item.path.replace(/\/+$/, '') || '/';
-          const isMatch = itemPath === '/' ? normalizedPath === '/' : (normalizedPath === itemPath || normalizedPath.startsWith(itemPath + '/'));
-          if (isMatch) {
-            const effectiveRoles = item.roles || group.roles;
-            if (effectiveRoles && !effectiveRoles.includes(normalizedRole)) {
-              return false;
-            }
-          }
-        }
-        if (item.items) {
-          for (const subItem of item.items) {
-            if (subItem.path) {
-              const subItemPath = subItem.path.replace(/\/+$/, '') || '/';
-              const isMatch = subItemPath === '/' ? normalizedPath === '/' : (normalizedPath === subItemPath || normalizedPath.startsWith(subItemPath + '/'));
-              if (isMatch) {
-                const effectiveRoles = subItem.roles || item.roles || group.roles;
-                if (effectiveRoles && !effectiveRoles.includes(normalizedRole)) {
-                  return false;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return true;
+function getStoredAuth() {
+  return {
+    token: localStorage.getItem('auth_token'),
+    role: (localStorage.getItem('auth_role') || '').toLowerCase(),
+  };
 }
 
 function ProtectedRoute() {
-  const token = localStorage.getItem('auth_token');
-  const role = (localStorage.getItem('auth_role') || '').toLowerCase();
+  const { token, role } = getStoredAuth();
   const location = useLocation();
 
   if (!token || !role) {
-    return <Navigate to="/login" replace />;
+    // Remember the requested page so login can return the user to it
+    return <Navigate to={buildLoginPath(location.pathname + location.search + location.hash)} replace />;
   }
 
   if (!isRouteAllowedForRole(location.pathname, role)) {
-    return <Navigate to="/dashboard/customer" replace />;
+    return <Navigate to={getHomePathForRole(role)} replace />;
   }
 
   return <Outlet />;
+}
+
+/** "/" has no page of its own: it forwards to the role home (admin → Factory Overview, sales → Sales Summary). */
+function RoleHomeRedirect() {
+  const { role } = getStoredAuth();
+  return <Navigate to={getHomePathForRole(role)} replace />;
+}
+
+/** Already-authenticated users skip the login form. */
+function LoginRoute() {
+  const { token, role } = getStoredAuth();
+  const location = useLocation();
+
+  if (token && role) {
+    const returnTo = new URLSearchParams(location.search).get(RETURN_TO_PARAM);
+    return <Navigate to={resolvePostLoginPath(role, returnTo)} replace />;
+  }
+
+  return <LoginPage />;
 }
 
 function LegacyCustomerTrendsRedirect() {
@@ -107,11 +92,12 @@ export default function App() {
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginRoute />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<RoleHomeRedirect />} />
+            <Route path={FACTORY_OVERVIEW_PATH} element={<Dashboard />} />
             <Route path="/dashboard/detail" element={<DashboardDetail />} />
             <Route path="/dashboard/customer" element={<CustomerDashboardLayout />}>
               <Route index element={<CustomerDashboard metric="amount" />} />

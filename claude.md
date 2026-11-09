@@ -252,7 +252,7 @@ gemstone-lifecycle-management/
     │       │   │   ├── hooks/
     │       │   │   │   └── useLoginController.ts # Auth state and API workflow
     │       │   │   └── components/            # Forms, cover, language control, fields, and modals
-    │       │   ├── Dashboard.tsx              # Overview page (home, admin only)
+    │       │   ├── Dashboard.tsx              # Factory Overview page (/dashboard/overview, admin only)
     │       │   ├── DashboardDetail.tsx         # Dashboard detail drilldown
     │       │   ├── SalesDashboard.tsx          # ⭐ Sales Summary By Rep
     │       │   ├── CustomerDashboard.tsx       # ⭐ Yearly Sales By Customer (metric: amount | qty)
@@ -317,6 +317,7 @@ gemstone-lifecycle-management/
     │       │
     │       ├── utils/
     │       │   ├── fetchWithAuth.ts          # 🔐 Fetch wrapper with JWT Bearer token injection
+    │       │   ├── authRedirect.ts           # 🔐 Role home, role route guard, safe login returnTo (SSOT)
     │       │   ├── cctvAuditForm.ts          # CCTV audit pure helpers (generate / edit / validate / export JSON)
     │       │   ├── periodUtils.ts            # Period helper functions (getDefaultCompareYear, parseMonths, monthRange)
     │       │   ├── customerTrendsUrl.ts      # Customer trends URL builder
@@ -1162,3 +1163,28 @@ All bar charts across the system have been standardized with consistent styling 
 - Uses named print page `cctv-landscape` (`@page { size: A4 landscape; margin: 10mm }`) bound to `.cctv-sheet`.
 - Forces crisp white paper / black text styling across all active themes during print jobs; gray holiday divider strips enforce `print-color-adjust: exact`; `thead` repeats across multiple pages, and signature blocks are protected from page splits.
 - Action toolbars and holiday toggle controls are flagged with `.no-print` to prevent inclusion on printed reports.
+
+---
+
+## 2026-11-09 Routing: Role Home & Login Return Path
+
+### URL Map
+- `/login` — Login page. Already-authenticated users are redirected into the app (`returnTo` honored).
+- `/` — **No page of its own.** Redirects to the role home (`RoleHomeRedirect` in `App.tsx`). Generic "go home" buttons (Topbar logo, DocumentLayout Close, workspace switch) keep using `navigate('/')`.
+- `/dashboard/overview` — Factory Overview (`Dashboard.tsx`, admin only). Menu id stays `home`, so stored per-user menu permissions are unaffected.
+
+### Single Source of Truth — `src/utils/authRedirect.ts`
+- `getHomePathForRole(role)`: admin → `/dashboard/overview`; every other role → `/dashboard/customer`.
+- `isRouteAllowedForRole(pathname, role)`: menuConfig `roles` check (moved out of `App.tsx`, logic unchanged).
+- `sanitizeReturnTo(value)`: accepts same-origin in-app paths only; rejects `//host`, absolute URLs, backslashes, control characters, `/`, and `/login` (open-redirect protection).
+- `buildLoginPath(currentPath)` → `/login?returnTo=<encoded path>`.
+- `resolvePostLoginPath(role, returnTo)`: the requested page when safe **and** permitted for the role, otherwise the role home.
+
+### Flows
+- Unauthenticated deep link → `ProtectedRoute` → `/login?returnTo=...` → after login, returns to the requested page.
+- API 401 (expired token) → `fetchWithAuth` → `/login?returnTo=<current page>`. IP ban (403) and manual logout go to plain `/login`.
+- Route not permitted for the role → role home (previously always `/dashboard/customer`).
+
+### Known Gaps (Next Phase)
+- `isRouteAllowedForRole` checks role only; per-user `allowedMenus` hides menus but does not block direct URL access.
+- The `fetchWithAuth` 401 handler does not clear `auth_allowed_menus`.
