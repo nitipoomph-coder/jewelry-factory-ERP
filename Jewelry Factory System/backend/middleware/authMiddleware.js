@@ -58,4 +58,35 @@ const requireRole = (...roles) => (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, requireRole };
+/**
+ * Per-user menu permission guard (must run after authMiddleware).
+ * Allows the request when the user's allowedMenus contain '*' or any of `menuIds`
+ * (pass the page's item id AND its group id — a group permission grants its children,
+ * same rule as the frontend Sidebar). Permissions are read live from permissionService,
+ * so admin changes take effect immediately for API calls.
+ *
+ * options.exceptPaths: sub-paths (relative to the mount point) shared with other pages
+ * that must not be gated by this menu, e.g. '/holidays'.
+ */
+const requireMenu = (menuIds, options = {}) => {
+  const exceptPaths = options.exceptPaths || [];
+  return (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    if (exceptPaths.some(p => req.path === p || req.path.startsWith(p + '/'))) return next();
+
+    if (!req.user || !req.user.username) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized: No user found' });
+    }
+
+    const permissionService = require('../services/permissionService');
+    const allowed = permissionService.getUserPermissions(req.user.username, req.user.role) || [];
+    if (allowed.includes('*') || menuIds.some(id => allowed.includes(id))) {
+      return next();
+    }
+
+    console.warn(`⛔ [MENU DENIED] ${req.user.username} → ${req.method} ${req.originalUrl} (needs one of: ${menuIds.join(', ')})`);
+    return res.status(403).json({ ok: false, error: 'Forbidden: You do not have access to this page' });
+  };
+};
+
+module.exports = { authMiddleware, requireRole, requireMenu };

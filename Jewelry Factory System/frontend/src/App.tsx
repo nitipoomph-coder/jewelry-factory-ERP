@@ -31,24 +31,28 @@ import {
   customerTrendsPathFromSearch,
   LEGACY_CUSTOMER_TRENDS_PATH,
 } from './utils/customerTrendsUrl';
+import NoAccessPage from './pages/NoAccessPage';
 import {
-  getHomePathForRole,
   buildLoginPath,
-  isRouteAllowedForRole,
+  canAccessRoute,
+  getLandingPath,
+  getStoredAllowedMenus,
   resolvePostLoginPath,
   RETURN_TO_PARAM,
   FACTORY_OVERVIEW_PATH,
+  NO_ACCESS_PATH,
 } from './utils/authRedirect';
 
 function getStoredAuth() {
   return {
     token: localStorage.getItem('auth_token'),
     role: (localStorage.getItem('auth_role') || '').toLowerCase(),
+    allowedMenus: getStoredAllowedMenus(),
   };
 }
 
 function ProtectedRoute() {
-  const { token, role } = getStoredAuth();
+  const { token, role, allowedMenus } = getStoredAuth();
   const location = useLocation();
 
   if (!token || !role) {
@@ -56,27 +60,35 @@ function ProtectedRoute() {
     return <Navigate to={buildLoginPath(location.pathname + location.search + location.hash)} replace />;
   }
 
-  if (!isRouteAllowedForRole(location.pathname, role)) {
-    return <Navigate to={getHomePathForRole(role)} replace />;
+  // Role AND per-user menu permissions (blocks typing a URL for a hidden menu)
+  if (!canAccessRoute(location.pathname, role, allowedMenus)) {
+    return <Navigate to={getLandingPath(role, allowedMenus)} replace />;
   }
 
   return <Outlet />;
 }
 
-/** "/" has no page of its own: it forwards to the role home (admin → Factory Overview, sales → Sales Summary). */
+/** "/" has no page of its own: it forwards to the user's landing page (role home, else first permitted menu). */
 function RoleHomeRedirect() {
-  const { role } = getStoredAuth();
-  return <Navigate to={getHomePathForRole(role)} replace />;
+  const { role, allowedMenus } = getStoredAuth();
+  return <Navigate to={getLandingPath(role, allowedMenus)} replace />;
+}
+
+/** Shown only when the user has no permitted page; users who do have one are sent there instead. */
+function NoAccessRoute() {
+  const { role, allowedMenus } = getStoredAuth();
+  const landing = getLandingPath(role, allowedMenus);
+  return landing === NO_ACCESS_PATH ? <NoAccessPage /> : <Navigate to={landing} replace />;
 }
 
 /** Already-authenticated users skip the login form. */
 function LoginRoute() {
-  const { token, role } = getStoredAuth();
+  const { token, role, allowedMenus } = getStoredAuth();
   const location = useLocation();
 
   if (token && role) {
     const returnTo = new URLSearchParams(location.search).get(RETURN_TO_PARAM);
-    return <Navigate to={resolvePostLoginPath(role, returnTo)} replace />;
+    return <Navigate to={resolvePostLoginPath(role, allowedMenus, returnTo)} replace />;
   }
 
   return <LoginPage />;
@@ -97,6 +109,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<RoleHomeRedirect />} />
+            <Route path={NO_ACCESS_PATH} element={<NoAccessRoute />} />
             <Route path={FACTORY_OVERVIEW_PATH} element={<Dashboard />} />
             <Route path="/dashboard/detail" element={<DashboardDetail />} />
             <Route path="/dashboard/customer" element={<CustomerDashboardLayout />}>

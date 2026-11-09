@@ -40,7 +40,7 @@ Operated within the internal enterprise intranet, connected to live MSSQL (`<DB_
 | Orders & Requisitions  | SOA, SIA, SIB, SIP, SIS             | 🟡 DocumentLayout done |
 | Sample Room            | SSA, SIM                             | 🟡 DocumentLayout done |
 | Stock Audit & Inventory Count | Check Dispatch/Sample/Purchase/Stock | ⬜ Placeholder      |
-| Production / PO Tracker | —                                  | ✅ Live (core feature, admin only) |
+| Production / PO Tracker | —                                  | ✅ Live (core feature, admin + sales by default menu permissions) |
 | FBE Order Tracker       | —                                    | ✅ Live (FBE 17-Step Production Tracker) |
 | Order Trends           | —                                    | ✅ Order volume trends and evidence |
 | Spare Parts Stock      | SP-Order, SP-Issue, SP-Receive, …    | ⬜ Placeholder      |
@@ -268,6 +268,7 @@ gemstone-lifecycle-management/
     │       │   ├── OrderVolumeSummaryPage.tsx  # ⭐ Order Volume Summary (trends + risk)
     │       │   ├── FBEOrderTrackPage.tsx       # ⭐ FBE 17-step order tracker
     │       │   ├── PlaceholderPage.tsx         # Placeholder for unimplemented modules
+    │       │   ├── NoAccessPage.tsx            # Shown at /no-access when a user has no permitted page
     │       │   ├── document/
     │       │   │   ├── ProcurementDocPage.tsx   # 🏗️ Procurement and Receiving (SPA, SRA, SRB, SIR)
     │       │   │   ├── RequisitionDocPage.tsx   # 🏗️ Orders and Requisitions (SOA, SIA, SIB, SIP, SIS)
@@ -731,7 +732,7 @@ APP_SALES_PASSWORD=<sales login password>
 
 ## Important Notes
 
-1. **Internal Tooling**: Designed for intranet deployment within the factory LAN, secured with JWT and role-based access control (admin/sales) — sales role is scoped to Sales Analytics and Customer Dashboard; admin role has full access.
+1. **Internal Tooling**: Designed for intranet deployment within the factory LAN, secured with JWT, role-based access control (admin/sales), and per-user menu permissions (`allowedMenus`) — sales role defaults to Sales Analytics + the Production group (incl. PO Tracker); admin role has full access. See "2026-11-09 Menu Permission Enforcement".
 2. **Production DB Queries**: Handle heavy queries responsibly; utilize caching for expensive analytical requests.
 3. **Typography**: Uses Roboto as the core application and data table font family.
 4. **Legacy Migration**: Progressively modernizing VB.NET modules; remaining unported modules are represented with placeholders.
@@ -1177,7 +1178,7 @@ All bar charts across the system have been standardized with consistent styling 
 
 ### URL Map
 - `/login` — Login page. Already-authenticated users are redirected into the app (`returnTo` honored).
-- `/` — **No page of its own.** Redirects to the role home (`RoleHomeRedirect` in `App.tsx`). Generic "go home" buttons (Topbar logo, DocumentLayout Close, workspace switch) keep using `navigate('/')`.
+- `/` — **No page of its own.** Redirects to the user's landing page (`RoleHomeRedirect` → `getLandingPath`). Generic "go home" buttons (Topbar logo, DocumentLayout Close, workspace switch) keep using `navigate('/')`.
 - `/dashboard/overview` — Factory Overview (`Dashboard.tsx`, admin only). Menu id stays `home`, so stored per-user menu permissions are unaffected.
 
 ### Single Source of Truth — `src/utils/authRedirect.ts`
@@ -1192,6 +1193,30 @@ All bar charts across the system have been standardized with consistent styling 
 - API 401 (expired token) → `fetchWithAuth` → `/login?returnTo=<current page>`. IP ban (403) and manual logout go to plain `/login`.
 - Route not permitted for the role → role home (previously always `/dashboard/customer`).
 
-### Known Gaps (Next Phase)
-- `isRouteAllowedForRole` checks role only; per-user `allowedMenus` hides menus but does not block direct URL access.
-- The `fetchWithAuth` 401 handler does not clear `auth_allowed_menus`.
+### Known Gaps
+- ~~Per-user `allowedMenus` did not block direct URL access~~ → resolved, see "2026-11-09 Menu Permission Enforcement".
+- ~~401 handler did not clear `auth_allowed_menus`~~ → resolved (`clearStoredAuth()`).
+
+---
+
+## 2026-11-09 Menu Permission Enforcement
+
+### Rule (same as Sidebar)
+A user may open a page when their `allowedMenus` is unrestricted (`null`), contains `*`, or contains the page's **menu item id or its group id** (a group permission grants every child). Per-user permissions come from `backend/services/permissionService.js` (`backend/data/user_menu_permissions.json`, gitignored; users not listed fall back to role defaults). Default sales permissions include the Production group (`order-tracker`) and `po-tracker` — sales access to PO Tracker is intentional.
+
+### Frontend (UX guard) — `src/utils/authRedirect.ts`
+- `canAccessRoute(pathname, role, allowedMenus)` = menuConfig `roles` **and** `isRouteAllowedForMenus` (most specific matching menu path wins; detail routes mapped via `DETAIL_ROUTE_OWNERS`, e.g. `/dashboard/detail` → `home`; routes owned by no menu are not restricted).
+- `getLandingPath(role, allowedMenus)`: role home if permitted → else first permitted menu (menuConfig order) → else `/no-access` (`NoAccessPage.tsx`). Used by `/`, `ProtectedRoute` denials, and post-login fallback.
+- `clearStoredAuth()` removes `auth_token`, `auth_role`, `auth_user`, `auth_allowed_menus` (logout, 401, IP ban).
+- Permission changes made by an admin apply to the web UI at the user's next login.
+
+### Backend (real enforcement) — `requireMenu(menuIds, { exceptPaths })` in `middleware/authMiddleware.js`
+| API | Required menu (item or group) | Exceptions |
+|-----|-------------------------------|------------|
+| `/api/orders` | `po-tracker` / `order-tracker` | — |
+| `/api/order-tracking` | `fbe-order-track` / `order-tracker` | — (also `requireRole('admin','sales')`) |
+| `/api/production-summary` | `pro-sum` / `order-tracker` | `/holidays` (shared with CCTV Report) |
+| `/api/production-forecast` | `pro-forecast` / `order-tracker` | — |
+- Denied → `403 { ok: false, error: 'Forbidden: You do not have access to this page' }`. Reads permissions live, so changes apply to APIs immediately.
+- **Not gated yet (shared by several pages, needs a per-endpoint audit):** `/api/dashboard`, `/api/items`, `/api/search`.
+- When adding a page-owned API, gate it with the page's item id + group id, and keep the ids in sync with `menuConfig.ts`.

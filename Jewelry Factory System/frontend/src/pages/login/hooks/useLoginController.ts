@@ -68,7 +68,10 @@ export function useLoginController() {
         localStorage.removeItem('auth_allowed_menus');
       }
       // Return to the originally requested page when safe and permitted, otherwise the role home
-      navigate(resolvePostLoginPath(response.role, searchParams.get(RETURN_TO_PARAM)), { replace: true });
+      navigate(
+        resolvePostLoginPath(response.role, response.allowedMenus ?? null, searchParams.get(RETURN_TO_PARAM)),
+        { replace: true },
+      );
     } catch {
       setErrorMessage(copy.errSys);
     } finally {
