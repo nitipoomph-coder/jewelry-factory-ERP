@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../contexts/ToastContext';
 import { authAPI } from '../../../services/authAPI';
+import { resolvePostLoginPath, RETURN_TO_PARAM } from '../../../utils/authRedirect';
 import {
   BACKGROUND_IMAGES,
   EMPTY_REGISTRATION,
@@ -11,6 +12,7 @@ import {
 
 export function useLoginController() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
   const [backgroundIndex, setBackgroundIndex] = useState(0);
   const [isRequestAccess, setIsRequestAccess] = useState(false);
@@ -65,7 +67,8 @@ export function useLoginController() {
       } else {
         localStorage.removeItem('auth_allowed_menus');
       }
-      navigate(response.role === 'admin' ? '/' : '/dashboard/customer');
+      // Return to the originally requested page when safe and permitted, otherwise the role home
+      navigate(resolvePostLoginPath(response.role, searchParams.get(RETURN_TO_PARAM)), { replace: true });
     } catch {
       setErrorMessage(copy.errSys);
     } finally {

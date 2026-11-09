@@ -1,4 +1,5 @@
 // src/utils/fetchWithAuth.ts
+import { buildLoginPath } from './authRedirect';
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('auth_token');
@@ -25,7 +26,8 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_role');
     localStorage.removeItem('auth_user');
-    window.location.href = '/login';
+    // Keep the current page so the user returns here after signing in again
+    window.location.href = buildLoginPath(window.location.pathname + window.location.search + window.location.hash);
   } else if (response.status === 403) {
     try {
       const clone = response.clone();

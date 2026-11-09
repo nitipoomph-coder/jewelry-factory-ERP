@@ -1,5 +1,6 @@
 import type { NavMenuGroup, NavMenuItem } from '../types';
 import { CUSTOMER_TRENDS_PATH, LEGACY_CUSTOMER_TRENDS_PATH } from './customerTrendsUrl';
+import { FACTORY_OVERVIEW_PATH } from './authRedirect';
 
 export function isNavigationPathActive(
   itemPath: string | undefined,
@@ -9,9 +10,9 @@ export function isNavigationPathActive(
   if (!itemPath) return false;
   if (pathname === itemPath) return true;
 
-  // 1. Home / Factory Overview
-  if (itemPath === '/') {
-    return pathname === '/' || pathname === '/dashboard/detail';
+  // 1. Home / Factory Overview (and its Metric Detail drill-down)
+  if (itemPath === FACTORY_OVERVIEW_PATH) {
+    return pathname === FACTORY_OVERVIEW_PATH || pathname === '/dashboard/detail';
   }
 
   // 2. Sales Summary

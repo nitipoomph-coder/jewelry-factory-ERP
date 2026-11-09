@@ -423,3 +423,26 @@ Simplified `renderCell` to a single check: `if (!val || val === 0 || isNaN(val))
 ### Prevention & Lessons Learned:
 1. **Consistent zero-handling**: Use a single rendering function for all cells without special cases per row type. If a row needs different formatting, create a separate formatter rather than overloading a boolean flag.
 
+## Issue: Deep Links Lost After Login & Factory Overview Bound to Root `/`
+**Date:** 2026-11-09
+**Component:** `App.tsx` (`ProtectedRoute`), `useLoginController.ts`, `fetchWithAuth.ts`, `menuConfig.ts`
+
+### Symptoms:
+1. Opening a shared link (e.g. `/po-tracker/po/12345`) while signed out redirected to `/login`; after signing in the user landed on the role home instead of the requested page.
+2. When a token expired mid-session, the 401 handler sent the user to `/login` and the working page was lost after re-login.
+3. Factory Overview lived at `/`, so the root URL meant both "app home" and "admin-only page". Sales users opening `/` were treated as accessing a forbidden route.
+
+### Root Cause:
+- `ProtectedRoute` and `fetchWithAuth` redirected to a bare `/login` without recording the requested location.
+- The post-login destination was hardcoded (`admin ? '/' : '/dashboard/customer'`).
+- Role home and the Factory Overview page were coupled to the same URL.
+
+### Fix:
+- Added `src/utils/authRedirect.ts` as the SSOT for role home, role route guard, and `returnTo` sanitizing.
+- `ProtectedRoute` and the `fetchWithAuth` 401 handler now redirect to `/login?returnTo=<path>`; login resolves the destination with `resolvePostLoginPath` (safe + role-permitted, else role home).
+- Moved Factory Overview to `/dashboard/overview`; `/` now redirects to the role home. `/login` redirects authenticated users into the app.
+
+### Prevention & Lessons Learned:
+1. **Never trust `returnTo` as-is**: allow only same-origin relative paths (reject `//host`, `https://`, backslashes, control characters) to prevent open redirects, and re-check role permission before navigating.
+2. **Keep "home" as an alias, not a page**: generic home buttons navigate to `/`, and one function decides the role landing page, so changing the landing page later touches a single file.
+

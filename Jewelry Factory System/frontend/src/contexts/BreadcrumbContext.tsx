@@ -11,11 +11,11 @@ interface BreadcrumbContextType {
 }
 
 function getFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
-  if (pathname === '/') {
+  if (pathname === '/dashboard/overview') {
     return [{ label: 'Overview' }, { label: 'Factory Overview' }];
   }
   if (pathname === '/dashboard/detail') {
-    return [{ label: 'Overview' }, { label: 'Factory Overview', path: '/' }, { label: 'Metric Detail' }];
+    return [{ label: 'Overview' }, { label: 'Factory Overview', path: '/dashboard/overview' }, { label: 'Metric Detail' }];
   }
   if (pathname.startsWith('/dashboard/sales-customer-detail')) {
     return [

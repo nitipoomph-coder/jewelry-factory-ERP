@@ -24,7 +24,7 @@ export const BREADCRUMBS = {
   ],
 
   DASHBOARD_DETAIL: (metricTitle: string): BreadcrumbItem[] => [
-    { label: 'Factory Overview', path: '/' },
+    { label: 'Factory Overview', path: '/dashboard/overview' },
     { label: metricTitle },
   ],
 
