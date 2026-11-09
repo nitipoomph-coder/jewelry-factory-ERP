@@ -152,7 +152,7 @@ router.get('/sales-delivery-outlook', async (req, res) => {
       FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql} AND v.OpenQty > 0 AND v.CurrentDepartment <> 'Shipped'
       GROUP BY v.CurrentDepartment
-      ORDER BY openQty DESC;
+      ORDER BY openQty DESC, v.CurrentDepartment;
 
       -- 3. Customer Code Backlog Summary (Confidential - No CustName)
       SELECT 
@@ -167,7 +167,7 @@ router.get('/sales-delivery-outlook', async (req, res) => {
       FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       GROUP BY v.CustCode
-      ORDER BY openQty DESC;
+      ORDER BY openQty DESC, v.CustCode;
     `);
 
     res.json({
@@ -230,7 +230,7 @@ router.get('/sales-orders', async (req, res) => {
         v.CurrentDepartment AS currentDepartment
       FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
-      ORDER BY v.OrdDate DESC, v.OrdNo
+      ORDER BY v.OrdDate DESC, v.OrdNo, v.OrdLineNo
     `);
 
     res.json({ ok: true, data: result.recordset });

@@ -97,6 +97,21 @@ function safeNumber(value) {
   return Number.isFinite(num) ? num : 0;
 }
 
+/** Money rounded to cents: float sums otherwise differ in the last digits depending on row order. */
+function toCents(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+/** Deep-round money fields (keys ending in 'Amnt' or named 'amount') for stable API output. */
+function roundMoneyFields(value) {
+  if (Array.isArray(value)) return value.map(roundMoneyFields);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, v]) => [
+    key,
+    typeof v === 'number' && (/Amnt$/.test(key) || key === 'amount') ? toCents(v) : roundMoneyFields(v),
+  ]));
+}
+
 function pctChange(current, previous) {
   const cur = safeNumber(current);
   const prev = safeNumber(previous);
@@ -243,9 +258,10 @@ router.get('/yearly-summary', async (req, res) => {
     const wEnd = req.query.wEnd ? parseInt(req.query.wEnd, 10) : null;
     const dateClause = buildDateRangeCondition('h.OrdDate', years, months, startDate, endDate, wStart, wEnd);
 
+    // Style = first 8 characters of ItemNo (same as pair mode); SELECT must match the GROUP BY expression
     const result = await request.query(`
       SELECT
-        UPPER(LTRIM(RTRIM(ISNULL(d.ItemNo, '')))) AS styleNo,
+        UPPER(LTRIM(RTRIM(ISNULL(LEFT(d.ItemNo, 8), '')))) AS styleNo,
         YEAR(h.OrdDate) AS [year],
         SUM(ISNULL(d.ItemQty, 0)) AS qty,
         SUM(ISNULL(ISNULL(d.ItemExchAmnt, d.ItemAmnt), 0)) AS value,
@@ -415,10 +431,18 @@ router.get('/salespersons', async (req, res) => {
 
     const pool = await getPool();
     const result = await pool.request().query(`
-      SELECT DISTINCT LTRIM(RTRIM(SalesName)) AS salesName
-      FROM VW_Web_SalesDashboard WITH (NOLOCK)
-      WHERE SalesName IS NOT NULL AND LTRIM(RTRIM(SalesName)) <> ''
-      ORDER BY salesName ASC
+      -- One entry per name (case-insensitive); names stored with several casings (e.g. Jessica / JESSICA)
+      -- get a fixed representative via a binary MAX, so the list does not change between calls
+      SELECT x.salesName
+      FROM (
+        SELECT
+          MAX(LTRIM(RTRIM(SalesName)) COLLATE Latin1_General_BIN) AS salesName,
+          MIN(LTRIM(RTRIM(SalesName))) AS sortKey  -- database (case-insensitive) collation → same order as before
+        FROM VW_Web_SalesDashboard WITH (NOLOCK)
+        WHERE SalesName IS NOT NULL AND LTRIM(RTRIM(SalesName)) <> ''
+        GROUP BY LTRIM(RTRIM(SalesName))
+      ) x
+      ORDER BY x.sortKey ASC
     `);
 
     const salespersons = (result.recordset || [])
@@ -482,11 +506,13 @@ router.get('/top-gallery', async (req, res) => {
       WHERE ${dateClause}
         AND ItemNo IS NOT NULL AND LTRIM(RTRIM(ItemNo)) <> ''
         ${salesCondition}
-      GROUP BY 
+      GROUP BY
         UPPER(LTRIM(RTRIM(ISNULL(LEFT(ItemNo, 8), '')))),
         UPPER(LTRIM(RTRIM(ISNULL(CustCode, '')))),
         YEAR(${dateField}),
         MONTH(${dateField})
+      -- Deterministic row order: the first row per item (whose ItemDesc/ItemType the item keeps) is its latest period
+      ORDER BY 1, 5 DESC, 6 DESC, 4
     `;
 
     const result = await request.query(query);
@@ -622,7 +648,8 @@ router.get('/top-gallery', async (req, res) => {
           const valB = metric === 'amount' ? b.baseYearAmnt : b.baseYearQty;
           if (valB !== valA) return valB - valA;
         }
-        return metric === 'amount' ? b.amount - a.amount : b.qty - a.qty;
+        const byMetric = metric === 'amount' ? toCents(b.amount) - toCents(a.amount) : b.qty - a.qty;
+        return byMetric || String(a.custCode).localeCompare(String(b.custCode));
       });
       const primary = custList[0] || { custCode: 'N/A', groupId: 'General', groupLabel: 'General' };
 
@@ -662,9 +689,9 @@ router.get('/top-gallery', async (req, res) => {
         weeklyBreakdown: it.weeklyBreakdown,
         customerBreakdown: custList.slice(0, 10),
         sortScore: (() => {
-          if (rankBy === 'base') return metric === 'amount' ? it.baseYearAmnt : it.baseYearQty;
+          if (rankBy === 'base') return metric === 'amount' ? toCents(it.baseYearAmnt) : it.baseYearQty;
           if (rankBy === 'growth') return diff;
-          return metric === 'amount' ? it.totalCombinedAmnt : it.totalCombinedQty; // 'combined' default
+          return metric === 'amount' ? toCents(it.totalCombinedAmnt) : it.totalCombinedQty; // 'combined' default
         })(),
       };
     });
@@ -680,10 +707,10 @@ router.get('/top-gallery', async (req, res) => {
     }
 
     // Sort by sortScore descending
-    itemsList.sort((a, b) => b.sortScore - a.sortScore);
+    itemsList.sort((a, b) => (b.sortScore - a.sortScore) || a.itemNo.localeCompare(b.itemNo));
 
     // Assign final Ranks
-    const rankedItems = itemsList.slice(0, limit).map((it, idx) => ({
+    const rankedItems = itemsList.slice(0, limit).map((it, idx) => roundMoneyFields({
       rank: idx + 1,
       ...it,
     }));
@@ -703,11 +730,11 @@ router.get('/top-gallery', async (req, res) => {
       summary: {
         totalItemsCount: itemsList.length,
         portfolioTotalQty: summaryTotalQty,
-        portfolioTotalAmnt: summaryTotalAmnt,
+        portfolioTotalAmnt: toCents(summaryTotalAmnt),
         baseYearTotalQty: summaryBaseQty,
-        baseYearTotalAmnt: summaryBaseAmnt,
+        baseYearTotalAmnt: toCents(summaryBaseAmnt),
         compareYearTotalQty: summaryCompQty,
-        compareYearTotalAmnt: summaryCompAmnt,
+        compareYearTotalAmnt: toCents(summaryCompAmnt),
       },
       items: rankedItems,
     });

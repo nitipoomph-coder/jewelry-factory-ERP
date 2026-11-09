@@ -98,7 +98,7 @@ router.get('/customer-summary', async (req, res) => {
       ),
       RankedItems AS (
         SELECT CustCode, ItemNo, totalQty,
-          ROW_NUMBER() OVER(PARTITION BY CustCode ORDER BY totalQty DESC) as rn
+          ROW_NUMBER() OVER(PARTITION BY CustCode ORDER BY totalQty DESC, ItemNo) as rn
         FROM ItemTotals
       )
       SELECT CustCode as id, ItemNo as topItem, totalQty as topItemQty
@@ -112,7 +112,7 @@ router.get('/customer-summary', async (req, res) => {
       ),
       RankedItems AS (
         SELECT CustCode, yr, ItemNo, totalQty,
-          ROW_NUMBER() OVER(PARTITION BY CustCode, yr ORDER BY totalQty DESC) as rn
+          ROW_NUMBER() OVER(PARTITION BY CustCode, yr ORDER BY totalQty DESC, ItemNo) as rn
         FROM ItemTotals
       )
       SELECT CustCode as id, yr, ItemNo as topItem, totalQty as topItemQty
@@ -126,7 +126,7 @@ router.get('/customer-summary', async (req, res) => {
       ),
       RankedItems AS (
         SELECT CustCode, yr, ProductType, ItemNo, totalQty,
-          ROW_NUMBER() OVER(PARTITION BY CustCode, yr, ProductType ORDER BY totalQty DESC) as rn
+          ROW_NUMBER() OVER(PARTITION BY CustCode, yr, ProductType ORDER BY totalQty DESC, ItemNo) as rn
         FROM ItemTotals
       )
       SELECT CustCode as id, yr, ProductType as productType, ItemNo as topItem, totalQty as topItemQty

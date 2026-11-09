@@ -233,7 +233,7 @@ router.get('/', async (req, res) => {
       WHERE OrdStatus IN ('P','N') AND CloseStatus <> 'Y'
         AND ((PONo IS NULL OR UPPER(PONo) NOT LIKE '%SAMPLE%') AND LEFT(OrdNo, 3) IN ('BBC','BBQ','BBD','BBI','BBF','BBP','BBT','BBX','BBK','BBR','BBL','BBS','BBE'))
         AND (@year IS NULL OR YEAR(OrdDate) = @year)
-      GROUP BY OrdMat ORDER BY cnt DESC
+      GROUP BY OrdMat ORDER BY cnt DESC, OrdMat
     `);
     const materialBreakdown = matResult.recordset.map(r => ({
       material: r.material === 'B' ? 'Brass' : r.material === 'S' ? 'Silver' : r.material === 'T' ? 'Tin' : r.material === 'Other' ? 'Other (Accessories / Tin)' : r.material,
@@ -251,7 +251,7 @@ router.get('/', async (req, res) => {
       WHERE OrdStatus IN ('P','N') AND CloseStatus <> 'Y'
         AND ((PONo IS NULL OR UPPER(PONo) NOT LIKE '%SAMPLE%') AND LEFT(OrdNo, 3) IN ('BBC','BBQ','BBD','BBI','BBF','BBP','BBT','BBX','BBK','BBR','BBL','BBS','BBE'))
         AND (@year IS NULL OR YEAR(OrdDate) = @year)
-      GROUP BY OrdKind ORDER BY cnt DESC
+      GROUP BY OrdKind ORDER BY cnt DESC, OrdKind
     `);
     const orderTypes = kindResult.recordset.map(r => ({
       type: r.kind === 'NEW' ? 'New Order' : r.kind === 'REP' ? 'Replenishment' : r.kind,
@@ -273,7 +273,7 @@ router.get('/', async (req, res) => {
         AND ((h.PONo IS NULL OR UPPER(h.PONo) NOT LIKE '%SAMPLE%') AND LEFT(h.OrdNo, 3) IN ('BBC','BBQ','BBD','BBI','BBF','BBP','BBT','BBX','BBK','BBR','BBL','BBS','BBE'))
         AND (@year IS NULL OR YEAR(h.OrdDate) = @year)
       GROUP BY h.CustCode, c.CustName
-      ORDER BY totalQty DESC
+      ORDER BY totalQty DESC, h.CustCode
     `);
     const topCustomers = custResult.recordset.map(r => ({
       code: r.CustCode,
@@ -301,7 +301,7 @@ router.get('/', async (req, res) => {
         AND h.OrdStatus IN ('P','N') AND h.CloseStatus <> 'Y'
         AND ((h.PONo IS NULL OR UPPER(h.PONo) NOT LIKE '%SAMPLE%') AND LEFT(h.OrdNo, 3) IN ('BBC','BBQ','BBD','BBI','BBF','BBP','BBT','BBX','BBK','BBR','BBL','BBS','BBE'))
         AND (@year IS NULL OR YEAR(h.OrdDate) = @year)
-      ORDER BY h.DueDate ASC
+      ORDER BY h.DueDate ASC, h.OrdNo ASC
     `);
     const delayOrders = delayResult.recordset.map(r => ({
       ordNo: r.OrdNo,
@@ -334,7 +334,7 @@ router.get('/', async (req, res) => {
       FROM OrdHD h WITH (NOLOCK)
       WHERE ((h.PONo IS NULL OR UPPER(h.PONo) NOT LIKE '%SAMPLE%') AND LEFT(h.OrdNo, 3) IN ('BBC','BBQ','BBD','BBI','BBF','BBP','BBT','BBX','BBK','BBR','BBL','BBS','BBE'))
         AND (@year IS NULL OR YEAR(h.OrdDate) = @year)
-      ORDER BY h.OrdDate DESC
+      ORDER BY h.OrdDate DESC, h.OrdNo DESC
     `);
     const recentOrders = recentResult.recordset.map(r => ({
       ordNo: r.OrdNo,
@@ -964,7 +964,7 @@ router.get('/detail/:cardType', async (req, res) => {
         FROM OrdHD h WITH (NOLOCK) LEFT JOIN GMCust c WITH (NOLOCK) ON c.CustCode=h.CustCode
         WHERE ${where} AND YEAR(h.${dateCol}) IN (@y1,@y2)
         GROUP BY h.CustCode, c.CustName
-        ORDER BY SUM(CASE WHEN YEAR(h.${dateCol})=@y1 THEN 1 ELSE 0 END) DESC
+        ORDER BY SUM(CASE WHEN YEAR(h.${dateCol})=@y1 THEN 1 ELSE 0 END) DESC, h.CustCode
       `);
 
     const breakdown = bR.recordset.map(r => ({
