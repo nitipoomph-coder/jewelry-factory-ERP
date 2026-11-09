@@ -1016,6 +1016,13 @@ Inside route handlers, add only short section labels for important boxes/queries
    - `status = 2` (**Done / Completed**): Document exists and `balance === 0` (all processed quantities passed onward).
    - `status = 1` (**In-Progress / WIP**): Received into stage and `balance > 0`.
    - `status = 0` (**Pending / Waiting**): No intake document recorded for this stage yet.
+5. **Concurrency Guards (2026-11-09, `/track`)**:
+   - All `/track` reads use `WITH (NOLOCK)`: the legacy VB.NET system writes these tables all day, and `OrdNo` lookups scan whole tables (see index note below), so locking reads deadlocked (error 1205).
+   - `queryWithDeadlockRetry` retries a deadlocked query twice (200 ms, 600 ms); if it still fails the API returns **503** `"The database is busy right now..."`.
+   - The step loop skips a step only when its table is missing (error 208). Any other SQL error fails the request — never show a false `Pending` step.
+   - `ordLineNo` must be numeric (`OrdDT.OrdLineNo` is INT) → otherwise **400**.
+   - `OPTION (MAXDOP 1)` was tested and rejected (~2x slower on these scans).
+   - **Index reality check (dbGeneration, 2026-11-09)**: `OrdHD`/`OrdDT` are heaps with only `IX_*_Dashboard_Fast` indexes (no usable `OrdNo` index), and every `{XX}SenDT`/`{XX}RecDT` has no index (e.g. `PTSenDT` 767k rows). The indexes listed in the Database section / `sql/indexes.sql` are **not present** on this database. Adding indexes is a DBA decision (read-only policy).
 
 ### 3. Design Standards & Strict Guardrails
 1. **Module Encapsulation & Folder Hierarchy**:

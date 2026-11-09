@@ -423,3 +423,28 @@ Simplified `renderCell` to a single check: `if (!val || val === 0 || isNaN(val))
 ### Prevention & Lessons Learned:
 1. **Consistent zero-handling**: Use a single rendering function for all cells without special cases per row type. If a row needs different formatting, create a separate formatter rather than overloading a boolean flag.
 
+## Issue: FBE Order Tracker Deadlock ("lock | communication buffer resources")
+**Date:** 2026-11-09
+**Component:** `backend/routes/orderTracking.js` (`GET /api/order-tracking/track`)
+
+### Symptoms:
+Searching an order in FBE Order Tracker intermittently showed: *"Transaction (Process ID …) was deadlocked on lock | communication buffer resources with another process and has been chosen as the deadlock victim."* It happened mostly while the factory was actively posting send/receive documents.
+
+### Root Cause:
+1. One search runs 35 queries (order header + 17 steps × Send/Receive), all **without NOLOCK**, against tables the legacy VB.NET system writes continuously.
+2. The lookup column `OrdNo` has no usable index on `dbGeneration`: `OrdHD`/`OrdDT` are heaps with only `IX_*_Dashboard_Fast`, and every `{XX}SenDT`/`{XX}RecDT` has no index (e.g. `PTSenDT` 767k rows). Each query scans whole tables, so it is slow, goes parallel ("communication buffer"), and holds shared locks long enough to collide with writers.
+3. The step loop used `catch (err) {}` for every error, so a deadlock inside a step query was swallowed and the step was shown as **Pending (0)** — silently wrong data.
+
+### Fix:
+- `WITH (NOLOCK)` on every `/track` read (display-only page; dirty reads are acceptable and a re-search corrects them).
+- `queryWithDeadlockRetry`: retry error 1205 twice (200 ms, 600 ms), then return **503** with a friendly "database is busy" message.
+- Step loop skips only error 208 (missing table); any other error now fails the request.
+- `ordLineNo` validated as numeric → **400** instead of a raw SQL conversion error (500).
+- Verified: responses identical to the pre-fix baseline for real orders; old vs new median 0.93 s vs 0.89 s; simulated deadlock/error cases pass. `OPTION (MAXDOP 1)` was measured ~2x slower and dropped.
+
+### Prevention & Lessons Learned:
+1. **Never swallow all errors in a data loop**: catch only the specific, expected error code; anything else must surface, or users see confident but wrong data.
+2. **Display-only reads on legacy-written tables use NOLOCK** — but never on a read that feeds a write (e.g. PO Tracker remark update).
+3. **Measure before adding query hints**: `MAXDOP 1` looked safe on paper but doubled latency on unindexed scans.
+4. **Verify documented indexes against the live catalog** (`sys.indexes`) before reasoning about performance — the documented index set was not present.
+
