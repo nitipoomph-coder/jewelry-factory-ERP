@@ -20,7 +20,8 @@ The primary goal is to modernize the legacy system (originally built on Windows 
    - Header fields `BuyName` / `RefDocuNo` via the Procurement API
 
 **Current Database State:**
-- ✅ **22 Covering Indexes** (`backend/sql/indexes.sql`) + **View `VW_Web_SalesDashboard`:** Created and active in production (Do not drop or create additional indexes/views).
+- ⚠️ **Indexes:** production has only `IX_OrdHD_Dashboard_Fast` and `IX_OrdDT_Dashboard_Fast` (no order-number index). `backend/sql/indexes.sql` is a planned set, NOT deployed; index changes are a DBA decision — see `docs/dba/index-gap-and-proposal.md`.
+- ✅ **Views `VW_Web_SalesDashboard` and `VW_Web_OrderTrends`:** exist in production (do not drop or create views).
 - ❌ **Stored Procedures `PC_Show_OrdTrack_Sum_*`:** Original legacy baseline definitions remain active (experimental modifications broke the legacy VB.NET app and were rolled back). Files in `backend/sql/stored-procedures/` are deprecated drafts—**do not execute them**.
 - If any document conflicts with this section, **this section takes precedence**.
 

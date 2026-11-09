@@ -1,13 +1,16 @@
+-- STATUS: PLANNED — NOT deployed in production (verified 2026-11-09). Do not run from the app team;
+--         index changes are a DBA decision. See docs/dba/index-gap-and-proposal.md
+
 /* ╔═══════════════════════════════════════════════════════════════════════════════╗
    ║        PO Tracker — Master Index Script (dbGeneration)                      ║
    ║        Target: SQL Server 2012 Enterprise, server <DB_HOST>              ║
    ╠═══════════════════════════════════════════════════════════════════════════════╣
    ║                                                                             ║
-   ║  ส่วนที่ 1 ▸ ระบบเดิม (SP Indexes)         — 9 ตัว  (สร้างแล้ว 2026-07-02)  ║
+   ║  ส่วนที่ 1 ▸ ระบบเดิม (SP Indexes)         — 9 ตัว  (planned, not deployed) ║
    ║              สำหรับ PC_Show_OrdTrack_Sum_* stored procedures                 ║
    ║              ตาราง: OrdHD, OrdDT, OrdTrackDT, OrdWeekPlanHD, GMCust         ║
    ║                                                                             ║
-   ║  ส่วนที่ 2 ▸ ระบบใหม่ (Web App Indexes)    — 13 ตัว (เพิ่ม 2026-07-16)      ║
+   ║  ส่วนที่ 2 ▸ ระบบใหม่ (Web App Indexes)    — 13 ตัว (planned, not deployed)║
    ║              สำหรับ Node.js Backend Routes (query ตรงไม่ผ่าน SP)             ║
    ║              Dashboard, Search, Customer Sales, Item Summary, Order Detail   ║
    ║              ตาราง: OrdHD, OrdDT, GMCust, GMEmp, GMGoodType                 ║
@@ -20,7 +23,7 @@ USE [dbGeneration];
 GO
 
 /* ╔═══════════════════════════════════════════════════════════════════════════════╗
-   ║  ส่วนที่ 1: ระบบเดิม (SP Indexes) — สร้างแล้ว 2026-07-02                    ║
+   ║  ส่วนที่ 1: ระบบเดิม (SP Indexes) — planned, not deployed                   ║
    ║  สำหรับ PC_Show_OrdTrack_Sum_* stored procedures (9 indexes)                ║
    ║                                                                             ║
    ║  บริบท: หลัง restore ตาราง OrdHD/OrdDT/OrdTrackDT/OrdWeekPlanHD             ║
