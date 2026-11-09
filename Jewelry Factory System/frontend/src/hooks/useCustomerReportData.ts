@@ -41,8 +41,7 @@ export function useCustomerReportData() {
     { 
       presets: ['ytd', 'custom', 'month', 'week', 'day'],
       allowWeekRange: true 
-    },
-    [] 
+    }
   );
 
   const selectedYears = periodSetup.committed.selectedYears;
