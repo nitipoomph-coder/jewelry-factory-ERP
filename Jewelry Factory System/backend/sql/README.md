@@ -1,15 +1,16 @@
 # SQL — Stored Procedures & Indexes (`dbGeneration`)
 
-Single Source of Truth (SSOT) for Stored Procedures and database indexes utilized by the PO Tracker and Analytics subsystems. Retained in repository version control to guard against object loss during production database restorations.
+Reference scripts for the stored procedures, views, and planned indexes used by the PO Tracker and Analytics subsystems.
 
-Target: **SQL Server 2012 Enterprise** · Database: `dbGeneration` · Host: `<DB_HOST>`
+Target: **SQL Server 2012 Enterprise (RTM `11.0.2100.60`)** · Database: `dbGeneration` · Host: `<DB_HOST>`
 
 > [!IMPORTANT]
-> **Active Production Database State (Updated 2026-10-08)**
-> - ✅ **22 Covering Indexes (`indexes.sql`) and View `VW_Web_SalesDashboard`:** Deployed and actively utilized in production.
-> - ❌ **Stored Procedures `PC_Show_OrdTrack_Sum_*`:** Experimental modifications were **reverted** because adding parameters broke the legacy VB.NET desktop application. The database strictly runs the original 2-parameter baseline (`@FromDate`, `@ToDate`), and the Node.js backend passes only these two arguments.
-> - Deprecated files in `stored-procedures/` are historical drafts—**NEVER EXECUTE THEM AGAINST DATABASE INSTANCES**.
-> - **Active Policy: 100% Read-Only Database.** Do not create, modify, or drop any tables, views, stored procedures, triggers, or indexes.
+> **Production Database State (verified 2026-11-09)**
+> - ✅ **Views** `VW_Web_SalesDashboard` and `VW_Web_OrderTrends` exist in production.
+> - ⚠️ **Indexes:** `OrdHD` and `OrdDT` have only `IX_OrdHD_Dashboard_Fast` / `IX_OrdDT_Dashboard_Fast`. The scripts in `indexes.sql` are a **planned set that is NOT deployed**; the two live `*_Dashboard_Fast` indexes have the same keys as `indexes-sales-analytics.sql` under different names. Live state and the DBA proposal: `docs/dba/index-gap-and-proposal.md`.
+> - ✅ **Stored Procedures `PC_Show_OrdTrack_Sum_*`:** production runs the original 2-parameter baseline (`@FromDate`, `@ToDate`); the Node.js backend passes only these two arguments. Adding parameters breaks the legacy VB.NET desktop application.
+> - Files in `stored-procedures/` are deprecated drafts — **NEVER EXECUTE THEM AGAINST DATABASE INSTANCES**.
+> - **Policy: 100% Read-Only Database.** Do not create, modify, or drop any tables, views, stored procedures, triggers, or indexes. Index changes are a DBA decision.
 
 ---
 
@@ -18,7 +19,8 @@ Target: **SQL Server 2012 Enterprise** · Database: `dbGeneration` · Host: `<DB
 ```
 sql/
 ├── ERP_DATA_MAPPING_AND_LOGIC.md   # Field-level ERP guide and comprehensive business logic
-├── indexes.sql                     # 22 covering indexes (9 SP + 13 Web Application)
+├── indexes.sql                     # Planned covering indexes (NOT deployed)
+├── indexes-sales-analytics.sql     # Sales analytics indexes — live as IX_OrdHD/OrdDT_Dashboard_Fast (same keys, different names)
 ├── views/                          # Production database views (SSOT)
 │   └── VW_Web_SalesDashboard.sql   # Central view for Customer Dashboard, Matrix & Order Trends
 ├── stored-procedures/              # ❌ Deprecated SP drafts (Do not execute on DB)
@@ -35,10 +37,12 @@ sql/
 
 ---
 
-## Indexes Reference (`indexes.sql`)
+## Planned Indexes (`indexes.sql`) — NOT deployed
 
-### Part 1: Legacy Stored Procedure Indexes — 9 Indexes (Created 2026-07-02)
-Mitigates full table scans on post-restore HEAP tables across `PC_Show_OrdTrack_Sum_*`:
+None of the indexes below exist in production. They are a design reference only; see `docs/dba/index-gap-and-proposal.md` for the live state and the currently proposed (narrower) set.
+
+### Part 1: Legacy Stored Procedure Indexes — 9 Indexes
+Designed to avoid full table scans on the HEAP tables used by `PC_Show_OrdTrack_Sum_*`:
 
 | # | Index Name | Table | Purpose |
 |---|-----------|-------|-------------|
@@ -52,8 +56,8 @@ Mitigates full table scans on post-restore HEAP tables across `PC_Show_OrdTrack_
 | 8 | `IX_OrdWeekPlanHD_PlanDate` | `OrdWeekPlanHD` | Weekly plan join: `DueDate = PlanDate` |
 | 9 | `IX_GMCust_CustCode` | `GMCust` | Customer name and sales representative lookup |
 
-### Part 2: Web Application Direct Query Indexes — 13 Indexes (Created 2026-07-16)
-Optimizes direct Node.js backend routes (bypassing Stored Procedures):
+### Part 2: Web Application Direct Query Indexes — 13 Indexes
+Designed for direct Node.js backend routes (bypassing Stored Procedures):
 
 | # | Index Name | Table | Target Route | Purpose |
 |---|-----------|-------|-----------|-------------|
@@ -79,10 +83,10 @@ Optimizes direct Node.js backend routes (bypassing Stored Procedures):
 In the original legacy stored procedures, each procedure performed `LEFT JOIN GMItemPhoto` and executed `MAX(CAST(ItemPhoto AS VARBINARY(MAX)))` inside every aggregation CTE, grouping outer queries by multi-megabyte binary blobs.
 - **Modern Solution:** The web application decouples photo delivery entirely from SQL queries. Backend routes query lightweight item SKUs (`SampleItemNo = MIN(OrdDT.ItemNo)`) and stream images on-demand via the dedicated Photo Bridge router (`/api/photos/ps|cad/:itemNo`).
 
-### 2. Covering Indexes Strategy
-Before indexing, `OrdHD` (~176k rows), `OrdDT` (~755k rows), `OrdTrackDT`, and `OrdWeekPlanHD` operated as unindexed HEAP tables after restoration.
-- Created covering indexes using `NONCLUSTERED`, `ONLINE=ON` (non-blocking), and `DATA_COMPRESSION=PAGE`.
-- Avoided clustered primary keys on heaps to eliminate regression risks for the coexisting legacy desktop application.
+### 2. Covering Indexes Strategy (planned)
+`OrdHD` (~185k rows), `OrdDT` (~773k rows), `OrdTrackDT`, and the production step `{XX}SenDT`/`{XX}RecDT` tables are HEAP tables without order-number indexes.
+- Planned indexes use `NONCLUSTERED`, `ONLINE=ON` (non-blocking), and `DATA_COMPRESSION=PAGE`.
+- No clustered primary keys on the heaps, to avoid regression risk for the coexisting legacy desktop application. `OrdHD.OrdNo` and `OrdDT.(OrdNo, OrdLineNo)` also contain duplicates, so unique indexes are not possible.
 
 ---
 
@@ -117,6 +121,7 @@ The authoritative Single Source of Truth view powering three key web modules:
 
 ## Usage Guidelines
 
-- `indexes.sql` and `views/VW_Web_SalesDashboard.sql` represent active production objects. Retained as SSOT for database disaster recovery (Run only under administrative supervision).
+- `views/VW_Web_SalesDashboard.sql` matches a production view (reference for disaster recovery; run only under DBA supervision).
+- `indexes.sql` is planned, not deployed. `indexes-sales-analytics.sql` corresponds to the live `*_Dashboard_Fast` indexes (different names). Any index change is a DBA decision — see `docs/dba/index-gap-and-proposal.md`.
 - `stored-procedures/` contains deprecated experimental scripts (**DO NOT RUN**).
 - `_baseline/` holds unmodified legacy definitions preserved for rollback and schema verification.

@@ -165,6 +165,8 @@ gemstone-lifecycle-management/
 │   │   ├── dashboard.md               # Dashboard / report screens
 │   │   ├── sales-menu.md              # Sales Analytics menu, naming, breadcrumbs
 │   │   └── sales-db-views.md          # Sales SQL view preparation (TEST DB only)
+│   ├── dba/
+│   │   └── index-gap-and-proposal.md  # 🗄️ Live index state + proposed indexes for the DBA (not executed)
 │   └── legacy/
 │       ├── LEGACY_PCC_SYSTEM_ARCHITECTURE.md
 │       ├── LEGACY_PO_TRACKER_ARCHITECTURE.md
@@ -352,8 +354,8 @@ gemstone-lifecycle-management/
         │   ├── sample.js              # /api/sample — Sample room APIs (protected)
         │   └── lock.js                # /api/lock — Document locking (protected)
         │
-        └── sql/                        # 🗄️ SSOT for Stored Procedures + Indexes (prevents loss during DB restore)
-            ├── indexes.sql             # 9 covering indexes (NONCLUSTERED, ONLINE) for PC_Show_OrdTrack_Sum_*
+        └── sql/                        # 🗄️ SP baselines, views, and planned index scripts
+            ├── indexes.sql             # Planned index set (NOT deployed — see docs/dba/index-gap-and-proposal.md)
             ├── stored-procedures/      # Current SP baseline (stripped base64 blobs → returns SampleItemNo)
             ├── _baseline/              # Original SP/column/index snapshot (rollback + reference)
             └── README.md               # Application guide + change summary
@@ -663,49 +665,29 @@ All 5 SPs share an identical CTE aggregation pipeline, differing only in the **W
 6. `CTM_OrdDT_Aggregate`: Aggregates SUM quantities (N008 customer group, multiple POs).
 7. **Final SELECT**: 3 `UNION ALL` queries (General customers + N008 single PO + N008 multiple POs).
 
-### Database Indexes (Reference Only — 🛑 Never Execute Index Creation/Modification Scripts on DB)
+### Database Indexes (Current State — 🛑 Never Execute Index Creation/Modification Scripts on DB)
 
-> ⚠️ **STRICT POLICY**: The index metadata below is documented solely for architectural reference. **Never execute scripts to create or modify indexes on the database** (database structures are maintained under enterprise administration alongside legacy systems).
+> ⚠️ **STRICT POLICY**: Index changes are a DBA decision. **Never create, alter, or drop indexes or views** from this project (100% Read-Only policy).
 
-#### OrdHD (Order Header Table — Heaviest Utilization)
-| Index Name | Key Columns | INCLUDE | Purpose |
-|-----------|-------------|---------|---------|
-| `PK_OrdHD` | `OrdNo` (CLUSTERED) | — | Primary Key |
-| `IX_OrdHD_OrdDate` | `OrdDate` | OrdNo, CustCode, PONo, OrdKind, OrdMat, CustMultiAddr, CloseStatus, DueDate, CustDueDate, CustQCDate | SP: OrdDate, All |
-| `IX_OrdHD_DueDate` | `DueDate` | OrdNo, CustCode, PONo, OrdKind, OrdMat, CustMultiAddr, CloseStatus, OrdDate, CustDueDate, CustQCDate | SP: DueDate |
-| `IX_OrdHD_CustDueDate` | `CustDueDate` | OrdNo, CustCode, PONo, OrdKind, OrdMat, CustMultiAddr, CloseStatus, OrdDate, DueDate, CustQCDate | SP: CustDueDate |
-| `IX_OrdHD_CustCode_PONo` | `CustCode, PONo` | OrdNo, OrdKind, OrdMat, CustMultiAddr, OrdDate, DueDate, CustDueDate, CloseStatus | GROUP BY, JOIN, subquery |
-| `IX_OrdHD_PONo` | `PONo` | OrdNo, CustCode, OrdKind, OrdMat, CustMultiAddr, OrdDate, DueDate, CustDueDate, CloseStatus | DupOnePONo/DupMorPONo CTE |
-| `IX_OrdHD_CloseStatus` | `CloseStatus` | OrdNo, CustCode, PONo | CloseStatus lookup |
+Live indexes on `dbGeneration` (verified via `sys.indexes`, 2026-11-09):
 
-#### OrdDT (Order Detail Table)
-| Index Name | Key Columns | INCLUDE | Purpose |
-|-----------|-------------|---------|---------|
-| `PK_OrdDT` | `OrdNo, OrdLineNo` (CLUSTERED) | — | Primary Key |
-| `IX_OrdDT_OrdNo` | `OrdNo` | ItemNo, ItemQty, StoneQty, FitQty, WijQty, WstQty, CastQty, ControlQty, GrindQty, PolishQty, PlateQty, QCQty, FinishQty, ExportQty, ItemExchAmnt | JOIN + SUM aggregation |
-| `IX_OrdDT_ItemNo` | `ItemNo` | — | JOIN GMItemPhoto (legacy) |
+| Table | Rows | Indexes | Clustered? |
+|-------|------|---------|------------|
+| `OrdHD` | ~185k | `IX_OrdHD_Dashboard_Fast (OrdDate, CustCode)` | Heap — no PK |
+| `OrdDT` | ~773k | `IX_OrdDT_Dashboard_Fast (OrdID, OrdNo, ItemNo)` | Heap — no PK |
+| `OrdTrackDT` | — | none | Heap — no PK |
+| `OrdWeekPlanHD` | — | none | — |
+| `GMCust`, `GMEmp`, `GMGoodType` | — | Primary key on `*ID` only | Clustered PK |
+| `{XX}SenHD` / `{XX}RecHD` (production steps) | — | Primary key on `{XX}SenID` / `{XX}RecID` only | Clustered PK |
+| `{XX}SenDT` / `{XX}RecDT` (production steps) | up to ~768k (`PTSenDT`) | none | Heap |
 
-#### GMCust (Customer Table)
-| Index Name | Key Columns | INCLUDE | Purpose |
-|-----------|-------------|---------|---------|
-| `PK_GMCust` | `CustID` (CLUSTERED) | — | Primary Key (Pre-existing ✅) |
-| `IX_GMCust_CustCode` | `CustCode` | CustName, SalesName | CustCode lookup |
+**Implications for code:**
+- No index supports lookups by `OrdNo` (in `IX_OrdDT_Dashboard_Fast` it is the second key). Any `WHERE OrdNo = @x` scans the whole table — keep such reads few, use `WITH (NOLOCK)` for display-only queries, and never loop many of them per request without need.
+- Keys are not unique in practice: `OrdHD.OrdNo` and `OrdDT.(OrdNo, OrdLineNo)` contain duplicates. Do not assume one row per key.
+- Server is SQL Server 2012 Enterprise RTM (`11.0.2100.60`).
 
-#### GMItemPhoto (Product Image Table)
-> ❌ **No index required**: System completely removed joins to `GMItemPhoto` (deprecated base64 blobs), serving images directly via network path Photo Bridge.
-
-#### OrdTrackDT (Order Tracking Detail Table)
-| Index Name | Key Columns | INCLUDE | Purpose |
-|-----------|-------------|---------|---------|
-| `IX_OrdTrackDT_Composite` | `CustCode, PONo, OrdMat, OrdKind, CustDueDate, CustMultiAddr` | OrdSGS, TrackTest, OORDate, BookDate, QC1-3 fields, ProdRiskIssue, ... | JOIN condition |
-| `IX_OrdTrackDT_CTE` | `CustCode, OrdKind, OrdMat, CustMultiAddr, CustDueDate, OrdTrackID DESC` | — | CTE_Track PARTITION BY |
-
-#### OrdWeekPlanHD (Weekly Plan Table)
-| Index Name | Key Columns | INCLUDE | Purpose |
-|-----------|-------------|---------|---------|
-| `IX_OrdWeekPlanHD_PlanDate` | `PlanDate` | PlanYear, PlanWeek | JOIN DueDate |
-
-**SQL Index Script Reference:** `backend/sql/indexes.sql` (22 indexes) and View `VW_Web_SalesDashboard` are preserved as SSOT files in case of disaster recovery. **AI must never create, alter, or drop indexes or views** (100% Read-Only policy). Files under `backend/sql/stored-procedures/` are deprecated drafts and must never be applied.
+**Index proposal for the DBA:** `docs/dba/index-gap-and-proposal.md` (24 narrow non-unique indexes for order-number lookups, with create/rollback scripts — not executed).
+**Planned index script (not deployed):** `backend/sql/indexes.sql`. The live `*_Dashboard_Fast` indexes have the same keys as `backend/sql/indexes-sales-analytics.sql` (different names). Views `VW_Web_SalesDashboard` and `VW_Web_OrderTrends` exist. Files under `backend/sql/stored-procedures/` are deprecated drafts and must never be applied.
 
 ---
 
@@ -1018,12 +1000,12 @@ Inside route handlers, add only short section labels for important boxes/queries
    - `status = 1` (**In-Progress / WIP**): Received into stage and `balance > 0`.
    - `status = 0` (**Pending / Waiting**): No intake document recorded for this stage yet.
 5. **Concurrency Guards (2026-11-09, `/track`)**:
-   - All `/track` reads use `WITH (NOLOCK)`: the legacy VB.NET system writes these tables all day, and `OrdNo` lookups scan whole tables (see index note below), so locking reads deadlocked (error 1205).
+   - All `/track` reads use `WITH (NOLOCK)`: the legacy VB.NET system writes these tables all day, and `OrdNo` lookups scan whole tables (see "Database Indexes (Current State)"), so locking reads deadlocked (error 1205).
    - `queryWithDeadlockRetry` retries a deadlocked query twice (200 ms, 600 ms); if it still fails the API returns **503** `"The database is busy right now..."`.
    - The step loop skips a step only when its table is missing (error 208). Any other SQL error fails the request — never show a false `Pending` step.
    - `ordLineNo` must be numeric (`OrdDT.OrdLineNo` is INT) → otherwise **400**.
    - `OPTION (MAXDOP 1)` was tested and rejected (~2x slower on these scans).
-   - **Index reality check (dbGeneration, 2026-11-09)**: `OrdHD`/`OrdDT` are heaps with only `IX_*_Dashboard_Fast` indexes (no usable `OrdNo` index), and every `{XX}SenDT`/`{XX}RecDT` has no index (e.g. `PTSenDT` 767k rows). The indexes listed in the Database section / `sql/indexes.sql` are **not present** on this database. Adding indexes is a DBA decision (read-only policy).
+   - **Indexes**: no index supports `OrdNo` lookups on `OrdHD`/`OrdDT` or the `{XX}SenDT`/`{XX}RecDT` tables — see "Database Indexes (Current State)" and the DBA proposal `docs/dba/index-gap-and-proposal.md`.
 
 ### 3. Design Standards & Strict Guardrails
 1. **Module Encapsulation & Folder Hierarchy**:
