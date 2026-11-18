@@ -41,16 +41,13 @@ export function TopOrdersItemPreview({
   // Exact calculations for the active comparison
   const baseQty = item.baseYearQty || 0;
   const baseAmnt = item.baseYearAmnt || 0;
-  const baseUnitPrice = baseQty > 0 ? baseAmnt / baseQty : 0;
 
   const compQty = item.compareYearQty || 0;
   const compAmnt = item.compareYearAmnt || 0;
-  const compUnitPrice = compQty > 0 ? compAmnt / compQty : 0;
 
   // Selected totals (Base + Compare)
   const totalQty = hasCompare ? baseQty + compQty : baseQty;
   const totalAmnt = hasCompare ? baseAmnt + compAmnt : baseAmnt;
-  const overallUnitPrice = totalQty > 0 ? totalAmnt / totalQty : 0;
 
   const avgQtyPerYr = hasCompare ? Math.round(totalQty / 2) : totalQty;
   const avgAmntPerYr = hasCompare ? totalAmnt / 2 : totalAmnt;
@@ -257,13 +254,10 @@ export function TopOrdersItemPreview({
               }}
             >
               <span style={{ fontSize: '0.78rem', color: 'var(--color-text-tertiary)', fontWeight: 800 }}>
-                Average {hasCompare ? `(Per Year)` : `(Unit Economics)`}
+                Average (Per Year)
               </span>
               <span style={{ fontSize: '1.35rem', fontWeight: 950, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>
                 {fmtQty(avgQtyPerYr)} pcs / year
-              </span>
-              <span style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
-                Unit Price: {fmtCur(overallUnitPrice)} / pc
               </span>
             </div>
           </div>
@@ -297,7 +291,6 @@ export function TopOrdersItemPreview({
                   <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--color-text-tertiary)' }}>Period</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-tertiary)' }}>Volume</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-tertiary)' }}>Value</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-tertiary)' }}>Avg Price</th>
                   {hasCompare && <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-tertiary)' }}>YoY</th>}
                 </tr>
               </thead>
@@ -312,9 +305,6 @@ export function TopOrdersItemPreview({
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-brand-600)' }}>
                     {fmtCur(baseAmnt)}
-                  </td>
-                  <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
-                    {fmtCur(baseUnitPrice)}/pc
                   </td>
                   {hasCompare && (
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 900 }}>
@@ -339,9 +329,6 @@ export function TopOrdersItemPreview({
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
                       {fmtCur(compAmnt)}
                     </td>
-                    <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
-                      {fmtCur(compUnitPrice)}/pc
-                    </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--color-text-tertiary)' }}>
                       -
                     </td>
@@ -362,9 +349,6 @@ export function TopOrdersItemPreview({
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 950, color: 'var(--color-brand-600)' }}>
                       {fmtCur(totalAmnt)}
                     </td>
-                    <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
-                      {fmtCur(overallUnitPrice)}/pc
-                    </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 900, color: item.qtyDiff >= 0 ? 'var(--color-success-600)' : 'var(--color-danger-600)' }}>
                       {item.qtyDiff >= 0 ? `+${fmtQty(item.qtyDiff)}` : `${fmtQty(item.qtyDiff)}`}
                     </td>
@@ -378,9 +362,6 @@ export function TopOrdersItemPreview({
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 900, color: 'var(--color-text-secondary)' }}>
                       {fmtCur(avgAmntPerYr)}
-                    </td>
-                    <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--color-text-tertiary)' }}>
-                      -
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--color-text-tertiary)' }}>
                       -

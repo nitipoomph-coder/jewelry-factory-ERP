@@ -79,7 +79,6 @@ export function TopOrdersGalleryGrid({
 
         const itemQty = isCompare ? item.baseYearQty : item.totalCombinedQty;
         const itemAmnt = isCompare ? item.baseYearAmnt : item.totalCombinedAmnt;
-        const avgUnitPrice = itemQty > 0 ? itemAmnt / itemQty : 0;
         const fmtCurrency = (val: number) => '$' + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         return (
@@ -214,15 +213,10 @@ export function TopOrdersGalleryGrid({
                 <span style={{ fontSize: '0.85rem', color: 'var(--color-brand-400)', fontWeight: 800 }}>
                   {fmtCurrency(itemAmnt)}
                 </span>
-                {avgUnitPrice > 0 && (
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-overlay-text-muted)', fontWeight: 700, background: 'color-mix(in srgb, var(--color-text-inverse) 12%, transparent)', padding: '2px 8px', borderRadius: 4, marginTop: 2 }}>
-                    Avg ${avgUnitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / pc
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Footer Summary: Item No + Primary Value + Secondary Volume + Avg Price/pc + YoY */}
+            {/* Footer Summary: Item No + Primary Value + Secondary Volume + YoY */}
             <div
               style={{
                 padding: '8px 12px 10px',
@@ -271,28 +265,10 @@ export function TopOrdersGalleryGrid({
                 </span>
               </div>
 
-              {/* Row 3: Unit Economics Avg Price/pc (Left) & Comparison / YoY (Right) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, fontSize: '0.7rem', marginTop: 2 }}>
-                <span
-                  style={{
-                    background: 'var(--color-surface-2)',
-                    padding: '2px 7px',
-                    borderRadius: 4,
-                    fontWeight: 800,
-                    color: 'var(--color-text-secondary)',
-                    border: '1px solid var(--color-border-light)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                  }}
-                  title={`Average Price: Total Value ÷ Total Volume = $${avgUnitPrice.toFixed(2)} per piece`}
-                >
-                  <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 700 }}>Avg:</span>
-                  <span>${avgUnitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/pc</span>
-                </span>
-
-                {compareEnabled && compareYear && (
-                  isCompare ? (
+              {/* Row 3: Comparison / YoY (Right) — only when a compare year is active; fixed min height keeps every card the same size */}
+              {compareEnabled && compareYear && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, fontSize: '0.7rem', marginTop: 2, minHeight: 18 }}>
+                  {isCompare ? (
                     <span style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)', fontWeight: 700 }}>
                       vs {compareYear}: <strong style={{ color: 'var(--color-text-secondary)' }}>{fmtQty(item.compareYearQty)}</strong>
                     </span>
@@ -305,9 +281,9 @@ export function TopOrdersGalleryGrid({
                         {formatSignedPct(item.yoyGrowthPct)} ({item.qtyDiff >= 0 ? '+' : ''}{fmtQty(item.qtyDiff)} pcs)
                       </span>
                     )
-                  )
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );

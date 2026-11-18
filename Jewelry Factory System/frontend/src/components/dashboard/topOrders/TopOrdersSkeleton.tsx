@@ -25,16 +25,16 @@ export function TopOrdersSkeleton() {
           <div className="app-skeleton" style={{ height: "14px", width: "320px" }} />
         </div>
 
-        {/* ขวา: กล่อง KPI 3 กล่อง Ratio 1fr 1fr 2fr (Volume, Value, Top Product Type) */}
+        {/* Right: 3 KPI boxes (Volume, Value, Product Type) — same grid as the summary header in TopOrdersGalleryPage */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 2fr",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr)",
             gap: 12,
             alignItems: "stretch",
             flex: 1,
-            minWidth: "min(100%, 740px)",
-            maxWidth: 1060,
+            minWidth: "min(100%, 640px)",
+            maxWidth: 880,
           }}
         >
           {/* Card 1: 1fr (Volume) */}

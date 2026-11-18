@@ -342,16 +342,16 @@ export default function TopOrdersGalleryPage() {
               </span>
             </div>
 
-            {/* Right Side: KPI Cards for Volume, Value, Avg Price & Product Type Significance (repeat(3, 1fr) 1.4fr) */}
+            {/* Right Side: KPI Cards for Volume, Value & Product Type Significance (repeat(2, 1fr) 1.4fr) — keep in sync with TopOrdersSkeleton */}
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr)',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr)',
                 gap: 12,
                 alignItems: 'stretch',
                 flex: 1,
-                minWidth: 'min(100%, 820px)',
-                maxWidth: 1140,
+                minWidth: 'min(100%, 640px)',
+                maxWidth: 880,
               }}
             >
               {(() => {
@@ -369,21 +369,6 @@ export default function TopOrdersGalleryPage() {
                   : null;
                 const valValue = isCompare ? summary.baseYearTotalAmnt : summary.portfolioTotalAmnt;
                 const valLabel = isCompare ? `${baseYear} Value` : 'Total Value';
-
-                // Unit Economics: Average Price per Unit ($/pc)
-                const avgPriceVal = volValue > 0 ? valValue / volValue : 0;
-                const compareAvgPriceVal = (isCompare || compareYear) && summary.compareYearTotalQty > 0
-                  ? summary.compareYearTotalAmnt / summary.compareYearTotalQty
-                  : null;
-                const baseAvgPriceVal = summary.baseYearTotalQty > 0
-                  ? summary.baseYearTotalAmnt / summary.baseYearTotalQty
-                  : 0;
-
-                const hasAvgDelta = compareAvgPriceVal !== null && compareAvgPriceVal > 0 && avgPriceVal > 0;
-                const avgDeltaPct = hasAvgDelta
-                  ? ((avgPriceVal - compareAvgPriceVal) / compareAvgPriceVal) * 100
-                  : null;
-                const avgLabel = isCompare ? `${baseYear} Avg Price` : 'Average Price';
 
                 return (
                   <>
@@ -413,21 +398,6 @@ export default function TopOrdersGalleryPage() {
                         : undefined}
                       footnote={!isCompare && hasVolDelta
                         ? `${baseYear}: ${fmt(summary.baseYearTotalAmnt)} · ${formatSignedPct(valDeltaPct ?? 0)} vs ${compareYear}`
-                        : undefined}
-                    />
-                    <GallerySummaryKpi
-                      label={avgLabel}
-                      value={`$${avgPriceVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                      unit="/ pc"
-                      ariaLabel={`${avgLabel}: $${avgPriceVal.toFixed(2)} per piece${hasAvgDelta ? `, ${formatSignedPct(avgDeltaPct ?? 0)} versus ${compareYear}` : ''}`}
-                      deltaPct={avgDeltaPct}
-                      deltaVsYear={compareYear}
-                      showHeaderDelta={isCompare && hasAvgDelta}
-                      deltaTitle={hasAvgDelta
-                        ? `${baseYear} $${avgPriceVal.toFixed(2)}/pc vs ${compareYear} $${compareAvgPriceVal?.toFixed(2)}/pc`
-                        : undefined}
-                      footnote={!isCompare && hasAvgDelta
-                        ? `${baseYear}: $${baseAvgPriceVal.toFixed(2)}/pc · ${formatSignedPct(avgDeltaPct ?? 0)} vs ${compareYear}`
                         : undefined}
                     />
                     {typeSignificance && (
@@ -487,7 +457,6 @@ const kpiTileStyle: CSSProperties = {
 function GallerySummaryKpi({
   label,
   value,
-  unit,
   ariaLabel,
   deltaPct,
   deltaVsYear,
@@ -497,7 +466,6 @@ function GallerySummaryKpi({
 }: {
   label: string;
   value: string;
-  unit?: string;
   ariaLabel: string;
   deltaPct: number | null;
   deltaVsYear: string;
@@ -531,11 +499,6 @@ function GallerySummaryKpi({
           >
             {value}
           </span>
-          {unit ? (
-            <span style={{ fontSize: "var(--erp-text-control)", fontWeight: 800, color: "var(--color-text-tertiary)" }}>
-              {unit}
-            </span>
-          ) : null}
         </div>
       </div>
       {footnote ? (
