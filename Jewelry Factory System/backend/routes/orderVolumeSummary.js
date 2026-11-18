@@ -240,6 +240,35 @@ router.get('/sales-orders', async (req, res) => {
   }
 });
 
+// [SALES ACTIVE CUSTOMERS] GET /api/dashboard/sales-active-customers
+// Customer codes with ordered quantity in the selected period. Same filters as the other
+// Order Trends endpoints EXCEPT the customer filter: the page maps these codes to customer
+// groups to split its group filter into Active / Inactive (a group the user did not tick
+// must still be judged by its own data).
+router.get('/sales-active-customers', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const request = pool.request();
+    const scopeReq = { query: { ...req.query, customers: undefined } };
+    const { dateExpr } = salesDateBasis(scopeReq, 'v');
+    const { whereSql } = buildSalesFilters(scopeReq, request, 'v', dateExpr);
+
+    const result = await request.query(`
+      SELECT DISTINCT UPPER(LTRIM(RTRIM(v.CustCode))) AS custCode
+      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
+      WHERE ${whereSql}
+        AND v.CustCode IS NOT NULL
+        AND ISNULL(v.ItemQty, 0) > 0
+      ORDER BY custCode
+    `);
+
+    res.json({ ok: true, data: result.recordset.map(row => row.custCode) });
+  } catch (err) {
+    console.error('[API ERROR] /api/dashboard/sales-active-customers:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Legacy routes kept alive to avoid breaking other pages
 router.get('/top-items', async (req, res) => {
   res.json({ ok: true, data: [] });

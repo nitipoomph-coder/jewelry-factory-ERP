@@ -1219,3 +1219,20 @@ A user may open a page when their `allowedMenus` is unrestricted (`null`), conta
 
 - Denied → `403 { ok: false, error: 'Forbidden: You do not have access to this page' }`. Reads permissions live, so changes apply to APIs immediately.
 - When adding an endpoint: page-owned → `requireMenu` with the page's item id + group id; under `/api/dashboard` → add a rule to `DASHBOARD_MENU_RULES` (otherwise it is denied).
+
+---
+
+## 2026-11-16 Customer Group Filter — Active / Inactive
+
+The customer group dropdown (`CustomerGroupFilter.tsx`, `TopOrdersFilterBar.tsx`) lists groups in two sections. **A group is Active when it has ordered quantity (> 0) in the selected period under every page filter except the group filter itself**; other groups appear under "Inactive" (still selectable). Default selection is still every group (`ACTIVE_GROUP_IDS`). Until the first data load, every group is shown as active (`getActiveGroupIds(null)`), so groups do not jump between sections.
+
+| Page | Source of the active groups |
+|------|------------------------------|
+| Customer Dashboard (Sales Summary) | loaded `customer-summary` rows → `getActiveCustomerCodes(custData, activeYears)` → `getActiveGroupIds` |
+| Customer Report (Matrix) | same, in `useCustomerReportData.ts` |
+| Order Trends | `GET /api/dashboard/sales-active-customers` (distinct `CustCode` with `ItemQty > 0` in `VW_Web_OrderTrends`; same filters as other Order Trends endpoints except `customers`) |
+| Top Item Gallery | `activeGroups` in the `/api/items/top-gallery` response (respects period, salesperson, product type; ignores the group filter) |
+| Top Items Analytics (draft) | not wired — every group shown as active |
+
+- Helpers: `getActiveGroupIds(codes | null)` in `config/customerGroups.ts`; `getActiveCustomerCodes(rows, years)` in `hooks/useCustomerSalesData.ts`.
+- This is not `GMCust.CustStatus`: every customer in the named groups is `Y`; all `N` customers are in General, and both views (`VW_Web_SalesDashboard`, `VW_Web_OrderTrends`) exclude `N` customers by their **current** status, which also removes their past sales from historical years (2015–2020 mainly; none since 2022).

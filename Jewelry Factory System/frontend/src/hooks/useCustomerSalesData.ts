@@ -13,6 +13,19 @@ export type CustomerSummaryRow = {
 type RawSummary = Record<string, Record<string, Record<string, number>>>;
 export type ChartDatum = { label: string; sortKey?: string } & Record<string, string | number | undefined>;
 
+/**
+ * Customer codes with ordered quantity in any of the given years (customer-summary rows are already
+ * limited to the selected months/weeks/days by the API). Used for the group filter's Active / Inactive split.
+ */
+export function getActiveCustomerCodes(
+  rows: Array<{ id?: string; monthlyQty?: Record<string, Record<string, number | string>> }>,
+  years: string[],
+): string[] {
+  return rows
+    .filter(row => row.id && years.some(y => Object.values(row.monthlyQty?.[y] ?? {}).some(v => (Number(v) || 0) > 0)))
+    .map(row => row.id as string);
+}
+
 interface UseCustomerSalesDataProps {
   custData: CustomerSummaryRow[];
   availableYears: string[];

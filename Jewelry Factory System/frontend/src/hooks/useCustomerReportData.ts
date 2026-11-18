@@ -2,9 +2,10 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useOutletContext } from 'react-router-dom';
 import { fetchAvailableYearsMeta } from '../services/dashboardAPI';
 import { fetchCustomerSummary } from '../services/customerSummaryAPI';
-import { ALL_GROUPS, getCustomerGroupId } from '../config/customerGroups';
+import { ALL_GROUPS, getActiveGroupIds, getCustomerGroupId } from '../config/customerGroups';
 import { useTheme } from '../contexts/useTheme';
 import { useCustomerPageFilters } from './useCustomerPageFilters';
+import { getActiveCustomerCodes } from './useCustomerSalesData';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const YEAR_COLORS = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)', 'var(--color-chart-5)', 'var(--color-chart-6)'];
@@ -36,7 +37,7 @@ export function useCustomerReportData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { availableYears, refreshCounter, triggerRefresh, isRefreshing, setIsChildLoading, setIsRefreshing } = useOutletContext<CustomerDashboardOutletContext>();
 
-  const { periodSetup, selGroups, setSelGroups, toggleGroup, dynamicActiveGroups, isFiltered, resetFilters } = useCustomerPageFilters(
+  const { periodSetup, selGroups, setSelGroups, toggleGroup, isFiltered, resetFilters } = useCustomerPageFilters(
     availableYears, 
     { 
       presets: ['ytd', 'custom', 'month', 'week', 'day'],
@@ -74,6 +75,12 @@ export function useCustomerReportData() {
   const [custData, setCustData] = useState<CustomerSummaryRecord[]>([]);
   const [firstDataYear, setFirstDataYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Customer groups with orders in the selected period → Active / Inactive split in the group filter
+  const dynamicActiveGroups = useMemo(
+    () => getActiveGroupIds(loading && custData.length === 0 ? null : getActiveCustomerCodes(custData, activeYears)),
+    [loading, custData, activeYears]
+  );
 
   const periodSetupPreset = periodSetup.committed.preset;
   const viewMode: 'ytd' | 'monthly' | 'weekly' | 'daily' = periodSetupPreset === 'day' ? 'daily' : periodSetupPreset === 'week' ? 'weekly' : (periodSetupPreset === 'custom' || periodSetupPreset === 'month' ? 'monthly' : 'ytd');

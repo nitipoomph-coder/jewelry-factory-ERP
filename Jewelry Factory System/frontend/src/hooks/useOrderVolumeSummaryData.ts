@@ -6,6 +6,7 @@ import {
   fetchSalesMonthlyAnalytics,
   fetchSalesDeliveryOutlook,
   fetchSalesRiskAnalytics,
+  fetchSalesActiveCustomers,
   type SalesOrderRow,
   type SalesMonthlyPoint,
   type DeliveryOutlookResponse,
@@ -13,7 +14,7 @@ import {
   type SalesAnalyticsParams
 } from '../services/orderVolumeSummaryAPI';
 export type { SalesOrderRow } from '../services/orderVolumeSummaryAPI';
-import { CUSTOMER_GROUPS, getCustomerGroupId } from '../config/customerGroups';
+import { CUSTOMER_GROUPS, getActiveGroupIds, getCustomerGroupId } from '../config/customerGroups';
 import { useCustomerPageFilters } from './useCustomerPageFilters';
 
 // --- Types ---
@@ -167,9 +168,7 @@ export function useOrderVolumeSummaryData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { availableYears, refreshCounter, setIsRefreshing, triggerRefresh, isRefreshing, setIsChildLoading } = useOutletContext<import('../pages/CustomerDashboardLayout').CustomerDashboardOutletContext>();
 
-  // Pass an empty custData for now or fetch it if needed for dynamic groups, but typically Trends can just use availableYears.
-  // Wait, does Trends need dynamic active groups? It's fine to just use the default.
-  const { periodSetup, selGroups: selectedGroups, setSelGroups, toggleGroup, dynamicActiveGroups, isFiltered, resetFilters } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'month', 'week', 'day', 'custom'], allowWeekRange: true });
+  const { periodSetup, selGroups: selectedGroups, setSelGroups, toggleGroup, isFiltered, resetFilters } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'month', 'week', 'day', 'custom'], allowWeekRange: true });
 
   const selectedYears = periodSetup?.committed?.selectedYears || [];
   const selectedMonths = periodSetup?.committed?.selectedMonths || [];
@@ -194,6 +193,9 @@ export function useOrderVolumeSummaryData() {
   const [monthlyData, setMonthlyData] = useState<SalesMonthlyPoint[]>([]);
   const [deliveryOutlookData, setDeliveryOutlookData] = useState<DeliveryOutlookResponse | null>(null);
   const [riskData, setRiskData] = useState<SalesRiskPoint[]>([]);
+  // Customer codes with orders in the period (null = not known yet → every group shown as active)
+  const [activeCustomerCodes, setActiveCustomerCodes] = useState<string[] | null>(null);
+  const dynamicActiveGroups = useMemo(() => getActiveGroupIds(activeCustomerCodes), [activeCustomerCodes]);
 
   const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
@@ -229,6 +231,7 @@ export function useOrderVolumeSummaryData() {
     if (selectedYearsKey.length === 0) {
       setMonthlyData([]);
       setDeliveryOutlookData(null);
+      setActiveCustomerCodes(null);
       setHasResolvedData(true);
       setLoading(false);
       return;
@@ -249,10 +252,11 @@ export function useOrderVolumeSummaryData() {
     };
 
     try {
-      const [monthlyResult, deliveryResult, riskResult] = await Promise.allSettled([
+      const [monthlyResult, deliveryResult, riskResult, activeCustomersResult] = await Promise.allSettled([
         fetchSalesMonthlyAnalytics(apiParams),
         fetchSalesDeliveryOutlook(apiParams),
-        fetchSalesRiskAnalytics(apiParams)
+        fetchSalesRiskAnalytics(apiParams),
+        fetchSalesActiveCustomers(apiParams)
       ]);
 
       if (requestId !== loadRequestIdRef.current) return;
@@ -265,6 +269,9 @@ export function useOrderVolumeSummaryData() {
       
       if (riskResult.status === 'fulfilled') setRiskData(riskResult.value);
       else setRiskData([]);
+
+      // Unknown on failure → every group stays in the Active section
+      setActiveCustomerCodes(activeCustomersResult.status === 'fulfilled' ? activeCustomersResult.value : null);
 
       if (monthlyResult.status === 'fulfilled' || deliveryResult.status === 'fulfilled' || riskResult.status === 'fulfilled') {
         setHasResolvedData(true);

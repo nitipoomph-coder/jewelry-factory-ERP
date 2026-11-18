@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { DollarSign, Hash, Calendar, CalendarDays, Layers, Users, Eye, EyeOff } from 'lucide-react';
 import { fetchCustomerSummary } from '../services/customerSummaryAPI';
-import { ALL_GROUPS } from '../config/customerGroups';
+import { ALL_GROUPS, getActiveGroupIds } from '../config/customerGroups';
 import { ErpSegmentedControl } from '../components/ui/ErpButtons';
 import { printChartDashboard } from '../utils/printChart';
 import PageHeader from '../components/layout/PageHeader';
@@ -11,7 +11,7 @@ import PeriodSetupPanel from '../components/period/PeriodSetupPanel';
 import { CustomerGroupFilter } from '../components/dashboard/customerSales/CustomerGroupFilter';
 import { useCustomerPageFilters } from '../hooks/useCustomerPageFilters';
 import { FilterX } from 'lucide-react';
-import { useCustomerSalesData, type Metric, type CustomerSummaryRow } from '../hooks/useCustomerSalesData';
+import { useCustomerSalesData, getActiveCustomerCodes, type Metric, type CustomerSummaryRow } from '../hooks/useCustomerSalesData';
 import { CustomerSalesChart } from '../components/dashboard/customerSales/CustomerSalesChart';
 import { CustomerKpiCards } from '../components/dashboard/customerSales/CustomerKpiCards';
 import { CustomerDashboardSkeleton } from '../components/dashboard/customerSales/CustomerDashboardSkeleton';
@@ -31,7 +31,6 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
     selGroups,
     setSelGroups,
     toggleGroup,
-    dynamicActiveGroups,
     isFiltered,
     resetFilters
   } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'this-month', 'last-month', 'custom'] });
@@ -64,6 +63,12 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
 
 
   const activeYears = useMemo(() => [...selectedYears].sort(), [selectedYears]);
+
+  // Customer groups with orders in the selected period → Active / Inactive split in the group filter
+  const dynamicActiveGroups = useMemo(
+    () => getActiveGroupIds(loading && custData.length === 0 ? null : getActiveCustomerCodes(custData, activeYears)),
+    [loading, custData, activeYears]
+  );
 
   const handlePrint = useCallback(() => {
     const scopeYears = activeYears.join('-');

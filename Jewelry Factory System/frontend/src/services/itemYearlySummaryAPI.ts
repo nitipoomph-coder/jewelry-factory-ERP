@@ -142,6 +142,8 @@ export interface TopGalleryResponse {
   years: number[];
   baseYear: number;
   compareYear: number | null;
+  /** Customer group ids with orders under every filter except the group filter (Active / Inactive split) */
+  activeGroups?: string[];
   summary: TopGallerySummary;
   items: TopGalleryItem[];
 }

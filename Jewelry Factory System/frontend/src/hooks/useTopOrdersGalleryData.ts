@@ -325,6 +325,8 @@ export function useTopOrdersGalleryData() {
   }, [availableYears, periodSetup.committed, metric, perspectiveMode, productType, salesName, searchQuery, selGroups, selectedMonthNumbers, refreshVersion, rowLimit]);
 
   const items = galleryResponse?.items || [];
+  // Group filter Active / Inactive split; before the first response every group counts as active
+  const dynamicActiveGroups = galleryResponse?.activeGroups ?? ACTIVE_GROUP_IDS;
   const portfolioAllItems = portfolioAllResponse?.items || galleryResponse?.items || [];
   const summary = galleryResponse?.summary || {
     totalItemsCount: 0,
@@ -436,6 +438,7 @@ export function useTopOrdersGalleryData() {
     selGroups,
     setSelGroups,
     toggleGroup,
+    dynamicActiveGroups,
     salesName,
     setSalesName: handleSetSalesName,
     availableSalespersons,

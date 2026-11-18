@@ -25,6 +25,7 @@ export default function TopOrdersGalleryPage() {
     selGroups,
     setSelGroups,
     toggleGroup,
+    dynamicActiveGroups,
     salesName,
     setSalesName,
     availableSalespersons,
@@ -224,6 +225,7 @@ export default function TopOrdersGalleryPage() {
               selGroups={selGroups}
               setSelGroups={setSelGroups}
               toggleGroup={toggleGroup}
+              dynamicActiveGroups={dynamicActiveGroups}
               salesName={salesName}
               setSalesName={setSalesName}
               availableSalespersons={availableSalespersons}

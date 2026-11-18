@@ -83,8 +83,22 @@ export const GENERAL_GROUP: CustomerGroup = {
 /** ALL_GROUPS including General — Used for UI toggle / legend */
 export const ALL_GROUPS: CustomerGroup[] = [...CUSTOMER_GROUPS, GENERAL_GROUP];
 
-/** Active groups or those selected for default display */
+/** Groups selected by default (every group). Whether a group is Active/Inactive for a period comes from the data — see getActiveGroupIds. */
 export const ACTIVE_GROUP_IDS: string[] = ALL_GROUPS.map(g => g.id);
+
+/**
+ * Customer groups that have orders in the current scope, in ALL_GROUPS order.
+ * Feeds the group filter's Active / Inactive split. Pass null while the data is not known yet
+ * (first load) → every group is treated as active, so groups do not jump between sections.
+ */
+export function getActiveGroupIds(activeCustomerCodes: Iterable<string> | null): string[] {
+  if (!activeCustomerCodes) return ACTIVE_GROUP_IDS;
+  const activeIds = new Set<string>();
+  for (const code of activeCustomerCodes) {
+    if (code) activeIds.add(getCustomerGroupId(code));
+  }
+  return ALL_GROUPS.filter(g => activeIds.has(g.id)).map(g => g.id);
+}
 
 /**
  * Determine which group a customer belongs to

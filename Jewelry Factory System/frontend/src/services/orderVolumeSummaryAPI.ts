@@ -183,6 +183,16 @@ export const fetchSalesCustomerGroups = async (params: SalesAnalyticsParams = {}
   return json.data || [];
 };
 
+// Customer codes with orders in the period (customer filter ignored) — group filter Active / Inactive split.
+export const fetchSalesActiveCustomers = async (params: SalesAnalyticsParams = {}): Promise<string[]> => {
+  const qs = salesAnalyticsQuery(params);
+  qs.delete('customers');
+  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-active-customers?${qs.toString()}`);
+  if (!res.ok) throw new Error(`Sales active customers API error: ${res.status}`);
+  const json = await res.json();
+  return json.data || [];
+};
+
 export const fetchSalesMonthlyAnalytics = async (params: SalesAnalyticsParams = {}): Promise<SalesMonthlyPoint[]> => {
   const qs = salesAnalyticsQuery(params);
   const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-monthly-analytics?${qs.toString()}`);

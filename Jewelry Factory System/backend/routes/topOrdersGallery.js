@@ -526,16 +526,14 @@ router.get('/top-gallery', async (req, res) => {
     let baseYearGrandAmnt = 0;
     let compareYearGrandQty = 0;
     let compareYearGrandAmnt = 0;
+    // Customer groups with ordered quantity under every filter except the group filter itself
+    // (period, salesperson, product type) — the page shows the other groups as "Inactive".
+    const activeGroupIds = new Set();
 
     for (const r of rows) {
       const itemNo = r.ItemNo;
       const custCode = r.CustCode;
       const groupId = getCustomerGroupId(custCode);
-
-      // Apply customer group filter if provided and not empty
-      if (groupFilter.length > 0 && !groupFilter.includes('all') && !groupFilter.includes(groupId)) {
-        continue;
-      }
 
       const rawProductType = classifyProductType(itemNo);
       const prefix3 = itemNo.substring(0, 3);
@@ -543,6 +541,13 @@ router.get('/top-gallery', async (req, res) => {
       // Apply product type filter
       if (productTypeFilter.length > 0 && !productTypeFilter.includes('ALL')) {
         if (!productTypeFilter.includes(rawProductType)) continue;
+      }
+
+      if ((Number(r.TotalQty) || 0) > 0) activeGroupIds.add(groupId);
+
+      // Apply customer group filter if provided and not empty
+      if (groupFilter.length > 0 && !groupFilter.includes('all') && !groupFilter.includes(groupId)) {
+        continue;
       }
 
       const yr = Number(r.OrdYear);
@@ -727,6 +732,7 @@ router.get('/top-gallery', async (req, res) => {
       years,
       baseYear,
       compareYear,
+      activeGroups: Object.keys(GROUP_LABELS).filter(groupId => activeGroupIds.has(groupId)),
       summary: {
         totalItemsCount: itemsList.length,
         portfolioTotalQty: summaryTotalQty,

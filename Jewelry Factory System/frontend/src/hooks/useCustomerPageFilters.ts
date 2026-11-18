@@ -60,11 +60,6 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
     }
   }, [selGroups, searchParams, setSearchParams]);
 
-  // All customer groups are active by default across pages
-  const dynamicActiveGroups = useMemo(() => {
-    return ALL_GROUP_IDS;
-  }, []);
-
   const toggleGroup = (id: string) => {
     setSelGroups(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -88,7 +83,6 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
     selGroups,
     setSelGroups,
     toggleGroup,
-    dynamicActiveGroups,
     isFiltered,
     resetFilters
   };
