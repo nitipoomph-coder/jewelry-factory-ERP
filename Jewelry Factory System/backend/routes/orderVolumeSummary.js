@@ -249,7 +249,7 @@ router.get('/sales-active-customers', async (req, res) => {
   try {
     const pool = await getPool();
     const request = pool.request();
-    const scopeReq = { query: { ...req.query, customers: undefined } };
+    const scopeReq = { query: { ...req.query, customers: undefined, excludeCustomers: undefined } };
     const { dateExpr } = salesDateBasis(scopeReq, 'v');
     const { whereSql } = buildSalesFilters(scopeReq, request, 'v', dateExpr);
 

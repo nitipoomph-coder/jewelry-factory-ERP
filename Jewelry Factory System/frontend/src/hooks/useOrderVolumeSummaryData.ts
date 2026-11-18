@@ -14,7 +14,7 @@ import {
   type SalesAnalyticsParams
 } from '../services/orderVolumeSummaryAPI';
 export type { SalesOrderRow } from '../services/orderVolumeSummaryAPI';
-import { CUSTOMER_GROUPS, getActiveGroupIds, getCustomerGroupId } from '../config/customerGroups';
+import { getActiveGroupIds, getCustomerGroupId, getGroupCustomerFilter } from '../config/customerGroups';
 import { useCustomerPageFilters } from './useCustomerPageFilters';
 
 // --- Types ---
@@ -94,11 +94,6 @@ export const ORDER_DETAIL_COLUMNS = [
 // --- Helpers ---
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const emptyTotals: SalesTotals = { avgQtyPerOrder: 0, avgAmountPerOrder: 0, qty: 0, amount: 0, shippedQty: 0, shippedAmount: 0, gapQty: 0, gapAmount: 0, orders: 0 };
-
-function selectedCustomerCodes(groupIds: string[]) {
-  if (groupIds.length === 0) return [];
-  return CUSTOMER_GROUPS.filter(group => groupIds.includes(group.id)).flatMap(group => group.prefixes);
-}
 
 function calcTotalsFromMonthly(rows: SalesMonthlyPoint[], year: string): SalesTotals {
   const yearNum = Number(year);
@@ -212,8 +207,9 @@ export function useOrderVolumeSummaryData() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const customers = useMemo(() => selectedCustomerCodes(selectedGroups), [selectedGroups]);
+  const { customers, excludeCustomers } = useMemo(() => getGroupCustomerFilter(selectedGroups), [selectedGroups]);
   const customersKey = customers.join('|');
+  const excludeCustomersKey = excludeCustomers.join('|');
   const selectedYearsKey = selectedYears.join('|');
   const selectedMonthsKey = selectedMonths.join('|');
 
@@ -244,6 +240,7 @@ export function useOrderVolumeSummaryData() {
       years: selectedYearsKey ? selectedYearsKey.split('|') : [],
       months: selectedMonthsKey ? selectedMonthsKey.split('|') : [],
       customers: customersKey ? customersKey.split('|') : [],
+      excludeCustomers: excludeCustomersKey ? excludeCustomersKey.split('|') : [],
       startDate: periodSetup.committed.dateFrom,
       endDate: periodSetup.committed.dateTo,
       wStart: periodSetup.committed.weekFrom,
@@ -289,12 +286,18 @@ export function useOrderVolumeSummaryData() {
         if (setIsRefreshing) setIsRefreshing(false);
       }
     }
-  }, [customersKey, selectedYearsKey, selectedMonthsKey, yearsLoading, setIsChildLoading, setIsRefreshing]);
+  }, [
+    customersKey, excludeCustomersKey, selectedYearsKey, selectedMonthsKey, yearsLoading, setIsChildLoading, setIsRefreshing,
+    // Day / week / date-basis changes keep the same years + months
+    periodSetup.committed.dateFrom, periodSetup.committed.dateTo, periodSetup.committed.weekFrom, periodSetup.committed.weekTo,
+    periodSetup.committed.dateField,
+  ]);
 
+  // refreshCounter: the Topbar Refresh button only bumps this counter
   useEffect(() => {
     const timer = window.setTimeout(() => { void loadOverviewData(); }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadOverviewData]);
+  }, [loadOverviewData, refreshCounter]);
 
   useEffect(() => () => {
     loadRequestIdRef.current += 1;
@@ -335,6 +338,7 @@ export function useOrderVolumeSummaryData() {
         years: [dd.year],
         months: dd.month ? [dd.month] : selectedMonths,
         customers,
+        excludeCustomers,
       };
       if (dd.type) params.types = [dd.type];
       if (dd.basis === 'due') params.dateView = 'custdate';
@@ -346,7 +350,7 @@ export function useOrderVolumeSummaryData() {
     } finally {
       setDrilldownLoading(false);
     }
-  }, [selectedMonths, customers]);
+  }, [selectedMonths, customers, excludeCustomers]);
 
   const loadFilteredDeliveryOrders = useCallback(async (bucket: string | null, dept: string | null, custCode: string | null) => {
     setDrilldownLoading(true);
@@ -356,6 +360,7 @@ export function useOrderVolumeSummaryData() {
         years: selectedYears,
         months: selectedMonths,
         customers: custCode ? [custCode] : customers,
+        excludeCustomers: custCode ? [] : excludeCustomers,
       };
       if (bucket) params.bucket = bucket;
       if (dept) params.department = dept;
@@ -371,7 +376,7 @@ export function useOrderVolumeSummaryData() {
     } finally {
       setDrilldownLoading(false);
     }
-  }, [selectedYears, selectedMonths, customers, primaryYear]);
+  }, [selectedYears, selectedMonths, customers, excludeCustomers, primaryYear]);
 
   const handleSelectBucket = (bucket: string | null) => {
     setSelectedBucket(bucket);
@@ -448,6 +453,7 @@ export function useOrderVolumeSummaryData() {
         years: selectedYears,
         months: selectedMonths,
         customers: selectedCustCode ? [selectedCustCode] : customers,
+        excludeCustomers: selectedCustCode ? [] : excludeCustomers,
       };
       if (selectedBucket) params.bucket = selectedBucket;
       if (selectedDepartment) params.department = selectedDepartment;
@@ -459,7 +465,7 @@ export function useOrderVolumeSummaryData() {
     } finally {
       setDrilldownLoading(false);
     }
-  }, [selectedYears, selectedMonths, customers, selectedBucket, selectedDepartment, selectedCustCode]);
+  }, [selectedYears, selectedMonths, customers, excludeCustomers, selectedBucket, selectedDepartment, selectedCustCode]);
 
   useEffect(() => {
     if (activeView === 'details' && drilldownOrders.length === 0 && !drilldownLoading) {

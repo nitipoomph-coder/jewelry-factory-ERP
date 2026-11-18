@@ -475,3 +475,29 @@ Searching an order in FBE Order Tracker intermittently showed: *"Transaction (Pr
 
 **Follow-up 2 (2026-11-09):** NOLOCK applied system-wide to display-only reads (92 table references in 7 route files) — excluded: PO Tracker remark read-before-UPDATE, requisition next-number, auth/admin users, SP calls. Verified by calling 42 GET endpoints on old vs new code: 35 identical; 5 differences reproduced by the OLD code against itself (rank ties without tie-breakers, live data changing during the test, floating-point summation order); 1 caused by scan order (`/api/items/salespersons` returns `JESSICA` instead of `Jessica` — same name stored with two casings); 1 pre-existing 500 in both versions (`/api/items/yearly-summary` GROUP BY bug, endpoint unused). Lesson: when inserting table hints with a regex, guard against backtracking onto a table that already has a hint after its alias (`FROM T WITH (NOLOCK) a WITH (NOLOCK)` is a syntax error) and exclude comments and CTE names.
 
+---
+
+## Issue: Order Trends / Order List left out General customers (2026-11-18)
+
+### Symptoms:
+- Order Trends with every customer group ticked (the default) showed 2026 qty 3,539,690 instead of 4,993,630 (−29.1% qty, −42.7% amount).
+- Order List opened from the **General** row of Customer Report (group mode) showed orders of **every** customer.
+
+### Root Cause:
+Both pages sent `customers=` built from `CUSTOMER_GROUPS[].prefixes`. General is not in `CUSTOMER_GROUPS` and has no code list, so:
+1. Any selection containing General sent only the named groups' 37 codes → `CustCode IN (...)` dropped every General customer (e.g. A003, Q032, Q036, U319, N082).
+2. General alone produced an empty list → no customer filter at all.
+
+### Fix:
+- New `getGroupCustomerFilter(groupIds)` in `config/customerGroups.ts`: General selected → `excludeCustomers` (codes of unselected named groups); otherwise `customers`; all/none → no filter.
+- `buildSalesFilters` supports `excludeCustomers` → `ISNULL(CustCode,'') NOT IN (...)`.
+- Verified (read-only, real handlers, 2026): all groups = no filter (4,993,830); sum of the 7 groups queried one by one = total; General alone 1,453,940; General+N008 = General + N008; N044 unchanged; `/sales-orders` General rows all map to General (1,224 rows, 0 wrong).
+
+### Prevention & Lessons Learned:
+1. A "catch-all" group (General) cannot be expressed as an include list — express it as an exclusion, so new customer codes are covered without code changes.
+2. When a filter maps UI choices to an API list, test that the groups queried one by one add up to the unfiltered total.
+
+**Same page, second bug (2026-11-18): Order Trends did not reload on Day / Week / date-basis changes or Topbar Refresh.**
+- Cause: `loadOverviewData` (`useOrderVolumeSummaryData.ts`) sent `startDate`, `endDate`, `wStart`, `wEnd`, `dateField` but its `useCallback` dependencies held only years + months. The Day preset changes only `dateFrom` / `dateTo`, so the data stayed on the previous period. The Topbar Refresh button only bumps `refreshCounter`, which the page did not read, so nothing reloaded and `isRefreshing` stayed true.
+- Fix: those period fields added to the `useCallback` dependencies; `refreshCounter` added to the `useEffect` that runs the load (same pattern as Sales Summary / Customer Report).
+- Lesson: when a request is built from an object, every field sent must be a dependency — lint warnings about missing dependencies on data loaders are real bugs.

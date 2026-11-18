@@ -86,6 +86,8 @@ function buildSalesFilters(req, request, viewAlias = 'v', customDateExpr = null)
   const years = parseCsvInts(req.query.years, [new Date().getFullYear()]);
   const months = parseCsvInts(req.query.months);
   const customers = parseCsvStrings(req.query.customers);
+  // Codes to leave out — how the frontend expresses the General group (it has no code list of its own)
+  const excludeCustomers = parseCsvStrings(req.query.excludeCustomers);
   const types = parseCsvStrings(req.query.types).map(v => v.toUpperCase());
   
   const startDate = req.query.startDate;
@@ -109,6 +111,12 @@ function buildSalesFilters(req, request, viewAlias = 'v', customDateExpr = null)
     filters.push(`${custCol} IN (${customerParams})`);
   }
 
+  if (excludeCustomers.length > 0) {
+    const custCol = viewAlias ? `${viewAlias}.CustCode` : 'CustCode';
+    const excludeParams = addInParams(request, 'sx', excludeCustomers, sql.NVarChar);
+    filters.push(`ISNULL(${custCol}, '') NOT IN (${excludeParams})`);
+  }
+
   if (types.length > 0) {
     // Same for item types
     const itemCol = viewAlias ? `${viewAlias}.ItemNo` : 'ItemNo';
@@ -116,7 +124,7 @@ function buildSalesFilters(req, request, viewAlias = 'v', customDateExpr = null)
     filters.push(`LEFT(ISNULL(${itemCol}, ''), 3) IN (${typeParams})`);
   }
 
-  return { years, months, customers, types, wStart, wEnd, startDate, endDate, whereSql: filters.join('\n        AND '), effectiveDateExpr };
+  return { years, months, customers, excludeCustomers, types, wStart, wEnd, startDate, endDate, whereSql: filters.join('\n        AND '), effectiveDateExpr };
 }
 
 module.exports = {

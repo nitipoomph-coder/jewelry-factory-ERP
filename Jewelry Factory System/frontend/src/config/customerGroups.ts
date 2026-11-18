@@ -101,6 +101,29 @@ export function getActiveGroupIds(activeCustomerCodes: Iterable<string> | null):
 }
 
 /**
+ * Server-side customer filter for the selected groups (Order Trends / Order List APIs).
+ * General has no code list, so when it is selected the filter becomes
+ * "every customer except the codes of the named groups that are NOT selected" —
+ * new customer codes are then included automatically.
+ * No group or every group selected → no customer filter.
+ */
+export function getGroupCustomerFilter(groupIds: string[]): { customers: string[]; excludeCustomers: string[] } {
+  if (groupIds.length === 0 || ALL_GROUPS.every(g => groupIds.includes(g.id))) {
+    return { customers: [], excludeCustomers: [] };
+  }
+  if (groupIds.includes(GENERAL_GROUP.id)) {
+    return {
+      customers: [],
+      excludeCustomers: CUSTOMER_GROUPS.filter(g => !groupIds.includes(g.id)).flatMap(g => g.prefixes),
+    };
+  }
+  return {
+    customers: CUSTOMER_GROUPS.filter(g => groupIds.includes(g.id)).flatMap(g => g.prefixes),
+    excludeCustomers: [],
+  };
+}
+
+/**
  * Determine which group a customer belongs to
  * @param custCode Customer code e.g. "N008", "U411", "N048"
  * @returns group ID e.g. "N008", "MLT", "General"

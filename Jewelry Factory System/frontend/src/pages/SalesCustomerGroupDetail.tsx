@@ -6,7 +6,7 @@ import PageHeader from '../components/layout/PageHeader';
 import { BREADCRUMBS } from '../config/breadcrumbs';
 import '../components/sales/SalesDenseTable.css';
 import './SalesResponsive.css';
-import { CUSTOMER_GROUPS } from '../config/customerGroups';
+import { CUSTOMER_GROUPS, getGroupCustomerFilter } from '../config/customerGroups';
 import { fetchSalesOrders, type SalesOrderRow } from '../services/orderVolumeSummaryAPI';
 import { ErpSegmentedControl } from '../components/ui/ErpButtons';
 import { buildCustomerTrendsPath } from '../utils/customerTrendsUrl';
@@ -45,11 +45,14 @@ export default function SalesCustomerGroupDetail() {
   const groups = useMemo(() => csv(searchParams.get('groups')), [searchParams]);
   const types = useMemo(() => csv(searchParams.get('types')), [searchParams]);
   const customersFromUrl = useMemo(() => csv(searchParams.get('customers')), [searchParams]);
-  const groupCustomers = useMemo(() => Array.from(new Set(
-    CUSTOMER_GROUPS
-      .filter(group => groups.includes(group.id))
-      .flatMap(group => group.prefixes),
-  )).sort(), [groups]);
+  const groupFilter = useMemo(() => getGroupCustomerFilter(groups), [groups]);
+  const groupCustomers = useMemo(() => Array.from(new Set(groupFilter.customers)).sort(), [groupFilter]);
+  // General group → "everyone except the unselected named groups" (only while no explicit customers are picked)
+  const excludeCustomers = useMemo(
+    () => customersFromUrl.length > 0 ? [] : groupFilter.excludeCustomers,
+    [customersFromUrl, groupFilter],
+  );
+  const excludeCustomersKey = excludeCustomers.join('|');
   const requestedCustomers = useMemo(
     () => customersFromUrl.length > 0 ? customersFromUrl : groupCustomers,
     [customersFromUrl, groupCustomers],
@@ -77,14 +80,20 @@ export default function SalesCustomerGroupDetail() {
     setLoading(true);
     setError('');
     try {
-      const data = await fetchSalesOrders({ years, months, customers: selectedCustomers, types });
+      const data = await fetchSalesOrders({
+        years,
+        months,
+        customers: selectedCustomers,
+        excludeCustomers: excludeCustomersKey ? excludeCustomersKey.split('|') : [],
+        types,
+      });
       setRows(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sales orders');
     } finally {
       setLoading(false);
     }
-  }, [years, months, selectedCustomers, types]);
+  }, [years, months, selectedCustomers, excludeCustomersKey, types]);
 
   useEffect(() => {
     const loadTimer = window.setTimeout(() => { void loadSalesOrders(); }, 0);

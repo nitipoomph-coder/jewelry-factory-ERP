@@ -136,6 +136,8 @@ export interface SalesAnalyticsParams {
   years?: string[];
   months?: string[];
   customers?: string[];
+  /** Customer codes to leave out (used for the General group) */
+  excludeCustomers?: string[];
   types?: string[];
   dateView?: SalesDateView;
   dateField?: 'ordDate' | 'dueDate';
@@ -153,6 +155,7 @@ const salesAnalyticsQuery = (params: SalesAnalyticsParams = {}) => {
   if (params.years?.length) qs.set('years', params.years.join(','));
   if (params.months?.length) qs.set('months', params.months.join(','));
   if (params.customers?.length) qs.set('customers', params.customers.join(','));
+  if (params.excludeCustomers?.length) qs.set('excludeCustomers', params.excludeCustomers.join(','));
   if (params.types?.length) qs.set('types', params.types.join(','));
   if (params.dateView) qs.set('dateView', params.dateView);
   if (params.dateField) qs.set('dateField', params.dateField);
@@ -187,6 +190,7 @@ export const fetchSalesCustomerGroups = async (params: SalesAnalyticsParams = {}
 export const fetchSalesActiveCustomers = async (params: SalesAnalyticsParams = {}): Promise<string[]> => {
   const qs = salesAnalyticsQuery(params);
   qs.delete('customers');
+  qs.delete('excludeCustomers');
   const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-active-customers?${qs.toString()}`);
   if (!res.ok) throw new Error(`Sales active customers API error: ${res.status}`);
   const json = await res.json();

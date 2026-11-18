@@ -1235,4 +1235,9 @@ The customer group dropdown (`CustomerGroupFilter.tsx`, `TopOrdersFilterBar.tsx`
 | Top Items Analytics (draft) | not wired — every group shown as active |
 
 - Helpers: `getActiveGroupIds(codes | null)` in `config/customerGroups.ts`; `getActiveCustomerCodes(rows, years)` in `hooks/useCustomerSalesData.ts`.
+
+### Group filter sent to the API (Order Trends, Order List)
+- These pages filter on the server, so the selected groups are turned into customer codes by `getGroupCustomerFilter(groupIds)` (`config/customerGroups.ts`).
+- General has no code list. When General is selected the API gets `excludeCustomers` = codes of the named groups that are **not** selected (`ISNULL(CustCode,'') NOT IN (...)` in `buildSalesFilters`), so new customer codes are included automatically. Without General it gets `customers` = codes of the selected named groups (`CustCode IN (...)`). Every group or no group selected → no customer filter.
+- `/sales-active-customers` ignores both `customers` and `excludeCustomers`.
 - This is not `GMCust.CustStatus`: every customer in the named groups is `Y`; all `N` customers are in General, and both views (`VW_Web_SalesDashboard`, `VW_Web_OrderTrends`) exclude `N` customers by their **current** status, which also removes their past sales from historical years (2015–2020 mainly; none since 2022).
