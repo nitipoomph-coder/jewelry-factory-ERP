@@ -42,7 +42,6 @@ Operated within the internal enterprise intranet, connected to live MSSQL (`<DB_
 | Stock Audit & Inventory Count | Check Dispatch/Sample/Purchase/Stock | ⬜ Placeholder      |
 | Production / PO Tracker | —                                  | ✅ Live (core feature, admin + sales by default menu permissions) |
 | FBE Order Tracker       | —                                    | ✅ Live (FBE 17-Step Production Tracker) |
-| Order Trends           | —                                    | ✅ Order volume trends and evidence |
 | Spare Parts Stock      | SP-Order, SP-Issue, SP-Receive, …    | ⬜ Placeholder      |
 | Subcontract Management | —                                    | 🟡 UI Preview (1/3, No Backend) |
 | Audit — CCTV IT Audit Report | —                              | ✅ Live (admin only, Zero-DB) |
@@ -216,18 +215,12 @@ gemstone-lifecycle-management/
     │       │   │   │   ├── ProductionForecastDashboard.tsx # Dashboard wrapper
     │       │   │   │   ├── ProductionForecastTable.tsx  # Data table for forecast
     │       │   │   │   └── ProductionForecastSkeleton.tsx # Loading skeleton
-    │       │   │   ├── orderVolume/
-    │       │   │   │   ├── OrderVolumeTrendChart.tsx    # ComposedChart (Line + Area) for trends
-    │       │   │   │   ├── RiskCustomerChart.tsx        # BarChart for risk/overdue by customer
-    │       │   │   │   └── VolumeFilterBar.tsx          # Filter toolbar
     │       │   │   ├── orderTracking/
     │       │   │   │   └── OrderTrackStepper.tsx        # FBE 17-step stepper
     │       │   │   ├── poTracker/
     │       │   │   │   └── OrderTable.tsx               # PO Tracker table (legacy path)
     │       │   │   ├── fbeOrderTrack/                   # FBE order tracking components
     │       │   │   └── topAnalytics/                    # Top analytics components
-    │       │   ├── infographic/
-    │       │   │   └── InfographicSalesTrends.tsx       # BarChart for customer trends comparison
     │       │   ├── period/
     │       │   │   └── PeriodSetupPanel.tsx             # ⭐ Centralized period filter popover (used across all dashboards)
     │       │   ├── sales/                               # Sales-specific sub-components
@@ -269,7 +262,6 @@ gemstone-lifecycle-management/
     │       │   ├── ItemDetailPage.tsx          # Item-level detail
     │       │   ├── ProductionSummaryPage.tsx   # ⭐ Production Summary (chart + table, period-aware)
     │       │   ├── ProductionForecastPage.tsx  # Production Forecast (wrapper)
-    │       │   ├── OrderVolumeSummaryPage.tsx  # ⭐ Order Volume Summary (trends + risk)
     │       │   ├── FBEOrderTrackPage.tsx       # ⭐ FBE 17-step order tracker
     │       │   ├── PlaceholderPage.tsx         # Placeholder for unimplemented modules
     │       │   ├── NoAccessPage.tsx            # Shown at /no-access when a user has no permitted page
@@ -287,7 +279,7 @@ gemstone-lifecycle-management/
     │       │   ├── dashboardAPI.ts         # Dashboard/sales/customer stats
     │       │   ├── customerSummaryAPI.ts   # Customer summary fetch
     │       │   ├── itemYearlySummaryAPI.ts # Item yearly comparison
-    │       │   ├── orderVolumeSummaryAPI.ts # Order volume trends/risk
+    │       │   ├── orderVolumeSummaryAPI.ts # Order List order lines (/api/dashboard/sales-orders)
     │       │   ├── orderTrackingAPI.ts     # FBE order tracking
     │       │   ├── productionSummaryAPI.ts # Production summary (year/month/week/day)
     │       │   ├── procurementAPI.ts       # Procurement document endpoints
@@ -300,7 +292,6 @@ gemstone-lifecycle-management/
     │       │   ├── useCustomerSalesData.ts      # Customer sales data hook
     │       │   ├── useCustomerReportData.ts     # Customer report data hook
     │       │   ├── useCustomerPageFilters.ts    # Customer page filter state
-    │       │   ├── useOrderVolumeSummaryData.ts # Order volume summary hook
     │       │   ├── usePOTrackerAdvanced.ts      # PO Tracker data hook
     │       │   └── useTopOrdersGalleryData.ts   # Top orders gallery hook
     │       │
@@ -325,14 +316,12 @@ gemstone-lifecycle-management/
     │       │   ├── authRedirect.ts           # 🔐 Role home, role route guard, safe login returnTo (SSOT)
     │       │   ├── cctvAuditForm.ts          # CCTV audit pure helpers (generate / edit / validate / export JSON)
     │       │   ├── periodUtils.ts            # Period helper functions (getDefaultCompareYear, parseMonths, monthRange)
-    │       │   ├── customerTrendsUrl.ts      # Customer trends URL builder
     │       │   ├── navigationUtils.ts        # Navigation utility helpers
     │       │   ├── photoUrl.ts               # Photo URL builder (psPhotoUrl, attachPhotoFallback)
     │       │   ├── printChart.ts             # Print chart utility
     │       │   ├── errors.ts                 # Error utility types
     │       │   ├── exportPOTrackerExcel.ts   # 📊 Excel export for PO Tracker data
-    │       │   ├── exportOrderDetailExcel.ts # 📊 Excel export for Order Detail data
-    │       │   └── exportOrderVolumeDetailsExcel.ts # 📊 Excel export for Order Volume
+    │       │   └── exportOrderDetailExcel.ts # 📊 Excel export for Order Detail data
     │       │
     │       └── assets/                # Static assets (images, icons)
     │           └── hero.png           # Login page hero image
@@ -1009,7 +998,7 @@ Inside route handlers, add only short section labels for important boxes/queries
    - Same policy applied to the global search API (`routes/search.js`, all 4 queries).
    - **System-wide NOLOCK policy**: every display-only read of OrdHD/OrdDT/GMCust/GMEmp/GMHoliday/OrdWeekPlanHD, the `VW_Web_*` views, the `{XX}Sen/Rec` step tables, and the `dbInventory` requisition tables uses `WITH (NOLOCK)` (routes: `customerReportMatrix`, `orderLinesIssues`, `orderVolumeSummary`, `poTracker`, `productionDashboard`, `productionForecast`, `productionSummary`, `topOrdersGallery`, `orderTracking`, `search`). **Deliberately WITHOUT NOLOCK**: the PO Tracker remark read-before-UPDATE (`POST /api/orders/remarks`), requisition `GET /next-number/:docType` (feeds new document numbers), `auth.js` / `adminUsers.js`, and stored procedure calls (`PC_Show_OrdTrack_Sum_*` cannot be changed; never use `SET TRANSACTION ISOLATION LEVEL` on pooled connections — on SQL 2012 it leaks to the next request on that connection). Never add NOLOCK to CTE names.
    - Global search API (`/api/search`): deterministic order — PO/Order newest `OrdDate` first, Items most recently ordered first, Customers by code; line-1 `ItemNo` via `OUTER APPLY TOP 1` (OrdDT has duplicate keys). **No page calls it yet** (`fetchSearch` in `poTrackerAPI.ts` is unused; there is no search box in the Topbar). Very short terms that match most rows (e.g. `BB`) take ~3–5 s because results must be sorted — if a search box is added, debounce input and require ≥ 3 characters.
-   - **Deterministic output rule**: every ranking/sort that feeds the UI has a tie-breaker (code/number columns), so identical requests return identical results — dashboard material/kind/customer rankings, overdue/recent orders, Customer Report top items (`ROW_NUMBER ... ORDER BY totalQty DESC, ItemNo`), Order Trends department/customer/order lines, Top Item Gallery (ranking tie → `itemNo`, customers tie → `custCode`, latest-period row supplies `ItemDesc`). Money in Top Item Gallery responses is rounded to cents (`toCents` / `roundMoneyFields`) because float sums vary with row order. `/api/items/salespersons` merges names stored with different casing (e.g. `Jessica` / `JESSICA`) into one fixed entry. Keep this rule when adding queries.
+   - **Deterministic output rule**: every ranking/sort that feeds the UI has a tie-breaker (code/number columns), so identical requests return identical results — dashboard material/kind/customer rankings, overdue/recent orders, Customer Report top items (`ROW_NUMBER ... ORDER BY totalQty DESC, ItemNo`), Order List order lines, Top Item Gallery (ranking tie → `itemNo`, customers tie → `custCode`, latest-period row supplies `ItemDesc`). Money in Top Item Gallery responses is rounded to cents (`toCents` / `roundMoneyFields`) because float sums vary with row order. `/api/items/salespersons` merges names stored with different casing (e.g. `Jessica` / `JESSICA`) into one fixed entry. Keep this rule when adding queries.
    - `queryWithDeadlockRetry` retries a deadlocked query twice (200 ms, 600 ms); if it still fails the API returns **503** `"The database is busy right now..."`.
    - The step loop skips a step only when its table is missing (error 208). Any other SQL error fails the request — never show a false `Pending` step.
    - `ordLineNo` must be numeric (`OrdDT.OrdLineNo` is INT) → otherwise **400**.
@@ -1052,7 +1041,7 @@ Inside route handlers, add only short section labels for important boxes/queries
 
 ### 4. Period Setup Consolidation (Sept–Oct 2026) — ✅ Completed
 - **Goal**: Consolidate redundant "Period Setup" logic into a single centralized hook `usePeriodSetup` + UI component `PeriodSetupPanel.tsx`.
-- **Scope**: All dashboards — CustomerDashboard, CustomerReport, SalesDashboard, ProductionSummary, ProductionForecast, OrderVolumeSummary.
+- **Scope**: All dashboards — CustomerDashboard, CustomerReport, SalesDashboard, ProductionSummary, ProductionForecast.
 - **Key Files**:
   - `src/hooks/usePeriodSetup.ts` — Centralized state management (presets, compare years, week/month/day ranges, URL sync)
   - `src/components/period/PeriodSetupPanel.tsx` — Shared popover UI with preset buttons, month/week/day selectors, compare year checkboxes
@@ -1104,7 +1093,7 @@ All bar charts across the system have been standardized with consistent styling 
 - **Square Edges**: All bar charts use `radius={[0, 0, 0, 0]}` — no rounded corners on any bar.
 - **Zero Bar Gap**: All grouped bar charts use `barGap={0}` — bars within the same category group are flush against each other with no spacing.
 - **No Max Bar Size**: Removed `maxBarSize` constraints from all `<Bar>` components to allow bars to fill available space naturally without gaps.
-- **Unused `Cell` imports removed**: Cleaned up unused `Cell` imports from `RiskCustomerChart.tsx` and `ProductionForecastChart.tsx`.
+- **Unused `Cell` imports removed**: Cleaned up unused `Cell` imports from `ProductionForecastChart.tsx`.
 
 **Affected Chart Files:**
 
@@ -1113,8 +1102,6 @@ All bar charts across the system have been standardized with consistent styling 
 | `ProductionSummaryChart.tsx` | `ComposedChart` | `barGap={0}`, removed `maxBarSize={38}`, `radius=[0,0,0,0]` |
 | `ProductionForecastChart.tsx` | `ComposedChart` | `barGap={0}`, `radius=[0,0,0,0]`, removed unused `Cell` import |
 | `CustomerSalesChart.tsx` | `ComposedChart` | `barGap={0}`, removed `maxBarSize={calculatedMaxBar}`, `radius=[0,0,0,0]` |
-| `RiskCustomerChart.tsx` | `BarChart` | `barGap={0}`, `radius=[0,0,0,0]`, removed unused `Cell` import |
-| `InfographicSalesTrends.tsx` | `BarChart` | `barGap={0}`, removed `maxBarSize={30}`, `radius=[0,0,0,0]` via custom shape |
 | `FactoryOutputTrendChart.tsx` | Custom HTML bars | `borderRadius: 0` (was `4px 4px 1px 1px`) |
 
 ### 2. Production Summary Table Improvements (`ProductionSummaryTable.tsx`)
@@ -1194,7 +1181,7 @@ All bar charts across the system have been standardized with consistent styling 
 ### Rule (same as Sidebar)
 A user may open a page when their `allowedMenus` is unrestricted (`null`), contains `*`, or contains the page's **menu item id or its group id** (a group permission grants every child). Per-user permissions come from `backend/services/permissionService.js` (`backend/data/user_menu_permissions.json`, gitignored; users not listed fall back to role defaults). Default sales permissions include the Production group (`order-tracker`) and `po-tracker` — sales access to PO Tracker is intentional.
 
-**Sidebar-only shortcuts (`sidebarRoles`)**: a menu item with `sidebarRoles` is shown in the Sidebar only to those roles and changes no access. It is left out of `permissionMenuConfig` (`config/menuConfig.ts`), which route guards (`authRedirect.ts`) and the permission editor (`MenuPermissionsModal`, `UserAccessDrawer`) use. Current shortcuts (admin): Order Trends, Order List under Sales Analytics.
+**Sidebar-only shortcuts (`sidebarRoles`)**: a menu item with `sidebarRoles` is shown in the Sidebar only to those roles and changes no access. It is left out of `permissionMenuConfig` (`config/menuConfig.ts`), which route guards (`authRedirect.ts`) and the permission editor (`MenuPermissionsModal`, `UserAccessDrawer`) use. Current shortcut (admin): Order List under Sales Analytics.
 
 ### Frontend (UX guard) — `src/utils/authRedirect.ts`
 - `canAccessRoute(pathname, role, allowedMenus)` = menuConfig `roles` **and** `isRouteAllowedForMenus` (most specific matching menu path wins; detail routes mapped via `DETAIL_ROUTE_OWNERS`, e.g. `/dashboard/detail` → `home`; routes owned by no menu are not restricted).
@@ -1215,7 +1202,7 @@ A user may open a page when their `allowedMenus` is unrestricted (`null`), conta
 | `/api/dashboard/years` | any signed-in user | year list metadata |
 | `/api/dashboard` (`/`), `/detail/:cardType` | `home` | Factory Overview |
 | `/api/dashboard/customer-summary` | `dash-cust` / `dash-matrix` / `sales-dashboard` | Sales Summary + Customer Report Matrix |
-| `/api/dashboard/sales-*`, `/top-items` | `dash-cust` / `sales-dashboard` | Order Trends / Order List (`/dashboard/sales-customer-detail` web route mapped the same) |
+| `/api/dashboard/sales-orders` | `dash-cust` / `sales-dashboard` | Order List (`/dashboard/sales-customer-detail` web route mapped the same) |
 | `/api/items/*` | `dash-top-orders` / `dash-top-orders-analytics` / `sales-dashboard` | Top Item Gallery + Top Items Qty |
 | `/api/search` | any signed-in user | PO / Order / Customer results only searched and returned for users with `po-tracker` / `order-tracker`; Item results for everyone |
 
@@ -1226,20 +1213,20 @@ A user may open a page when their `allowedMenus` is unrestricted (`null`), conta
 
 ## 2026-11-16 Customer Group Filter — Active / Inactive
 
+> Order Trends (`/dashboard/customer/trends`) was removed on 2026-11-18; its old URLs redirect to Sales Summary.
+
 The customer group dropdown (`CustomerGroupFilter.tsx`, `TopOrdersFilterBar.tsx`) lists groups in two sections. **A group is Active when it has ordered quantity (> 0) in the selected period under every page filter except the group filter itself**; other groups appear under "Inactive" (still selectable). Default selection is still every group (`ACTIVE_GROUP_IDS`). Until the first data load, every group is shown as active (`getActiveGroupIds(null)`), so groups do not jump between sections.
 
 | Page | Source of the active groups |
 |------|------------------------------|
 | Customer Dashboard (Sales Summary) | loaded `customer-summary` rows → `getActiveCustomerCodes(custData, activeYears)` → `getActiveGroupIds` |
 | Customer Report (Matrix) | same, in `useCustomerReportData.ts` |
-| Order Trends | `GET /api/dashboard/sales-active-customers` (distinct `CustCode` with `ItemQty > 0` in `VW_Web_OrderTrends`; same filters as other Order Trends endpoints except `customers`) |
 | Top Item Gallery | `activeGroups` in the `/api/items/top-gallery` response (respects period, salesperson, product type; ignores the group filter) |
 | Top Items Analytics (draft) | not wired — every group shown as active |
 
 - Helpers: `getActiveGroupIds(codes | null)` in `config/customerGroups.ts`; `getActiveCustomerCodes(rows, years)` in `hooks/useCustomerSalesData.ts`.
 
-### Group filter sent to the API (Order Trends, Order List)
-- These pages filter on the server, so the selected groups are turned into customer codes by `getGroupCustomerFilter(groupIds)` (`config/customerGroups.ts`).
+### Group filter sent to the API (Order List)
+- Order List (`/dashboard/sales-customer-detail`, drill-down from Customer Report Matrix) filters on the server, so the selected groups are turned into customer codes by `getGroupCustomerFilter(groupIds)` (`config/customerGroups.ts`).
 - General has no code list. When General is selected the API gets `excludeCustomers` = codes of the named groups that are **not** selected (`ISNULL(CustCode,'') NOT IN (...)` in `buildSalesFilters`), so new customer codes are included automatically. Without General it gets `customers` = codes of the selected named groups (`CustCode IN (...)`). Every group or no group selected → no customer filter.
-- `/sales-active-customers` ignores both `customers` and `excludeCustomers`.
 - This is not `GMCust.CustStatus`: every customer in the named groups is `Y`; all `N` customers are in General, and both views (`VW_Web_SalesDashboard`, `VW_Web_OrderTrends`) exclude `N` customers by their **current** status, which also removes their past sales from historical years (2015–2020 mainly; none since 2022).

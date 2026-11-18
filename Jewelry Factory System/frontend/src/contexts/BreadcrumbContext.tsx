@@ -20,7 +20,7 @@ function getFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
   if (pathname.startsWith('/dashboard/sales-customer-detail')) {
     return [
       { label: 'Sales Analytics' },
-      { label: 'Order Trends', path: '/dashboard/customer/trends' },
+      { label: 'Customer Report Matrix', path: '/dashboard/customer/matrix' },
       { label: 'Order List' },
     ];
   }
@@ -29,9 +29,6 @@ function getFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
   }
   if (pathname === '/dashboard/customer/matrix' || pathname === '/dashboard/customer-report') {
     return [{ label: 'Sales Analytics' }, { label: 'Customer Report Matrix' }];
-  }
-  if (pathname === '/dashboard/customer/trends' || pathname === '/dashboard/customer-trends') {
-    return [{ label: 'Sales Analytics' }, { label: 'Order Trends' }];
   }
   if (pathname === '/dashboard/top-orders') {
     return [{ label: 'Sales Analytics' }, { label: 'Top Item Gallery' }];

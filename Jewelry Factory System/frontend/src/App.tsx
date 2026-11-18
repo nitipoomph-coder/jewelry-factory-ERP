@@ -11,7 +11,6 @@ import LoginPage from './pages/login/LoginPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import POTrackerAdvanced from './pages/POTrackerAdvanced';
-import OrderVolumeSummaryPage from './pages/OrderVolumeSummaryPage';
 import SalesCustomerGroupDetail from './pages/SalesCustomerGroupDetail';
 import TopOrdersAnalyticsPage from './pages/TopOrdersAnalyticsPage';
 import TopOrdersGalleryPage from './pages/TopOrdersGalleryPage';
@@ -27,10 +26,6 @@ import AuditLogsPage from './pages/admin/AuditLogsPage';
 import ActiveSessionsPage from './pages/admin/ActiveSessionsPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
 import CCTVAuditPage from './pages/audit/CCTVAuditPage';
-import {
-  customerTrendsPathFromSearch,
-  LEGACY_CUSTOMER_TRENDS_PATH,
-} from './utils/customerTrendsUrl';
 import NoAccessPage from './pages/NoAccessPage';
 import {
   buildLoginPath,
@@ -94,11 +89,6 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
-function LegacyCustomerTrendsRedirect() {
-  const location = useLocation();
-  return <Navigate to={customerTrendsPathFromSearch(location.search)} replace />;
-}
-
 export default function App() {
   return (
     <ToastProvider>
@@ -115,18 +105,19 @@ export default function App() {
             <Route path="/dashboard/customer" element={<CustomerDashboardLayout />}>
               <Route index element={<CustomerDashboard metric="amount" />} />
               <Route path="matrix" element={<CustomerReportPage />} />
-              <Route path="trends" element={<OrderVolumeSummaryPage />} />
+              {/* Order Trends was removed — old links land on Sales Summary */}
+              <Route path="trends" element={<Navigate to="/dashboard/customer" replace />} />
             </Route>
             <Route path="/dashboard/sales" element={<Navigate to="/dashboard/customer" replace />} />
             <Route path="/dashboard/qty" element={<Navigate to="/dashboard/customer?metric=qty" replace />} />
             <Route path="/dashboard/customer-report" element={<Navigate to="/dashboard/customer/matrix" replace />} />
-            <Route path="/dashboard/customer-trends" element={<Navigate to="/dashboard/customer/trends" replace />} />
+            <Route path="/dashboard/customer-trends" element={<Navigate to="/dashboard/customer" replace />} />
             <Route path="/dashboard/top-orders" element={<TopOrdersGalleryPage />} />
             <Route path="/dashboard/top-orders/analytics" element={<TopOrdersAnalyticsPage />} />
             <Route path="/dashboard/top-Orders" element={<Navigate to="/dashboard/top-orders" replace />} />
             <Route path="/dashboard/top-order-lines" element={<Navigate to="/dashboard/top-orders" replace />} />
             <Route path="/dashboard/Top-Order Lines" element={<Navigate to="/dashboard/top-orders" replace />} />
-            <Route path={LEGACY_CUSTOMER_TRENDS_PATH} element={<LegacyCustomerTrendsRedirect />} />
+            <Route path="/dashboard/sales-customer-groups" element={<Navigate to="/dashboard/customer" replace />} />
             <Route path="/dashboard/sales-customer-detail" element={<SalesCustomerGroupDetail />} />
             <Route path="/dashboard/production-summary" element={<ProductionSummaryPage />} />
             <Route path="/dashboard/production-forecast" element={<ProductionForecastPage />} />

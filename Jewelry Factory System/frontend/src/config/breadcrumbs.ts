@@ -12,7 +12,6 @@ export interface BreadcrumbItem {
 
 const CUSTOMER_TAB_LABELS: Record<string, string> = {
   matrix: 'Customer Report Matrix',
-  trends: 'Order Trends',
   dashboard: 'Sales Summary',
 };
 
@@ -36,7 +35,7 @@ export const BREADCRUMBS = {
 
   SALES_CUSTOMER_GROUP_DETAIL: [
     { label: 'Sales Analytics' },
-    { label: 'Order Trends', path: '/dashboard/customer/trends' },
+    { label: 'Customer Report Matrix', path: '/dashboard/customer/matrix' },
     { label: 'Order List' },
   ],
 

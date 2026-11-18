@@ -1,6 +1,6 @@
 # Backend Data Mapping & Business Logic Reference (ERP)
 
-This document details data lineage, field-level data entry origins from the back-office ERP (Order Entry), and business calculation rules reflected across the **Customer Dashboard**, **Matrix Report**, **Order Trends**, and **Top Item Gallery**.
+This document details data lineage, field-level data entry origins from the back-office ERP (Order Entry), and business calculation rules reflected across the **Customer Dashboard**, **Matrix Report** (with its **Order List** drill-down), and **Top Item Gallery**.
 
 ---
 
@@ -145,17 +145,8 @@ Customers are classified into **7 Standard Customer Groups** based on `CustCode`
 2. **Customer Matrix Report (`/dashboard/customer/matrix`):**
    - 12-month calendar matrix and annual totals broken down by individual accounts and customer groups.
 
-3. **Order Trends & Delivery Outlook (`/dashboard/customer/trends`):**
-   - **Overview Tab:**
-     - **6 KPI Metric Strip:** `Total Overdue`, `Due in 15 Days`, `Total WIP (Factory)`, `Top Bottleneck`, `On-Time Completion Rate (%)`, `Overdue Rate (%)`
-     - **Order Volume Trend Chart:** Monthly volume comparison against prior year (YoY Comparison).
-     - **Delivery Risk by Customer Group:** Grouped bar chart comparing on-time orders versus overdue backlog.
-     - **Active Production by Department:** Bottleneck table for 9 manufacturing departments showing value, volume, and percentage share.
-     - **Pending Orders by Customer Group:** Delivery backlog breakdown for tier-1 customer groups.
-   - **Order Details Tab (Production Order Drill-Down):**
-      - 19-column formal operational table (`No.`, `Week`, `Cust`, `PO No.`, `PO 2`, `New/Replen`, `Metal`, `Item No.`, `Ship To`, `Order Date`, `Due Date`, `Status`, `Factory Stage`, `Ordered Qty`, `Total Value ($)`, `Shipped Qty`, `Backlog Qty`, `Backlog Value ($)`, `Days +/-`).
-     - **Interactive Custom Filters:** Filter by `Dept`, `Status` (Risk level), `Group` (Customer group), quick search, and filter reset.
-     - **Direct & Drill-down Navigation:** Deep linking directly from department bottleneck rows into filtered order rows.
+3. **Order List (`/dashboard/sales-customer-detail`):**
+   - Order line drill-down opened from the Customer Matrix; reads `VW_Web_OrderTrends` via `/api/dashboard/sales-orders`.
 
 4. **Top Item Gallery (`/dashboard/top-orders`):**
    - Identifies items with the highest **`SUM(ItemQty)`** for each customer account in the selected year, streaming imagery dynamically from the Photo Server bridge (`/api/photos/ps/:itemNo`).
@@ -164,7 +155,7 @@ Customers are classified into **7 Standard Customer Groups** based on `CustCode`
 
 ## 7. Database View Schema: `dbo.VW_Web_OrderTrends`
 
-Central view for Order Trends and Order Details ensuring 100% alignment with operational factory logic:
+Central view for the Order List drill-down ensuring 100% alignment with operational factory logic:
 
 ```sql
 -- Key Columns in dbo.VW_Web_OrderTrends

@@ -8,7 +8,7 @@ Covered surfaces:
 - Sales/customer dashboard layout: `CustomerDashboardLayout.tsx`, `/dashboard/customer` (with nested routes)
   - Sales summary: `CustomerDashboard.tsx`, `/dashboard/customer` (index)
   - Customer matrix: `CustomerReportPage.tsx`, `/dashboard/customer/matrix`
-  - Customer trends: `OrderVolumeSummaryPage.tsx`, `/dashboard/customer/trends`
+- Order List (drill-down from Customer Report Matrix): `SalesCustomerGroupDetail.tsx`, `/dashboard/sales-customer-detail`
 - Top item gallery: `TopOrdersGalleryPage.tsx`, `/dashboard/top-orders`
 - Sales dashboard (legacy redirect): `/dashboard/sales` -> `/dashboard/customer`
 
@@ -45,7 +45,6 @@ Routes (nested under `CustomerDashboardLayout`):
 - `/dashboard/customer`: `Sales Summary` (index route, amount metric by default)
 - Metric is controlled by `?metric=qty` query parameter
 - `/dashboard/customer/matrix`: `Customer Matrix`
-- `/dashboard/customer/trends`: `Order Volume Summary`
 
 Legacy redirect: `/dashboard/qty` -> `/dashboard/customer?metric=qty`
 
@@ -145,17 +144,6 @@ Features:
 - Uses `usePeriodSetup` hook + `PeriodSetupPanel`
 - Chart: `ComposedChart` with paired bars (order vs finish)
 - Table: Category breakdown + Order Qty / Finish Qty / Balance Qty summary rows
-
-## OrderVolumeSummaryPage.tsx
-Order volume trends and risk customer analysis.
-
-Route: `/dashboard/customer/trends`
-
-Features:
-- Uses `useOrderVolumeSummaryData` hook
-- Order volume trend line chart
-- Risk customer bar chart
-- Volume filter bar with metric/period/group selectors
 
 ## Period Setup Panel (System-Wide)
 `PeriodSetupPanel.tsx` is the shared period filter popover used across all dashboard pages.

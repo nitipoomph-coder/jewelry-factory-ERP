@@ -101,7 +101,7 @@ export function getActiveGroupIds(activeCustomerCodes: Iterable<string> | null):
 }
 
 /**
- * Server-side customer filter for the selected groups (Order Trends / Order List APIs).
+ * Server-side customer filter for the selected groups (Order List API: /api/dashboard/sales-orders).
  * General has no code list, so when it is selected the filter becomes
  * "every customer except the codes of the named groups that are NOT selected" —
  * new customer codes are then included automatically.

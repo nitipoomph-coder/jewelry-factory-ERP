@@ -66,7 +66,6 @@ Frontend:
 - `CustomerDashboardLayout.tsx` (Container)
 - `CustomerDashboard.tsx` (Sales Summary)
 - `CustomerReportPage.tsx` (Matrix)
-- `OrderVolumeSummaryPage.tsx` (Order Trends)
 - `TopOrdersGalleryPage.tsx`
 - `TopOrdersAnalyticsPage.tsx`
 - `POTrackerAdvanced.tsx`

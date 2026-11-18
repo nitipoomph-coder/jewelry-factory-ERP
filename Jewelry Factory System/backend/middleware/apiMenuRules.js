@@ -16,7 +16,7 @@ const DASHBOARD_MENU_RULES = [
   { match: p => p === '/years', menus: null },                                                // year list (metadata) — every dashboard page
   { match: p => p === '/' || p.startsWith('/detail/'), menus: ['home'] },                      // Factory Overview cards + drill-down
   { match: p => p === '/customer-summary', menus: ['dash-cust', 'dash-matrix', SALES_GROUP] },   // Sales Summary + Customer Report Matrix
-  { match: p => p.startsWith('/sales-') || p === '/top-items', menus: ['dash-cust', SALES_GROUP] }, // Order Trends / Order List under Sales Summary
+  { match: p => p.startsWith('/sales-') || p === '/top-items', menus: ['dash-cust', SALES_GROUP] }, // Order List (Customer Report Matrix drill-down) Summary
 ];
 
 /** /api/items — Top Item Gallery + Top Items Qty. */

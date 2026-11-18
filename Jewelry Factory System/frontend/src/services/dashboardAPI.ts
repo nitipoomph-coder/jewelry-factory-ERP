@@ -265,22 +265,6 @@ export const fetchSalesSummary = async (years: string[]): Promise<Record<string,
 
 export { fetchCustomerSummary } from './customerSummaryAPI';
 export {
-  fetchSalesCustomerGroups,
-  fetchSalesMonthlyAnalytics,
-  fetchSalesRiskAnalytics,
-  fetchSalesOrders,
-  fetchTopItems,
-} from './orderVolumeSummaryAPI';
-export type {
-  SalesMetric,
-  SalesDateView,
-  SalesCustomerGroupPoint,
-  SalesMonthlyPoint,
-  SalesRiskPoint,
-  SalesOrderRow,
-  TopItemRow,
-} from './orderVolumeSummaryAPI';
-export {
   fetchItemYearlySummary,
   fetchItemCustomerYearlySummary,
   fetchItemsYearlySummary,

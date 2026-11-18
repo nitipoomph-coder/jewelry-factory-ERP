@@ -1,5 +1,4 @@
 import type { NavMenuGroup, NavMenuItem } from '../types';
-import { CUSTOMER_TRENDS_PATH, LEGACY_CUSTOMER_TRENDS_PATH } from './customerTrendsUrl';
 import { FACTORY_OVERVIEW_PATH } from './authRedirect';
 
 export function isNavigationPathActive(
@@ -30,22 +29,7 @@ export function isNavigationPathActive(
     return pathname === '/dashboard/customer/matrix';
   }
 
-  // 4. Customer Trends / Order Trends
-  if (
-    itemPath === CUSTOMER_TRENDS_PATH ||
-    itemPath === LEGACY_CUSTOMER_TRENDS_PATH ||
-    itemPath === '/dashboard/customer/trends'
-  ) {
-    return (
-      pathname === CUSTOMER_TRENDS_PATH ||
-      pathname === LEGACY_CUSTOMER_TRENDS_PATH ||
-      pathname === '/dashboard/customer/trends' ||
-      pathname === '/dashboard/customer-trends' ||
-      pathname === '/dashboard/sales-customer-groups'
-    );
-  }
-
-  // 5. Top Item Gallery
+  // 4. Top Item Gallery
   if (itemPath === '/dashboard/top-orders') {
     return (
       pathname === '/dashboard/top-orders' ||
@@ -55,12 +39,12 @@ export function isNavigationPathActive(
     );
   }
 
-  // 6. Top Items Qty
+  // 5. Top Items Qty
   if (itemPath === '/dashboard/top-orders/analytics') {
     return pathname === '/dashboard/top-orders/analytics';
   }
 
-  // 7. PO Tracker & details
+  // 6. PO Tracker & details
   if (itemPath === '/po-tracker') {
     return (
       pathname === '/po-tracker' ||

@@ -9,7 +9,6 @@ import './SalesResponsive.css';
 import { CUSTOMER_GROUPS, getGroupCustomerFilter } from '../config/customerGroups';
 import { fetchSalesOrders, type SalesOrderRow } from '../services/orderVolumeSummaryAPI';
 import { ErpSegmentedControl } from '../components/ui/ErpButtons';
-import { buildCustomerTrendsPath } from '../utils/customerTrendsUrl';
 import { Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -137,15 +136,15 @@ export default function SalesCustomerGroupDetail() {
     amount: filteredRows.reduce((sum, row) => sum + Number(row.itemAmnt || 0), 0),
   }), [filteredRows]);
 
-  const overviewPath = useMemo(() => {
-    return buildCustomerTrendsPath({
-      years,
-      months,
-      groups,
-      customers: selectedCustomers,
-      metric,
-    });
-  }, [years, months, groups, selectedCustomers, metric]);
+  // Back to Customer Report Matrix with the same period / metric. `groups` / `customers` are dropped:
+  // the report's click replaced them with the clicked row, so the report opens on every group again.
+  const reportPath = useMemo(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('customers');
+    params.delete('groups');
+    const query = params.toString();
+    return query ? `/dashboard/customer/matrix?${query}` : '/dashboard/customer/matrix';
+  }, [searchParams]);
 
   const applyCustomers = (nextCustomers: string[]) => {
     const sorted = [...nextCustomers].sort();
@@ -216,7 +215,7 @@ export default function SalesCustomerGroupDetail() {
         <div className="app-content-frame app-content-frame--workspace app-page-content sales-order-detail-frame flex flex-col gap-4">
           <div style={{ ...pageHeader, alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <button onClick={() => navigate(overviewPath)} style={backButton}><ArrowLeft size={14} /> Sales Overview</button>
+              <button onClick={() => navigate(reportPath)} style={backButton}><ArrowLeft size={14} /> Customer Report</button>
               <span style={{ ...pageSubtitle, margin: 0 }}>{years.join(', ') || 'All Years'} / {monthSummary(months)} / sorted by {metric === 'amount' ? 'Sales Amount' : 'Ordered Qty'}</span>
             </div>
             <div style={headerActions}>

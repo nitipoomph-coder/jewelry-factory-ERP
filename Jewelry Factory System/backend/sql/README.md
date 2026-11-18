@@ -22,7 +22,7 @@ sql/
 ├── indexes.sql                     # Planned covering indexes (NOT deployed)
 ├── indexes-sales-analytics.sql     # Sales analytics indexes — live as IX_OrdHD/OrdDT_Dashboard_Fast (same keys, different names)
 ├── views/                          # Production database views (SSOT)
-│   └── VW_Web_SalesDashboard.sql   # Central view for Customer Dashboard, Matrix & Order Trends
+│   └── VW_Web_SalesDashboard.sql   # Central view for Customer Dashboard & Matrix
 ├── stored-procedures/              # ❌ Deprecated SP drafts (Do not execute on DB)
 │   ├── PC_Show_OrdTrack_Sum_OrdDate.sql      # @FromDate/@ToDate/@Status · 63 cols
 │   ├── PC_Show_OrdTrack_Sum_DueDate.sql      # @FromDate/@ToDate/@Status · 63 cols
@@ -96,7 +96,7 @@ In the original legacy stored procedures, each procedure performed `LEFT JOIN GM
 The authoritative Single Source of Truth view powering three key web modules:
 1. **Customer Dashboard (Chart)** (`/dashboard/customer`) — Trend projections and YoY KPIs.
 2. **Customer Matrix Report** (`/dashboard/customer/matrix`) — Monthly and annual dense reporting matrices.
-3. **Order Trends** (`/dashboard/customer/trends`) — Order volume trend analysis and drill-downs.
+3. **Order List** (`/dashboard/sales-customer-detail`) — Order line drill-down from the Customer Matrix (`VW_Web_OrderTrends`).
 
 #### 📌 Business Logic & Data Normalization:
 1. **Order Status:** Filters strictly for `ISNULL(OrdStatus, '') <> 'C'` (excludes canceled orders).

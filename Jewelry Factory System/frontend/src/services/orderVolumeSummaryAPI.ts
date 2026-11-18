@@ -1,80 +1,8 @@
+// Order List (/dashboard/sales-customer-detail) — order lines from VW_Web_OrderTrends via /api/dashboard/sales-orders.
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 import { BASE_URL } from './poTrackerAPI';
 
-export type SalesMetric = 'amount' | 'qty';
 export type SalesDateView = 'order' | 'ship' | 'orddate' | 'duedate' | 'custdate' | 'ordmonth' | 'shipmonth';
-
-export interface SalesCustomerGroupPoint {
-  salesName?: string;
-  customerCode: string;
-  customerName: string;
-  year: number;
-  month: number;
-  orderCount: number;
-  qty: number;
-  shippedQty: number;
-  amount: number;
-}
-
-export interface SalesMonthlyPoint {
-  year: number;
-  month: number;
-  orderCount: number;
-  qty: number;
-  shippedQty: number;
-  gapQty: number;
-  amount?: number;
-  shippedAmount?: number;
-  avgQtyPerOrder: number;
-  avgAmountPerOrder?: number;
-}
-
-export interface SalesRiskPoint {
-  year: number;
-  month: number;
-  custCode: string;
-  wipQty: number;
-  wipAmount: number;
-  overdueQty: number;
-  overdueAmount: number;
-}
-
-export interface DeliveryRiskBucket {
-  bucket: string;
-  orderCount: number;
-  lineCount: number;
-  totalQty: number;
-  shippedQty: number;
-  openQty: number;
-  totalAmount: number;
-  shippedAmount: number;
-  openAmount: number;
-}
-
-export interface DepartmentBacklogItem {
-  department: string;
-  orderCount: number;
-  lineCount: number;
-  openQty: number;
-  openAmount: number;
-}
-
-export interface CustomerBacklogItem {
-  custCode: string;
-  orderCount: number;
-  totalQty: number;
-  shippedQty: number;
-  openQty: number;
-  totalAmount: number;
-  overdueQty: number;
-  due15Qty: number;
-}
-
-export interface DeliveryOutlookResponse {
-  buckets: DeliveryRiskBucket[];
-  departments: DepartmentBacklogItem[];
-  customers: CustomerBacklogItem[];
-}
 
 export interface SalesOrderRow {
   ordWeek?: number | string | null;
@@ -116,22 +44,7 @@ export interface SalesOrderRow {
   closeStatus?: string | null;
 }
 
-export interface TopItemRow {
-  itemNo: string;
-  itemDesc: string | null;
-  itemType: string;
-  itemTypeName: string;
-  productTypeCode?: string;
-  qty: number;
-  shippedQty: number;
-  amount: number;
-  orderCount: number;
-  avgPrice: number;
-  primaryCustomerCode?: string;
-  primaryCustomerName?: string;
-}
-
-// Shared filters for Customer Trends boxes and tables.
+// Filters accepted by /api/dashboard/sales-orders.
 export interface SalesAnalyticsParams {
   years?: string[];
   months?: string[];
@@ -149,7 +62,7 @@ export interface SalesAnalyticsParams {
   department?: string;
 }
 
-// Builds the query string used by every Customer Trends endpoint.
+// Builds the query string for /api/dashboard/sales-orders.
 const salesAnalyticsQuery = (params: SalesAnalyticsParams = {}) => {
   const qs = new URLSearchParams();
   if (params.years?.length) qs.set('years', params.years.join(','));
@@ -168,107 +81,11 @@ const salesAnalyticsQuery = (params: SalesAnalyticsParams = {}) => {
   return qs;
 };
 
-// Delivery Outlook & Department Bottlenecks API
-export const fetchSalesDeliveryOutlook = async (params: SalesAnalyticsParams = {}): Promise<DeliveryOutlookResponse> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-delivery-outlook?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales delivery outlook API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || { buckets: [], departments: [], customers: [] };
-};
-
-// KPI and customer group rows for Customer Sales Overview.
-export const fetchSalesCustomerGroups = async (params: SalesAnalyticsParams = {}): Promise<SalesCustomerGroupPoint[]> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-customer-groups?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales customer groups API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-// Customer codes with orders in the period (customer filter ignored) — group filter Active / Inactive split.
-export const fetchSalesActiveCustomers = async (params: SalesAnalyticsParams = {}): Promise<string[]> => {
-  const qs = salesAnalyticsQuery(params);
-  qs.delete('customers');
-  qs.delete('excludeCustomers');
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-active-customers?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales active customers API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-export const fetchSalesMonthlyAnalytics = async (params: SalesAnalyticsParams = {}): Promise<SalesMonthlyPoint[]> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-monthly-analytics?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales monthly analytics API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-export const fetchSalesRiskAnalytics = async (params: SalesAnalyticsParams = {}): Promise<SalesRiskPoint[]> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-risk-analytics?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales risk analytics API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
 // Order-level rows for Customer Order List drilldown.
 export const fetchSalesOrders = async (params: SalesAnalyticsParams = {}): Promise<SalesOrderRow[]> => {
   const qs = salesAnalyticsQuery(params);
   const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-orders?${qs.toString()}`);
   if (!res.ok) throw new Error(`Sales orders API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-// Top 30 Items table for Customer Sales Overview.
-export const fetchTopItems = async (params: SalesAnalyticsParams & { metric?: SalesMetric; limit?: number } = {}): Promise<TopItemRow[]> => {
-  const qs = salesAnalyticsQuery(params);
-  if (params.metric) qs.set('metric', params.metric);
-  if (params.limit) qs.set('limit', String(params.limit));
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/top-items?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Top items API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-export interface SalesWeeklyPoint {
-  year: number;
-  week: number;
-  orderCount: number;
-  qty: number;
-  shippedQty: number;
-  gapQty: number;
-  amount: number;
-  shippedAmount: number;
-}
-
-export const fetchSalesWeeklyAnalytics = async (params: SalesAnalyticsParams = {}): Promise<SalesWeeklyPoint[]> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-weekly-analytics?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales weekly analytics API error: ${res.status}`);
-  const json = await res.json();
-  return json.data || [];
-};
-
-export interface SalesDueOutlookPoint {
-  year: number;
-  month: number;
-  dueQty: number;
-  shippedQty: number;
-  openQty: number;
-  dueAmount: number;
-  shippedAmount: number;
-  openAmount: number;
-  overdueOrders: number;
-  dueSoonOrders: number;
-}
-
-export const fetchSalesDueOutlook = async (params: SalesAnalyticsParams = {}): Promise<SalesDueOutlookPoint[]> => {
-  const qs = salesAnalyticsQuery(params);
-  const res = await fetchWithAuth(`${BASE_URL}/dashboard/sales-due-outlook?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Sales due outlook API error: ${res.status}`);
   const json = await res.json();
   return json.data || [];
 };
