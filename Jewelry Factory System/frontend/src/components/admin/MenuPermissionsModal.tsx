@@ -10,7 +10,8 @@ import {
   Sparkles,
   Info,
 } from 'lucide-react';
-import { menuConfig } from '../../config/menuConfig';
+// Permission-owning entries only (Sidebar-only shortcuts are not grantable)
+import { permissionMenuConfig as menuConfig } from '../../config/menuConfig';
 import { adminUsersAPI, type ManagedUser } from '../../services/adminUsersAPI';
 import { useToast } from '../../contexts/ToastContext';
 import { getErrorMessage } from '../../utils/errors';

@@ -8,7 +8,7 @@
 // NOTE: This guard is UX only (allowedMenus lives in browser storage). Real enforcement
 // happens in the backend `requireMenu` middleware for APIs owned by a single page.
 
-import { menuConfig } from '../config/menuConfig';
+import { permissionMenuConfig } from '../config/menuConfig';
 
 export const LOGIN_PATH = '/login';
 export const RETURN_TO_PARAM = 'returnTo';
@@ -46,7 +46,7 @@ export function isRouteAllowedForRole(pathname: string, role: string): boolean {
   const normalizedRole = (role || '').toLowerCase();
   const normalizedPath = normalizePath(pathname);
 
-  for (const group of menuConfig) {
+  for (const group of permissionMenuConfig) {
     if (group.path && isPathMatch(group.path, normalizedPath)) {
       if (group.roles && !group.roles.includes(normalizedRole)) {
         return false;
@@ -108,7 +108,7 @@ interface MenuRouteEntry {
 
 function getMenuRouteEntries(): MenuRouteEntry[] {
   const entries: MenuRouteEntry[] = [];
-  for (const group of menuConfig) {
+  for (const group of permissionMenuConfig) {
     if (group.path) entries.push({ path: group.path, ids: [group.id] });
     for (const item of group.items || []) {
       if (item.path) entries.push({ path: item.path, ids: [item.id, group.id] });

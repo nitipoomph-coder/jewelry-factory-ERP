@@ -1194,6 +1194,8 @@ All bar charts across the system have been standardized with consistent styling 
 ### Rule (same as Sidebar)
 A user may open a page when their `allowedMenus` is unrestricted (`null`), contains `*`, or contains the page's **menu item id or its group id** (a group permission grants every child). Per-user permissions come from `backend/services/permissionService.js` (`backend/data/user_menu_permissions.json`, gitignored; users not listed fall back to role defaults). Default sales permissions include the Production group (`order-tracker`) and `po-tracker` — sales access to PO Tracker is intentional.
 
+**Sidebar-only shortcuts (`sidebarRoles`)**: a menu item with `sidebarRoles` is shown in the Sidebar only to those roles and changes no access. It is left out of `permissionMenuConfig` (`config/menuConfig.ts`), which route guards (`authRedirect.ts`) and the permission editor (`MenuPermissionsModal`, `UserAccessDrawer`) use. Current shortcuts (admin): Order Trends, Order List under Sales Analytics.
+
 ### Frontend (UX guard) — `src/utils/authRedirect.ts`
 - `canAccessRoute(pathname, role, allowedMenus)` = menuConfig `roles` **and** `isRouteAllowedForMenus` (most specific matching menu path wins; detail routes mapped via `DETAIL_ROUTE_OWNERS`, e.g. `/dashboard/detail` → `home`; routes owned by no menu are not restricted).
 - `getLandingPath(role, allowedMenus)`: role home if permitted → else first permitted menu (menuConfig order) → else `/no-access` (`NoAccessPage.tsx`). Used by `/`, `ProtectedRoute` denials, and post-login fallback.

@@ -7,6 +7,12 @@ export interface NavMenuItem {
   code?: string;
   path?: string;
   roles?: string[];
+  /**
+   * Sidebar visibility only: roles that see this entry in the Sidebar. Unlike `roles`, it does not
+   * restrict the route — such entries are shortcuts to pages owned by another menu entry and are
+   * left out of route guards and the permission editor (see `permissionMenuConfig`).
+   */
+  sidebarRoles?: string[];
   items?: NavMenuItem[];
 }
 

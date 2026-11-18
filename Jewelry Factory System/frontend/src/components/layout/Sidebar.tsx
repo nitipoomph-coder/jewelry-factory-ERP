@@ -40,7 +40,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     .filter(g => isGroupAllowed(g.id, g.items))
     .map(g => ({
       ...g,
-      items: g.items?.filter(item => (!item.roles || item.roles.includes(role)) && isItemAllowed(item.id, g.id)),
+      items: g.items?.filter(item =>
+        (!item.roles || item.roles.includes(role)) &&
+        (!item.sidebarRoles || item.sidebarRoles.includes(role)) &&
+        isItemAllowed(item.id, g.id)
+      ),
     }))
     .filter(g => Boolean(g.path || (g.items && g.items.length > 0)));
 

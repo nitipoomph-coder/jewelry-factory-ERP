@@ -41,7 +41,6 @@ export function isNavigationPathActive(
       pathname === LEGACY_CUSTOMER_TRENDS_PATH ||
       pathname === '/dashboard/customer/trends' ||
       pathname === '/dashboard/customer-trends' ||
-      pathname === '/dashboard/sales-customer-detail' ||
       pathname === '/dashboard/sales-customer-groups'
     );
   }

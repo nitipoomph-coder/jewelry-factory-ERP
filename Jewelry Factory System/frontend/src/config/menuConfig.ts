@@ -23,7 +23,9 @@ export const menuConfig: NavMenuGroup[] = [
     items: [
       { id: 'dash-cust', label: 'Sales Summary', path: '/dashboard/customer' },
       { id: 'dash-matrix', label: 'Customer Report Matrix', path: '/dashboard/customer/matrix' },
-      /* { id: 'dash-order-trends', label: 'Order Trends', path: '/dashboard/customer/trends' },*/
+      // Admin-only shortcuts to pages that are otherwise reached only by drill-down (access unchanged — see sidebarRoles)
+      { id: 'dash-order-trends', label: 'Order Trends', path: '/dashboard/customer/trends', sidebarRoles: ['admin'] },
+      { id: 'dash-order-list', label: 'Order List', path: '/dashboard/sales-customer-detail', sidebarRoles: ['admin'] },
       { id: 'dash-top-orders', label: 'Top Item Gallery', path: '/dashboard/top-orders' },
       { id: 'dash-top-orders-analytics', label: 'Top Items Qty', path: '/dashboard/top-orders/analytics' },
     ],
@@ -164,3 +166,12 @@ export const menuConfig: NavMenuGroup[] = [
     ],
   },
 ];
+
+/**
+ * Menu entries that own pages: used by route guards (authRedirect) and the per-user permission editor.
+ * Sidebar-only shortcuts (`sidebarRoles`) are left out, so adding one never changes who can open a page.
+ */
+export const permissionMenuConfig: NavMenuGroup[] = menuConfig.map(group => ({
+  ...group,
+  items: group.items?.filter(item => !item.sidebarRoles),
+}));

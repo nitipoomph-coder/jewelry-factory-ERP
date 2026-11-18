@@ -11,11 +11,12 @@ Sales Analytics sidebar must stay flat. Do not add a nested `Summary` sub-parent
 Current `Sales Analytics` sidebar items:
 - `Sales Summary` -> `/dashboard/customer`
 - `Customer Report Matrix` -> `/dashboard/customer/matrix`
-- `Order Trends` -> `/dashboard/customer/trends`
+- `Order Trends` -> `/dashboard/customer/trends` (admin only, `sidebarRoles`)
+- `Order List` -> `/dashboard/sales-customer-detail` (admin only, `sidebarRoles`)
 - `Top Item Gallery` -> `/dashboard/top-orders`
 - `Top Items Qty` -> `/dashboard/top-orders/analytics`
 
-Order Trends is now a sidebar item under Sales Analytics. The sidebar keeps `Order Trends` active while users are on Order Trends.
+Order Trends and Order List are sidebar shortcuts for admin only. Other roles still open Order List from Customer Report Matrix (customer / group click) and Order Trends from Order List — page access is unchanged (`sidebarRoles` hides the entry, it does not restrict the route).
 Direct/detail Sales routes may exist without being sidebar items. Do not add them to the sidebar unless the user explicitly asks.
 
 Avoid this confusing hierarchy:
