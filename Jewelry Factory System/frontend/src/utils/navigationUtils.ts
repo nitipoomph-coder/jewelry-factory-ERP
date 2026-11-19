@@ -48,8 +48,7 @@ export function isNavigationPathActive(
   if (itemPath === '/po-tracker') {
     return (
       pathname === '/po-tracker' ||
-      pathname.startsWith('/po-tracker/') ||
-      pathname.startsWith('/item-detail/')
+      pathname.startsWith('/po-tracker/')
     );
   }
 

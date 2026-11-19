@@ -43,13 +43,6 @@ function getFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
       { label: 'Order Detail' },
     ];
   }
-  if (pathname.startsWith('/item-detail')) {
-    return [
-      { label: 'Production' },
-      { label: 'PO Tracker', path: '/po-tracker' },
-      { label: 'Item Detail' },
-    ];
-  }
   if (pathname === '/po-tracker') {
     return [{ label: 'Production' }, { label: 'PO Tracker' }];
   }

@@ -297,7 +297,7 @@ export default function SalesCustomerGroupDetail() {
                         <td style={td}>{row.shipTo || '-'}</td>
                         <td style={td}>{row.ordStamp || '-'}</td>
                         <td style={td}>{row.ordMaker || '-'}</td>
-                        <td style={tdStrong}><button onClick={() => navigate(`/item-detail/${encodeURIComponent(row.itemNo)}`)} style={linkButton}>{row.itemNo}</button></td>
+                        <td style={tdStrong}>{row.itemNo}</td>
                         <td style={td}>{row.itemSku || '-'}</td>
                         <td style={tdStrong}>{row.productTypeCode || '-'}</td>
                         <td style={td}>{row.custItem || '-'}</td>
@@ -383,7 +383,6 @@ const td: CSSProperties = { height: 48, padding: '6px 8px', color: 'var(--color-
 const tdStrong: CSSProperties = { ...td, fontWeight: 900 };
 const tdRight: CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
-const linkButton: CSSProperties = { background: 'none', border: 'none', color: 'var(--color-brand-600)', fontWeight: 900, cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)' };
 
 
 

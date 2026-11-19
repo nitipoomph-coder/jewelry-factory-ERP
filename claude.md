@@ -259,7 +259,6 @@ gemstone-lifecycle-management/
     │       │   ├── POTrackerAdvanced.tsx       # ⭐ PO Tracker main (list view)
     │       │   ├── SalesCustomerGroupDetail.tsx     # ✅ Customer Order List
     │       │   ├── OrderDetailPage.tsx         # Order detail (by ord/po/group)
-    │       │   ├── ItemDetailPage.tsx          # Item-level detail
     │       │   ├── ProductionSummaryPage.tsx   # ⭐ Production Summary (chart + table, period-aware)
     │       │   ├── ProductionForecastPage.tsx  # Production Forecast (wrapper)
     │       │   ├── FBEOrderTrackPage.tsx       # ⭐ FBE 17-step order tracker

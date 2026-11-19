@@ -6,7 +6,6 @@ import DashboardDetail from './pages/DashboardDetail';
 import CustomerDashboard from './pages/CustomerDashboard';
 import CustomerDashboardLayout from './pages/CustomerDashboardLayout';
 import CustomerReportPage from './pages/CustomerReportPage';
-import ItemDetailPage from './pages/ItemDetailPage';
 import LoginPage from './pages/login/LoginPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -163,7 +162,8 @@ export default function App() {
             <Route path="/po-tracker/po/:poNo" element={<OrderDetailPage />} />
             <Route path="/po-tracker/ord/:ordNo" element={<OrderDetailPage />} />
             <Route path="/po-tracker/:ordNo" element={<OrderDetailPage />} />
-            <Route path="/item-detail/:id" element={<ItemDetailPage />} />
+            {/* Item Detail (unfinished placeholder) was removed — old links land on the user's home page */}
+            <Route path="/item-detail/:id" element={<Navigate to="/" replace />} />
 
             {/* Audit Module (Admin Only) */}
             <Route path="/audit" element={<Navigate to="/audit/cctv-report" replace />} />
