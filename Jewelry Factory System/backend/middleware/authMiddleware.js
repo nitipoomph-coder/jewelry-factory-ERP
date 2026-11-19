@@ -23,6 +23,12 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized: Session terminated by administrator' });
     }
 
+    // Web access is granted per account; also ends sessions issued before access was removed
+    const permissionService = require('../services/permissionService');
+    if (!permissionService.hasWebAccess(decoded.username)) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: This account does not have access to the web system' });
+    }
+
     // Update active session timestamp and presence activity in memory (Zero-DB)
     const clientIp = (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip;
     let pagePath = req.headers['x-page-path'] || '';

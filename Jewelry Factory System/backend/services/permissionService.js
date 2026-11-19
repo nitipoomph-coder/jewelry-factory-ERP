@@ -66,13 +66,17 @@ class PermissionService {
     }
   }
 
-  getUserPermissions(username, role = 'sales') {
+  // Only accounts listed in the permissions file have menus. An unlisted account
+  // (e.g. any other PCCUser login) gets no menus — web access is granted per user.
+  // Callers may still pass a role; it no longer supplies default menus.
+  getUserPermissions(username) {
     const key = (username || '').toUpperCase();
-    if (this.permissions[key]) {
-      return this.permissions[key];
-    }
-    const normalizedRole = (role || 'sales').toLowerCase();
-    return DEFAULT_ROLE_MENUS[normalizedRole] || DEFAULT_ROLE_MENUS.sales;
+    return Array.isArray(this.permissions[key]) ? this.permissions[key] : [];
+  }
+
+  /** True when the account is listed with at least one menu (gate for login and every API call). */
+  hasWebAccess(username) {
+    return this.getUserPermissions(username).length > 0;
   }
 
   setUserPermissions(username, menuIds) {

@@ -706,7 +706,7 @@ APP_SALES_PASSWORD=<sales login password>
 
 ## Important Notes
 
-1. **Internal Tooling**: Designed for intranet deployment within the factory LAN, secured with JWT, role-based access control (admin/sales), and per-user menu permissions (`allowedMenus`) — sales role defaults to Sales Analytics + the Production group (incl. PO Tracker); admin role has full access. See "2026-11-09 Menu Permission Enforcement".
+1. **Internal Tooling**: Designed for intranet deployment within the factory LAN, secured with JWT, role-based access control (admin/sales), and per-user menu permissions (`allowedMenus`) — only accounts listed in the permissions file can sign in (currently ADMIN with full access and SALES with Sales Analytics + the Production group incl. PO Tracker). See "2026-11-09 Menu Permission Enforcement".
 2. **Production DB Queries**: Handle heavy queries responsibly; utilize caching for expensive analytical requests.
 3. **Typography**: Uses Roboto as the core application and data table font family.
 4. **Legacy Migration**: Progressively modernizing VB.NET modules; remaining unported modules are represented with placeholders.
@@ -1179,7 +1179,9 @@ All bar charts across the system have been standardized with consistent styling 
 ## 2026-11-09 Menu Permission Enforcement
 
 ### Rule (same as Sidebar)
-A user may open a page when their `allowedMenus` is unrestricted (`null`), contains `*`, or contains the page's **menu item id or its group id** (a group permission grants every child). Per-user permissions come from `backend/services/permissionService.js` (`backend/data/user_menu_permissions.json`, gitignored; users not listed fall back to role defaults). Default sales permissions include the Production group (`order-tracker`) and `po-tracker` — sales access to PO Tracker is intentional.
+A user may open a page when their `allowedMenus` is unrestricted (`null`), contains `*`, or contains the page's **menu item id or its group id** (a group permission grants every child). Per-user permissions come from `backend/services/permissionService.js` (`backend/data/user_menu_permissions.json`, gitignored). Sales permissions include the Production group (`order-tracker`) and `po-tracker` — sales access to PO Tracker is intentional.
+
+**Web access is granted per account**: every `PCCUser` account can pass the password check, but only an account listed in the permissions file with at least one menu has web access (`permissionService.hasWebAccess`). Unlisted accounts get no menus (no role defaults). Login with valid credentials but no access → **403** `NO_WEB_ACCESS` ("This account does not have access to the web system. Please contact the administrator."), audit `LOGIN_DENIED`, not counted toward the IP ban. `authMiddleware` checks the same rule on every API call, so a token of an account whose access was removed gets **401**. To grant access, tick at least one menu for the account in the admin permission editor.
 
 **Sidebar-only shortcuts (`sidebarRoles`)**: a menu item with `sidebarRoles` is shown in the Sidebar only to those roles and changes no access. It is left out of `permissionMenuConfig` (`config/menuConfig.ts`), which route guards (`authRedirect.ts`) and the permission editor (`MenuPermissionsModal`, `UserAccessDrawer`) use. Current shortcut (admin): Order List under Sales Analytics.
 

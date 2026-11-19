@@ -78,6 +78,26 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
+    // Web access is granted per account (permissions file). A valid PCCUser login
+    // without granted menus is refused — not counted as a failed attempt (no IP ban).
+    const permissionService = require('../services/permissionService');
+    if (!permissionService.hasWebAccess(username)) {
+      auditService.logEvent({
+        category: 'AUTH',
+        action: 'LOGIN_DENIED',
+        actor: username,
+        ip: clientIp,
+        status: 'FAILED',
+        severity: 'MEDIUM',
+        details: 'Valid credentials but the account has no web access',
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'NO_WEB_ACCESS',
+        message: 'This account does not have access to the web system. Please contact the administrator.',
+      });
+    }
+
     // Ensure JWT_SECRET is configured — refuse to run with a weak fallback
     if (!process.env.JWT_SECRET) {
       console.error('[FATAL] JWT_SECRET is not set in .env — refusing to issue tokens');
@@ -90,8 +110,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '12h' }
     );
 
-    const permissionService = require('../services/permissionService');
-    const allowedMenus = permissionService.getUserPermissions(username, role);
+    const allowedMenus = permissionService.getUserPermissions(username);
 
     // Record active session and log successful login event
     auditService.recordSession(token, { id: userId, username, role, name: fullName }, clientIp, req.headers['user-agent']);
