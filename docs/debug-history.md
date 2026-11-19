@@ -501,3 +501,22 @@ Both pages sent `customers=` built from `CUSTOMER_GROUPS[].prefixes`. General is
 - Cause: `loadOverviewData` (`useOrderVolumeSummaryData.ts`) sent `startDate`, `endDate`, `wStart`, `wEnd`, `dateField` but its `useCallback` dependencies held only years + months. The Day preset changes only `dateFrom` / `dateTo`, so the data stayed on the previous period. The Topbar Refresh button only bumps `refreshCounter`, which the page did not read, so nothing reloaded and `isRefreshing` stayed true.
 - Fix: those period fields added to the `useCallback` dependencies; `refreshCounter` added to the `useEffect` that runs the load (same pattern as Sales Summary / Customer Report).
 - Lesson: when a request is built from an object, every field sent must be a dependency — lint warnings about missing dependencies on data loaders are real bugs.
+
+---
+
+## Issue: Dark Styles Mixed Into the Light Theme After Logout / Login
+**Date:** 2026-11-19
+**Component:** `pages/login/hooks/useLoginController.ts`, `contexts/ThemeContext.tsx`
+
+### Symptoms:
+After logging out of `modern-dark` / `dark-gold` and logging in again, the page used royal-white colors but some controls used their `dark:` styles (e.g. Topbar workspace switcher: near-white text, dark icon tile, gray hover). F5 fixed it. Picking the previous dark theme from the menu did nothing.
+
+### Root Cause:
+The login page forced royal-white by editing `body` classes and `localStorage` directly. It did not remove the Tailwind `dark` class (set on `html` / `body` by `ThemeContext`) and did not update the `ThemeContext` state. Logout uses `navigate('/login')` (no reload), so the old dark state and `dark` class survived into the next session.
+Verified by rendering the switcher with the built CSS in headless Chrome: royal-white + `dark` class reproduces the screenshot; royal-white alone renders correctly.
+
+### Fix:
+The login page calls `setTheme('royal-white')` from `useTheme()`, so state, body classes, the `dark` class and `localStorage` change together.
+
+### Prevention & Lessons Learned:
+1. Change the theme only through `ThemeContext` — never edit theme classes or `app-theme` directly.

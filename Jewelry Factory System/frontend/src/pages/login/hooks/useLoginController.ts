@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../contexts/ToastContext';
+import { useTheme } from '../../../contexts/useTheme';
 import { authAPI } from '../../../services/authAPI';
 import { resolvePostLoginPath, RETURN_TO_PARAM } from '../../../utils/authRedirect';
 import {
@@ -14,6 +15,7 @@ export function useLoginController() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
+  const { setTheme } = useTheme();
   const [backgroundIndex, setBackgroundIndex] = useState(0);
   const [isRequestAccess, setIsRequestAccess] = useState(false);
 
@@ -31,11 +33,14 @@ export function useLoginController() {
 
   const copy = LOGIN_TEXT;
 
+  // Login always uses royal-white. Go through ThemeContext so the theme state, body classes,
+  // the Tailwind `dark` class, and localStorage stay in sync (setting body classes directly left
+  // `dark` behind after logging out of a dark theme, mixing dark styles into the light theme).
   useEffect(() => {
-    localStorage.setItem('app-theme', 'royal-white');
-    document.body.classList.remove('theme-dark-gold', 'theme-modern-dark');
-    document.body.classList.add('theme-royal-white');
+    setTheme('royal-white');
+  }, [setTheme]);
 
+  useEffect(() => {
     const interval = window.setInterval(() => {
       setBackgroundIndex((current) => (current + 1) % BACKGROUND_IMAGES.length);
     }, 6000);
