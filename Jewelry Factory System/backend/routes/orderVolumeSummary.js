@@ -3,15 +3,20 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // Route:  GET /api/dashboard/sales-orders
 // Page:   Order List (/dashboard/sales-customer-detail) — drill-down from Customer Report Matrix
-// Data:   order lines from the lean view VW_Web_OrderTrends (read-only, NOLOCK)
-// Filter: years / months / date range (buildSalesFilters) + customers or excludeCustomers (General group)
+// Data:   order lines from VW_Web_SalesDashboard (read-only, NOLOCK) — the same view and
+//         filters as Sales Summary / Customer Report (/api/dashboard/customer-summary), so the
+//         drill-down totals reconcile with the page it was opened from. The view leaves out
+//         non-sales prefixes (BBP pre-production, BBL location split of BBC orders, BBT returns,
+//         BBS showroom, BBK stock, BBD development samples).
+// Filter: years / months / week range / day range / date basis (buildSalesFilters)
+//         + customers or excludeCustomers (General group)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const express = require('express');
 const router = express.Router();
-const { getPool, sql } = require('../db');
+const { getPool } = require('../db');
 
-const SALES_ANALYTICS_VIEW = 'dbo.VW_Web_OrderTrends';
+const SALES_VIEW = 'dbo.VW_Web_SalesDashboard';
 
 const { salesDateBasis, buildSalesFilters } = require('../utils/dateFilters');
 
@@ -21,45 +26,42 @@ router.get('/sales-orders', async (req, res) => {
     const pool = await getPool();
     const request = pool.request();
     const { dateExpr } = salesDateBasis(req, 'v');
-    let { whereSql } = buildSalesFilters(req, request, 'v', dateExpr);
-
-    const bucket = req.query.bucket;
-    const department = req.query.department;
-
-    if (bucket) {
-      request.input('paramBucket', sql.NVarChar, bucket);
-      whereSql += ` AND v.DueRiskBucket = @paramBucket`;
-    }
-    if (department) {
-      request.input('paramDept', sql.NVarChar, department);
-      whereSql += ` AND v.CurrentDepartment = @paramDept`;
-    }
+    const { whereSql } = buildSalesFilters(req, request, 'v', dateExpr);
 
     const result = await request.query(`
       SELECT
         v.OrdWeek AS ordWeek,
         v.OrdNo AS orderNo,
+        v.OrdLineNo AS ordLineNo,
         v.PONo AS poNo,
         v.PO2 AS po2,
         v.OrdDate AS ordDate,
         v.DueDate AS dueDate,
         v.CustDueDate AS custDate,
         v.CustCode AS customerCode,
-        v.OrdKind AS ordKind,
-        v.Metal AS metal,
+        v.SalesName AS salesName,
         v.ShipTo AS shipTo,
+        v.OrdStamp AS ordStamp,
+        v.OrdMaker AS ordMaker,
         v.ItemNo AS itemNo,
+        v.[Item SKU] AS itemSku,
         LEFT(ISNULL(v.ItemNo, ''), 3) AS productTypeCode,
+        v.[Cust Item] AS custItem,
+        v.ItemType AS itemType,
+        v.ItemMat AS itemMat,
+        v.ItemSize AS itemSize,
+        v.ItemStone AS itemStone,
+        v.ItemDesc AS itemDesc,
+        v.ItemPlate AS itemPlate,
+        v.SetType AS setType,
+        v.ItemWeight AS itemWeight,
         v.ItemQty AS orderQty,
         v.ExportQty AS shippedQty,
         v.OpenQty AS openQty,
         v.ItemPrice AS itemPrice,
         v.ItemAmnt AS itemAmnt,
-        ISNULL(v.ExportQty * v.ItemPrice, 0) AS shippedAmnt,
-        v.DaysToCustDue AS daysToCustDue,
-        v.DueRiskBucket AS dueRiskBucket,
-        v.CurrentDepartment AS currentDepartment
-      FROM ${SALES_ANALYTICS_VIEW} v WITH (NOLOCK)
+        ISNULL(v.ExportQty * v.ItemPrice, 0) AS shippedAmnt
+      FROM ${SALES_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
       ORDER BY v.OrdDate DESC, v.OrdNo, v.OrdLineNo
     `);

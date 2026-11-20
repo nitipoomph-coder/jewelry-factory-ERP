@@ -146,7 +146,7 @@ Customers are classified into **7 Standard Customer Groups** based on `CustCode`
    - 12-month calendar matrix and annual totals broken down by individual accounts and customer groups.
 
 3. **Order List (`/dashboard/sales-customer-detail`):**
-   - Order line drill-down opened from the Customer Matrix; reads `VW_Web_OrderTrends` via `/api/dashboard/sales-orders`.
+   - Order line drill-down opened from the Customer Matrix; reads `VW_Web_SalesDashboard` via `/api/dashboard/sales-orders` with the same filters as `/api/dashboard/customer-summary`, so its totals reconcile with Sales Summary / Customer Report.
 
 4. **Top Item Gallery (`/dashboard/top-orders`):**
    - Identifies items with the highest **`SUM(ItemQty)`** for each customer account in the selected year, streaming imagery dynamically from the Photo Server bridge (`/api/photos/ps/:itemNo`).
@@ -155,7 +155,9 @@ Customers are classified into **7 Standard Customer Groups** based on `CustCode`
 
 ## 7. Database View Schema: `dbo.VW_Web_OrderTrends`
 
-Central view for the Order List drill-down ensuring 100% alignment with operational factory logic:
+> Not read by any web page since 2026-11-19 (Order Trends was removed; Order List moved to `VW_Web_SalesDashboard`). The view still exists in the database — do not drop it (read-only policy).
+
+Order-line view with factory process quantities:
 
 ```sql
 -- Key Columns in dbo.VW_Web_OrderTrends

@@ -717,6 +717,8 @@ APP_SALES_PASSWORD=<sales login password>
 
 Based on latest order activity analysis (latest `OrdDate`) across the complete `OrdHD` table, order prefixes are categorized into active and obsolete groups:
 
+**Prefix meanings** (legacy PCC menu `FrmMain.Designer.vb`, matched against live data 2026-11-19): BBC customer order · BBQ QA / TOP / testing samples · BBP pre-production order (season POs such as `HO26`, mostly no price, not exported) · BBK stock order · BBS showroom order · BBE external outsource · BBL location split export order (splits the quantity of an existing BBC order per ship-to — counting both double-counts) · BBR repair order · BBT returns from customer · BBF finish order resell · BBX extra qty order · BBD development samples to ship · BBI development samples, incomplete item cost. Sales views (`VW_Web_SalesDashboard`) leave out BBP, BBK, BBS, BBL, BBT, BBD like the legacy sales reports.
+
 ### ✅ Active Orders (Active with transactions in 2025–2026)
 | Prefix | Total Order Count | Latest Activity | Operational Notes |
 |--------|-------------------|-----------------|-------------------|

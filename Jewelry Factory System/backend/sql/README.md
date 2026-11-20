@@ -96,7 +96,7 @@ In the original legacy stored procedures, each procedure performed `LEFT JOIN GM
 The authoritative Single Source of Truth view powering three key web modules:
 1. **Customer Dashboard (Chart)** (`/dashboard/customer`) — Trend projections and YoY KPIs.
 2. **Customer Matrix Report** (`/dashboard/customer/matrix`) — Monthly and annual dense reporting matrices.
-3. **Order List** (`/dashboard/sales-customer-detail`) — Order line drill-down from the Customer Matrix (`VW_Web_OrderTrends`).
+3. **Order List** (`/dashboard/sales-customer-detail`) — Order line drill-down from the Customer Matrix (same view and filters, so totals reconcile).
 
 #### 📌 Business Logic & Data Normalization:
 1. **Order Status:** Filters strictly for `ISNULL(OrdStatus, '') <> 'C'` (excludes canceled orders).

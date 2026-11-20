@@ -110,7 +110,7 @@ Do not move Matrix state to `sessionStorage` only unless shareable/report URLs a
 `SalesCustomerGroupDetail.tsx`, route `/dashboard/sales-customer-detail`.
 
 - Opened from Customer Report Matrix: a customer row sends `customers=<code>`, a group row sends `groups=<id>`; the page also keeps the report's period / metric query.
-- Data: `GET /api/dashboard/sales-orders` (`VW_Web_OrderTrends`). Groups are sent through `getGroupCustomerFilter` (General → `excludeCustomers`).
+- Data: `GET /api/dashboard/sales-orders` reads `VW_Web_SalesDashboard` with the same filters as Sales Summary (`/customer-summary`): years, months, week range (`preset=week` → `wStart`/`wEnd`), day range (`preset=day` → `dateFrom`/`dateTo` sent as `startDate`/`endDate`) and date basis (`dateField`). Per-customer qty and amount match Sales Summary. Groups are sent through `getGroupCustomerFilter` (General → `excludeCustomers`).
 - Back button `Customer Report` returns to `/dashboard/customer/matrix` with the same query minus `customers` / `groups`.
 
 ## Sales vs Production Boundary

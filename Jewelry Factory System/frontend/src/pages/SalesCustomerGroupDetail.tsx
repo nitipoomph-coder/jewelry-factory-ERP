@@ -24,7 +24,8 @@ const fmtDate = (value: string | null) => {
 };
 const fmtQty = (value: number) => (value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
 const fmtAmount = (value: number) => `$${(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fmtTableAmount = (value: number) => `$${(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtWeight = (value: number) => (value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtTableAmount =(value: number) => `$${(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function csv(value: string | null) {
   return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
@@ -58,6 +59,14 @@ export default function SalesCustomerGroupDetail() {
   );
   const metric = searchParams.get('metric') === 'qty' ? 'qty' : 'amount';
   const customersKey = requestedCustomers.join('|');
+  // Period exactly as Sales Summary / Customer Report send it (same URL params from usePeriodSetup)
+  const preset = searchParams.get('preset');
+  const dateField = searchParams.get('dateField') === 'dueDate' ? 'dueDate' : 'ordDate';
+  const weekFrom = preset === 'week' ? Number(searchParams.get('wStart')) || undefined : undefined;
+  const weekTo = preset === 'week' ? Number(searchParams.get('wEnd')) || undefined : undefined;
+  const dayFrom = preset === 'day' ? searchParams.get('dateFrom') || undefined : undefined;
+  const dayTo = preset === 'day' ? searchParams.get('dateTo') || undefined : undefined;
+  const filteredMonths = useMemo(() => (months.length > 0 && months.length < 12 ? months : []), [months]);
 
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>(requestedCustomers);
   const [rows, setRows] = useState<SalesOrderRow[]>([]);
@@ -81,10 +90,15 @@ export default function SalesCustomerGroupDetail() {
     try {
       const data = await fetchSalesOrders({
         years,
-        months,
+        months: filteredMonths,
         customers: selectedCustomers,
         excludeCustomers: excludeCustomersKey ? excludeCustomersKey.split('|') : [],
         types,
+        dateField,
+        wStart: weekFrom,
+        wEnd: weekTo,
+        startDate: dayFrom,
+        endDate: dayTo,
       });
       setRows(data);
     } catch (err) {
@@ -92,7 +106,7 @@ export default function SalesCustomerGroupDetail() {
     } finally {
       setLoading(false);
     }
-  }, [years, months, selectedCustomers, excludeCustomersKey, types]);
+  }, [years, filteredMonths, selectedCustomers, excludeCustomersKey, types, dateField, weekFrom, weekTo, dayFrom, dayTo]);
 
   useEffect(() => {
     const loadTimer = window.setTimeout(() => { void loadSalesOrders(); }, 0);
@@ -119,7 +133,7 @@ export default function SalesCustomerGroupDetail() {
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const baseRows = q ? rows.filter(row => [row.orderNo, row.poNo, row.itemNo, row.customerCode, row.customerName, row.itemType].some(value => String(value || '').toLowerCase().includes(q))) : rows;
+    const baseRows = q ? rows.filter(row => [row.orderNo, row.poNo, row.itemNo, row.customerCode, row.itemDesc, row.itemType].some(value => String(value || '').toLowerCase().includes(q))) : rows;
     return [...baseRows].sort((a, b) => {
       if (metric === 'qty') return Number(b.orderQty || 0) - Number(a.orderQty || 0);
       return Number(b.itemAmnt || 0) - Number(a.itemAmnt || 0);
@@ -192,7 +206,7 @@ export default function SalesCustomerGroupDetail() {
       'ItemDesc': row.itemDesc || '',
       'Itemplate': row.itemPlate || '',
       'SetType': row.setType || '',
-      'ItemWeight': 0,
+      'ItemWeight': row.itemWeight || 0,
       'ItemQTY': row.orderQty || 0,
       'ItemPrice': row.itemPrice || 0,
       'ItemAmt': row.itemAmnt || 0,
@@ -216,7 +230,7 @@ export default function SalesCustomerGroupDetail() {
           <div style={{ ...pageHeader, alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <button onClick={() => navigate(reportPath)} style={backButton}><ArrowLeft size={14} /> Customer Report</button>
-              <span style={{ ...pageSubtitle, margin: 0 }}>{years.join(', ') || 'All Years'} / {monthSummary(months)} / sorted by {metric === 'amount' ? 'Sales Amount' : 'Ordered Qty'}</span>
+              <span style={{ ...pageSubtitle, margin: 0 }}>{years.join(', ') || 'All Years'} / {weekFrom && weekTo ? `Week ${weekFrom}–${weekTo}` : dayFrom && dayTo ? `${dayFrom} – ${dayTo}` : monthSummary(months)} / {dateField === 'dueDate' ? 'Due Date' : 'Order Date'} / sorted by {metric === 'amount' ? 'Sales Amount' : 'Ordered Qty'}</span>
             </div>
             <div style={headerActions}>
               <ErpSegmentedControl
@@ -283,9 +297,10 @@ export default function SalesCustomerGroupDetail() {
                 <tbody>
                   {loading && <DetailSkeletonRows columns={27} />}
                   {!loading && pageRows.length === 0 && <tr><td colSpan={27} className="sales-dense-empty">No orders match the current filter.</td></tr>}
-                  {!loading && pageRows.map(row => {
+                  {!loading && pageRows.map((row, index) => {
                     return (
-                      <tr key={`${row.orderNo}-${row.itemNo}`}>
+                      // OrdNo + OrdLineNo is not unique in OrdDT, so the position keeps keys unique
+                      <tr key={`${row.orderNo}-${row.ordLineNo}-${index}`}>
                         <td style={tdStrong}>{row.orderNo}</td>
                         <td style={td}>{fmtDate(row.ordDate)}</td>
                         <td style={td}>{fmtDate(row.dueDate)}</td>
@@ -307,7 +322,7 @@ export default function SalesCustomerGroupDetail() {
                         <td style={td}>{row.itemDesc || '-'}</td>
                         <td style={td}>{row.itemPlate || '-'}</td>
                         <td style={td}>{row.setType || '-'}</td>
-                        <td style={tdRight}>{fmtQty(0)}</td>
+                        <td style={tdRight}>{fmtWeight(row.itemWeight)}</td>
                         <td style={tdRight}>{fmtQty(row.orderQty)}</td>
                         <td style={tdRight}>{fmtTableAmount(row.itemPrice || 0)}</td>
                         <td style={tdRight}>{fmtTableAmount(row.itemAmnt || 0)}</td>
