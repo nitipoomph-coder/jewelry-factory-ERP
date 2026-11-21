@@ -520,3 +520,22 @@ The login page calls `setTheme('royal-white')` from `useTheme()`, so state, body
 
 ### Prevention & Lessons Learned:
 1. Change the theme only through `ThemeContext` — never edit theme classes or `app-theme` directly.
+
+---
+
+## Issue: SQL Injection Through the Day-Range Dates of Sales APIs
+**Date:** 2026-11-21
+**Component:** `backend/utils/dateFilters.js` (`buildDateRangeCondition`)
+
+### Symptoms:
+Found while reading the code for the Order List fix; no attack was observed. Any signed-in user could put SQL text in `startDate` / `endDate` (for example `2026-03-01' OR 1=1--`) on `/api/dashboard/customer-summary`, `/api/dashboard/sales-orders`, `/api/items/yearly-summary`, `/api/items/:styleNo/yearly-summary` and `/api/items/top-gallery`.
+
+### Root Cause:
+The day range is mapped onto every selected year, so the helper writes the dates into the SQL text (`'${startDate} 00:00:00'`) instead of sending them as parameters, and it did not check their format. Years, months and week numbers were already safe (parsed to integers).
+
+### Fix:
+`buildDateRangeCondition` accepts only a real calendar date in `YYYY-MM-DD` form (regex + calendar check, strings only) before writing it into SQL; anything else throws an error with `statusCode = 400`. The five routes answer `err.statusCode || 500`. Valid requests return the same results as before (Order List / Sales Summary reconciliation re-run: all pass).
+
+### Prevention & Lessons Learned:
+1. Prefer `request.input()`. When a value must be written into SQL text, validate it against a strict format first (integer, whitelist, or exact date pattern).
+2. When reviewing a shared SQL helper, check every caller's input path, not only the helper.

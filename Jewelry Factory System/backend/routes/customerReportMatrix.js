@@ -254,7 +254,7 @@ router.get('/customer-summary', async (req, res) => {
     res.json({ ok: true, data });
   } catch (err) {
     console.error('[API ERROR] /api/dashboard/customer-summary:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 });
 

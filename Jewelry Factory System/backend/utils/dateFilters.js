@@ -29,9 +29,31 @@ function salesDateBasis(req, viewAlias = 'v') {
   return { basis: 'orddate', dateExpr: viewAlias ? viewAlias + '.OrdDate' : 'OrdDate' };
 }
 
+// Error with an HTTP status, for input the client must fix (routes answer err.statusCode).
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  return err;
+}
+
+// Day-range dates are written into the SQL text (the range is mapped onto each selected year),
+// so only a real calendar date in YYYY-MM-DD form is accepted — anything else is a 400.
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+function assertIsoDate(value, name) {
+  const m = typeof value === 'string' ? ISO_DATE.exec(value) : null;
+  if (m) {
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const date = new Date(Date.UTC(y, mo - 1, d));
+    if (date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d) return;
+  }
+  throw badRequest(`Invalid ${name}: expected a date in YYYY-MM-DD format`);
+}
+
 function buildDateRangeCondition(col, yearList, monthList, startDate, endDate, wStart, wEnd) {
   // 1. Day / Custom Mode (Exact dates)
   if (startDate && endDate) {
+    assertIsoDate(startDate, 'startDate');
+    assertIsoDate(endDate, 'endDate');
     if (!yearList || yearList.length === 0) {
       return `(${col} >= '${startDate} 00:00:00' AND ${col} <= '${endDate} 23:59:59')`;
     }

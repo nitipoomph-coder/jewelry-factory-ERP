@@ -301,7 +301,7 @@ router.get('/yearly-summary', async (req, res) => {
     res.json({ ok: true, years, data });
   } catch (err) {
     console.error('[API ERROR] /api/items/yearly-summary:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 });
 // Single item yearly summary detail endpoint.
@@ -353,7 +353,7 @@ router.get('/:styleNo/yearly-summary', async (req, res) => {
     });
   } catch (err) {
     console.error('[API ERROR] /api/items/:styleNo/yearly-summary:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 });
 
@@ -746,7 +746,7 @@ router.get('/top-gallery', async (req, res) => {
     });
   } catch (err) {
     console.error('[API ERROR] /api/items/top-gallery:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 });
 

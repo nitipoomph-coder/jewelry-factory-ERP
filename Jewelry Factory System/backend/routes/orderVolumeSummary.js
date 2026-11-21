@@ -69,7 +69,7 @@ router.get('/sales-orders', async (req, res) => {
     res.json({ ok: true, data: result.recordset });
   } catch (err) {
     console.error('[API ERROR] /api/dashboard/sales-orders:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(err.statusCode || 500).json({ ok: false, error: err.message });
   }
 });
 
