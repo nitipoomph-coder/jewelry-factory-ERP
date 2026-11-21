@@ -561,3 +561,21 @@ Removed the row entrance animation (and the `--searching` class that only switch
 ### Prevention & Lessons Learned:
 1. Do not animate or transition table rows / cells in large data tables; hover feedback should change instantly.
 2. Measure scrolling with mouse movement over the rows, not only with the wheel — hover is what triggers the extra work.
+
+---
+
+## Issue: Every Period Filter Defaulted to 2027
+**Date:** 2026-11-21
+**Component:** `backend/routes/productionDashboard.js` (`GET /api/dashboard/years`), `hooks/usePeriodSetup.ts`
+
+### Symptoms:
+Sales Summary, Customer Report, Top Item Gallery and the other period filters opened on 2027 (in November 2026), and 2021 disappeared from the year list.
+
+### Root Cause:
+One order was saved in the legacy system with a mistyped order date: `BBC2617062` (U379, PO `JB26_1613`) has `OrdDate` 2027-01-11 but `DueDate` 2026-12-28. The years API returned every distinct `YEAR(OrdDate)` (newest six), and `usePeriodSetup` uses the newest year as the default base year.
+
+### Fix:
+The years API returns only years up to the current server year (`YEAR(OrdDate) <= YEAR(GETDATE())`). The order date itself must be corrected in the legacy system (the web app does not write to the database).
+
+### Prevention & Lessons Learned:
+1. Lists built from `DISTINCT` values of user-entered dates need a sanity bound; one bad row can change every page's default.

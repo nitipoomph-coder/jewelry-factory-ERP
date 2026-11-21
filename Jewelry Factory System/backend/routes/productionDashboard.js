@@ -768,9 +768,12 @@ router.get('/years', async (req, res) => {
     const pool = await getPool();
     const request = pool.request();
     const result = await request.query(`
+      -- Years up to the current year only: a mistyped future OrdDate (e.g. one order dated
+      -- 2027-01-11 in Nov 2026) must not become every page's default year.
       SELECT DISTINCT YEAR(OrdDate) AS yr
       FROM OrdHD WITH (NOLOCK)
       WHERE OrdDate IS NOT NULL
+        AND YEAR(OrdDate) <= YEAR(GETDATE())
       ORDER BY yr DESC;
 
       SELECT MIN(YEAR(OrdDate)) AS firstDataYear
