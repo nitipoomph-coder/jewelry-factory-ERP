@@ -539,3 +539,25 @@ The day range is mapped onto every selected year, so the helper writes the dates
 ### Prevention & Lessons Learned:
 1. Prefer `request.input()`. When a value must be written into SQL text, validate it against a strict format first (integer, whitelist, or exact date pattern).
 2. When reviewing a shared SQL helper, check every caller's input path, not only the helper.
+
+---
+
+## Issue: Order List Table Stutters While Scrolling
+**Date:** 2026-11-21
+**Component:** `components/sales/SalesDenseTable.css`, `pages/SalesCustomerGroupDetail.tsx`
+
+### Symptoms:
+Scrolling the Order List table was not smooth, mostly while the mouse moved over the rows.
+
+### Root Cause:
+Measured in headless Chrome with the real N098 2026 data (5,922 lines, 30 rows x 27 columns per page), CPU throttled 4x, mouse wheel + mouse movement over the table:
+- Every row had an entrance animation that kept its `transform` (`salesDenseRowIn ... both`), and every cell had a 140 ms `transition` on background / color / border. Each hover change while scrolling restarted transitions on 27 cells.
+- Result: about 290-305 style recalculations (1.2-1.7 s) and 44-71 frames over 33 ms per test run.
+- Layout count during scrolling was 0, so column widths were not the cause.
+
+### Fix:
+Removed the row entrance animation (and the `--searching` class that only switched it off) and the per-cell transitions. After the fix: 53 style recalculations (86-117 ms) and 0-14 slow frames per run (3 runs). Also pinned the `OrdNo` column (`sales-dense-table--sticky-first`) so rows stay identifiable when scrolling sideways.
+
+### Prevention & Lessons Learned:
+1. Do not animate or transition table rows / cells in large data tables; hover feedback should change instantly.
+2. Measure scrolling with mouse movement over the rows, not only with the wheel — hover is what triggers the extra work.

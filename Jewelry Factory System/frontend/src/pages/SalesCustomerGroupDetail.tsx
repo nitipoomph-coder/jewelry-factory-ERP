@@ -286,9 +286,10 @@ export default function SalesCustomerGroupDetail() {
 
           {error && <div style={errorText}>{error}</div>}
 
-          <section className={['sales-dense-panel', searchDraft.trim() ? 'sales-dense-panel--searching' : ''].filter(Boolean).join(' ')} style={tablePanel}>
+          <section className="sales-dense-panel" style={tablePanel}>
             <div className="content-scrollbar sales-dense-scroll">
-              <table className="sales-dense-table" style={tableBase}>
+              {/* OrdNo stays pinned on the left while scrolling sideways */}
+              <table className="sales-dense-table sales-dense-table--sticky-first" style={tableBase}>
                 <thead>
                   <tr>
                     {['OrdNo', 'OrdDate', 'DueDate', 'CustDate', 'CustCode', 'SalesName', 'PONo', 'PO2', 'Ship T', 'OrdStamp', 'OrdMaker', 'ItemNo', 'Item SKU', 'Type', 'Cust Item', 'ItemMat', 'ItemSize', 'ItemStone', 'ItemDesc', 'Itemplate', 'SetType', 'ItemWeight', 'ItemQTY', 'ItemPrice', 'ItemAmt', 'ExportQTY', 'ExportAmt'].map((head, index) => <th key={head} className={(index >= 21) ? 'sales-dense-table__number' : undefined}>{head}</th>)}
