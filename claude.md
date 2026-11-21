@@ -287,6 +287,7 @@ gemstone-lifecycle-management/
     │       │
     │       ├── hooks/
     │       │   ├── useCctvAuditForm.ts          # CCTV audit form state (localStorage + import/export + holidays)
+    │       │   ├── useColumnWidths.ts           # User-resizable table columns, saved per user (Order List)
     │       │   ├── usePeriodSetup.ts            # ⭐ Centralized period filter state management
     │       │   ├── useCustomerSalesData.ts      # Customer sales data hook
     │       │   ├── useCustomerReportData.ts     # Customer report data hook

@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, DollarSign, Hash, Search } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, DollarSign, Hash, RotateCcw, Search } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import { BREADCRUMBS } from '../config/breadcrumbs';
 import '../components/sales/SalesDenseTable.css';
 import './SalesResponsive.css';
 import { CUSTOMER_GROUPS, getGroupCustomerFilter } from '../config/customerGroups';
 import { fetchSalesOrders, type SalesOrderRow } from '../services/orderVolumeSummaryAPI';
-import { ErpSegmentedControl } from '../components/ui/ErpButtons';
+import { ErpButton, ErpSegmentedControl } from '../components/ui/ErpButtons';
+import { useColumnWidths } from '../hooks/useColumnWidths';
 import { Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -26,6 +27,48 @@ const fmtQty = (value: number) => (value || 0).toLocaleString(undefined, { maxim
 const fmtAmount = (value: number) => `$${(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtWeight = (value: number) => (value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTableAmount =(value: number) => `$${(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Table columns: header label (legacy VB.NET names, same as the Excel export), default width in px,
+// and the displayed text. Users can resize each column; see useColumnWidths.
+interface OrderListColumn {
+  key: string;
+  label: string;
+  width: number;
+  align?: 'right';
+  strong?: boolean;
+  value: (row: SalesOrderRow) => string;
+}
+
+const COLUMNS: OrderListColumn[] = [
+  { key: 'orderNo', label: 'OrdNo', width: 112, strong: true, value: r => r.orderNo },
+  { key: 'ordDate', label: 'OrdDate', width: 92, value: r => fmtDate(r.ordDate) },
+  { key: 'dueDate', label: 'DueDate', width: 92, value: r => fmtDate(r.dueDate) },
+  { key: 'custDate', label: 'CustDate', width: 92, value: r => fmtDate(r.custDate) },
+  { key: 'customerCode', label: 'CustCode', width: 80, strong: true, value: r => r.customerCode },
+  { key: 'salesName', label: 'SalesName', width: 140, value: r => r.salesName ?? '' },
+  { key: 'poNo', label: 'PONo', width: 110, value: r => r.poNo || '-' },
+  { key: 'po2', label: 'PO2', width: 140, value: r => r.po2 || '-' },
+  { key: 'shipTo', label: 'Ship T', width: 190, value: r => r.shipTo || '-' },
+  { key: 'ordStamp', label: 'OrdStamp', width: 170, value: r => r.ordStamp || '-' },
+  { key: 'ordMaker', label: 'OrdMaker', width: 120, value: r => r.ordMaker || '-' },
+  { key: 'itemNo', label: 'ItemNo', width: 110, strong: true, value: r => r.itemNo },
+  { key: 'itemSku', label: 'Item SKU', width: 120, value: r => r.itemSku || '-' },
+  { key: 'productTypeCode', label: 'Type', width: 60, strong: true, value: r => r.productTypeCode || '-' },
+  { key: 'custItem', label: 'Cust Item', width: 120, value: r => r.custItem || '-' },
+  { key: 'itemMat', label: 'ItemMat', width: 76, value: r => r.itemMat || '-' },
+  { key: 'itemSize', label: 'ItemSize', width: 110, value: r => r.itemSize || '-' },
+  { key: 'itemStone', label: 'ItemStone', width: 170, value: r => r.itemStone || '-' },
+  { key: 'itemDesc', label: 'ItemDesc', width: 200, value: r => r.itemDesc || '-' },
+  { key: 'itemPlate', label: 'Itemplate', width: 210, value: r => r.itemPlate || '-' },
+  { key: 'setType', label: 'SetType', width: 76, value: r => r.setType || '-' },
+  { key: 'itemWeight', label: 'ItemWeight', width: 96, align: 'right', value: r => fmtWeight(r.itemWeight) },
+  { key: 'orderQty', label: 'ItemQTY', width: 86, align: 'right', value: r => fmtQty(r.orderQty) },
+  { key: 'itemPrice', label: 'ItemPrice', width: 96, align: 'right', value: r => fmtTableAmount(r.itemPrice || 0) },
+  { key: 'itemAmnt', label: 'ItemAmt', width: 120, align: 'right', value: r => fmtTableAmount(r.itemAmnt || 0) },
+  { key: 'shippedQty', label: 'ExportQTY', width: 92, align: 'right', value: r => fmtQty(r.shippedQty) },
+  { key: 'shippedAmnt', label: 'ExportAmt', width: 120, align: 'right', value: r => fmtTableAmount(r.shippedAmnt || 0) },
+];
+const DEFAULT_COLUMN_WIDTHS: Record<string, number> = Object.fromEntries(COLUMNS.map(col => [col.key, col.width]));
 
 function csv(value: string | null) {
   return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
@@ -75,6 +118,7 @@ export default function SalesCustomerGroupDetail() {
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const { tableRef, colRef, getWidth, totalWidth, handleProps, resetAll: resetColumnWidths, isCustomized: hasCustomWidths } = useColumnWidths('order-list', DEFAULT_COLUMN_WIDTHS);
 
   useEffect(() => {
     const syncTimer = window.setTimeout(() => {
@@ -142,7 +186,7 @@ export default function SalesCustomerGroupDetail() {
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = useMemo(() => filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE), [filteredRows, currentPage]);
 
   const totals = useMemo(() => ({
     qty: filteredRows.reduce((sum, row) => sum + Number(row.orderQty || 0), 0),
@@ -281,6 +325,11 @@ export default function SalesCustomerGroupDetail() {
               >
                 <Download size={14} /> Export Excel
               </button>
+              {hasCustomWidths && (
+                <ErpButton variant="ghost" icon={<RotateCcw size={14} />} onClick={resetColumnWidths} title="Return every column to its default width">
+                  Reset widths
+                </ErpButton>
+              )}
             </div>
           </section>
 
@@ -288,51 +337,26 @@ export default function SalesCustomerGroupDetail() {
 
           <section className="sales-dense-panel" style={tablePanel}>
             <div className="content-scrollbar sales-dense-scroll">
-              {/* OrdNo stays pinned on the left while scrolling sideways */}
-              <table className="sales-dense-table sales-dense-table--sticky-first" style={tableBase}>
+              {/* OrdNo stays pinned on the left while scrolling sideways; widths are user-resizable (saved per user) */}
+              <table
+                ref={tableRef}
+                className="sales-dense-table sales-dense-table--sticky-first"
+                style={{ ...tableBase, width: totalWidth }}
+              >
+                <colgroup>
+                  {COLUMNS.map(col => <col key={col.key} ref={colRef(col.key)} style={{ width: getWidth(col.key) }} />)}
+                </colgroup>
                 <thead>
                   <tr>
-                    {['OrdNo', 'OrdDate', 'DueDate', 'CustDate', 'CustCode', 'SalesName', 'PONo', 'PO2', 'Ship T', 'OrdStamp', 'OrdMaker', 'ItemNo', 'Item SKU', 'Type', 'Cust Item', 'ItemMat', 'ItemSize', 'ItemStone', 'ItemDesc', 'Itemplate', 'SetType', 'ItemWeight', 'ItemQTY', 'ItemPrice', 'ItemAmt', 'ExportQTY', 'ExportAmt'].map((head, index) => <th key={head} className={(index >= 21) ? 'sales-dense-table__number' : undefined}>{head}</th>)}
+                    {COLUMNS.map(col => (
+                      <th key={col.key} className={col.align === 'right' ? 'sales-dense-table__number' : undefined}>
+                        <span className="sales-dense-th-label">{col.label}</span>
+                        <span className="sales-dense-resizer" {...handleProps(col.key, col.label)} />
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {loading && <DetailSkeletonRows columns={27} />}
-                  {!loading && pageRows.length === 0 && <tr><td colSpan={27} className="sales-dense-empty">No orders match the current filter.</td></tr>}
-                  {!loading && pageRows.map((row, index) => {
-                    return (
-                      // OrdNo + OrdLineNo is not unique in OrdDT, so the position keeps keys unique
-                      <tr key={`${row.orderNo}-${row.ordLineNo}-${index}`}>
-                        <td style={tdStrong}>{row.orderNo}</td>
-                        <td style={td}>{fmtDate(row.ordDate)}</td>
-                        <td style={td}>{fmtDate(row.dueDate)}</td>
-                        <td style={td}>{fmtDate(row.custDate)}</td>
-                        <td style={tdStrong}>{row.customerCode}</td>
-                        <td style={td}>{row.salesName}</td>
-                        <td style={td}>{row.poNo || '-'}</td>
-                        <td style={td}>{row.po2 || '-'}</td>
-                        <td style={td}>{row.shipTo || '-'}</td>
-                        <td style={td}>{row.ordStamp || '-'}</td>
-                        <td style={td}>{row.ordMaker || '-'}</td>
-                        <td style={tdStrong}>{row.itemNo}</td>
-                        <td style={td}>{row.itemSku || '-'}</td>
-                        <td style={tdStrong}>{row.productTypeCode || '-'}</td>
-                        <td style={td}>{row.custItem || '-'}</td>
-                        <td style={td}>{row.itemMat || '-'}</td>
-                        <td style={td}>{row.itemSize || '-'}</td>
-                        <td style={td}>{row.itemStone || '-'}</td>
-                        <td style={td}>{row.itemDesc || '-'}</td>
-                        <td style={td}>{row.itemPlate || '-'}</td>
-                        <td style={td}>{row.setType || '-'}</td>
-                        <td style={tdRight}>{fmtWeight(row.itemWeight)}</td>
-                        <td style={tdRight}>{fmtQty(row.orderQty)}</td>
-                        <td style={tdRight}>{fmtTableAmount(row.itemPrice || 0)}</td>
-                        <td style={tdRight}>{fmtTableAmount(row.itemAmnt || 0)}</td>
-                        <td style={tdRight}>{fmtQty(row.shippedQty)}</td>
-                        <td style={tdRight}>{fmtTableAmount(row.shippedAmnt || 0)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
+                <OrderListBody rows={pageRows} loading={loading} />
               </table>
             </div>
             <div className="sales-dense-pagination" style={paginationBar}>
@@ -359,6 +383,27 @@ function Kpi({ label, value }: { label: string; value: string }) {
 function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return <button onClick={onClick} style={{ ...chipButton, ...(active ? chipActive : null) }}>{label}</button>;
 }
+
+// Body rows. Memoized on the page's rows: column widths live on <col>, so resizing a column or
+// typing in the search box does not re-render the body cells.
+const OrderListBody = memo(function OrderListBody({ rows, loading }: { rows: SalesOrderRow[]; loading: boolean }) {
+  return (
+    <tbody>
+      {loading && <DetailSkeletonRows columns={COLUMNS.length} />}
+      {!loading && rows.length === 0 && <tr><td colSpan={COLUMNS.length} className="sales-dense-empty">No orders match the current filter.</td></tr>}
+      {!loading && rows.map((row, index) => (
+        // OrdNo + OrdLineNo is not unique in OrdDT, so the position keeps keys unique
+        <tr key={`${row.orderNo}-${row.ordLineNo}-${index}`}>
+          {COLUMNS.map(col => {
+            const text = col.value(row);
+            // Full text on hover when a narrowed column cuts it off
+            return <td key={col.key} style={col.align === 'right' ? tdRight : col.strong ? tdStrong : td} title={text && text !== '-' ? text : undefined}>{text}</td>;
+          })}
+        </tr>
+      ))}
+    </tbody>
+  );
+});
 
 function DetailSkeletonRows({ columns, rows = 10 }: { columns: number; rows?: number }) {
   const widths = [68, 72, 46, 54, 76, 48, 60, 44, 70, 58, 52, 46, 28];
@@ -394,7 +439,8 @@ const searchWrap: CSSProperties = { position: 'relative', width: 'min(420px, 100
 const searchIcon: CSSProperties = { position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' };
 const searchInput: CSSProperties = { width: '100%', height: 36, background: 'var(--color-surface-1)', border: '1px solid var(--color-border-light)', borderRadius: 8, padding: '8px 12px 8px 32px', color: 'var(--color-text-primary)', fontSize: 'var(--erp-text-control)', fontWeight: 800, outline: 'none', fontFamily: 'var(--font-body)' };
 const tablePanel: CSSProperties = { minHeight: 0, flex: 1 };
-const tableBase: CSSProperties = { minWidth: 1220 };
+// Width comes from the column widths; no min-width so narrowing a column really narrows it
+const tableBase: CSSProperties = { minWidth: 0 };
 const td: CSSProperties = { height: 48, padding: '6px 8px', color: 'var(--color-text-primary)', fontSize: 'var(--erp-text-dense)', fontWeight: 800, verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const tdStrong: CSSProperties = { ...td, fontWeight: 900 };
 const tdRight: CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };

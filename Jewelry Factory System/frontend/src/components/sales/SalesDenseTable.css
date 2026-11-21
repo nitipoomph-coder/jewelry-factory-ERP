@@ -90,6 +90,51 @@
   white-space: nowrap;
 }
 
+/* Column resize handle (hooks/useColumnWidths.ts): drag the header's right edge, double-click
+   to reset, or focus it and use the arrow keys. */
+.sales-dense-th-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sales-dense-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sales-dense-resizer::after {
+  position: absolute;
+  top: 6px;
+  right: 3px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  content: '';
+}
+
+.sales-dense-resizer:hover::after,
+.sales-dense-resizer[data-active='true']::after {
+  background: var(--color-ui-interactive);
+}
+
+.sales-dense-resizer:focus {
+  outline: none;
+}
+
+.sales-dense-resizer:focus-visible::after {
+  background: var(--color-ui-interactive);
+  box-shadow: 0 0 0 2px var(--sales-table-header-bg), 0 0 0 4px var(--color-ui-interactive);
+}
+
 /* No row entrance animation and no cell transitions: with hover changing while the table scrolls,
    they caused ~6x more style recalculation and dropped frames (measured 2026-11-21). */
 .sales-dense-table tbody tr:hover td {
