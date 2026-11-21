@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ACTIVE_GROUP_IDS, ALL_GROUPS, type CustomerGroup } from '../config/customerGroups';
+import { ALL_GROUPS, type CustomerGroup } from '../config/customerGroups';
 import { usePeriodSetup, type PeriodSetupConfig, type PeriodPreset } from './usePeriodSetup';
 import { parseListParam } from '../utils/periodUtils';
 
@@ -15,19 +15,20 @@ export function parseGroups(value: string | null) {
   return parseListParam(value).filter(groupId => groupIds.has(groupId));
 }
 
+// No `groups` param (or the old default `groups=all`) → automatic Active-group selection.
+function manualGroupsFromParam(value: string | null): string[] | null {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized || normalized === 'all') return null;
+  return parseGroups(value);
+}
+
+// Period setup + the manual part of the group selection. Pages resolve the actual selection with
+// useGroupSelection(groupSelection.manualGroups, groupSelection.setManualGroups, activeGroupIds)
+// once they know the period's Active groups.
 export function useCustomerPageFilters(availableYears: string[], configOverrides?: Partial<PeriodSetupConfig>) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Global Filter States
-  const hasGroupsParam = searchParams.has('groups');
-  
-  const requestedGroups = useMemo(() => {
-    return parseGroups(searchParams.get('groups'));
-  }, [searchParams]);
-
-  const defaultGroups = ACTIVE_GROUP_IDS;
-
-  const [selGroups, setSelGroups] = useState<string[]>(hasGroupsParam ? requestedGroups : defaultGroups);
+  const [manualGroups, setManualGroups] = useState<string[] | null>(() => manualGroupsFromParam(searchParams.get('groups')));
 
   // Initialize unified Period Setup Hook
   const periodSetupConfig = useMemo(() => ({
@@ -37,18 +38,17 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
     compareSlots: 2 as const,
     allowWeekRange: true,
     onReset: () => {
-      setSelGroups(ACTIVE_GROUP_IDS);
+      setManualGroups(null);
     },
     ...configOverrides
   }), [availableYears, configOverrides]);
 
   const periodSetup = usePeriodSetup(periodSetupConfig);
 
-  // Sync groups to URL
+  // Sync groups to URL: automatic → no param; manual → 'none' or the id list
   useEffect(() => {
-    const isAllGroups = selGroups.length === ALL_GROUP_IDS.length;
     const currentGroups = searchParams.get('groups') || '';
-    const targetGroups = selGroups.length === 0 ? 'none' : isAllGroups ? 'all' : selGroups.join(',');
+    const targetGroups = manualGroups === null ? '' : manualGroups.length === 0 ? 'none' : manualGroups.join(',');
 
     if (currentGroups !== targetGroups) {
       setSearchParams(prev => {
@@ -58,21 +58,17 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
         return next;
       }, { replace: true });
     }
-  }, [selGroups, searchParams, setSearchParams]);
-
-  const toggleGroup = (id: string) => {
-    setSelGroups(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
+  }, [manualGroups, searchParams, setSearchParams]);
 
   const isFiltered = useMemo(() => {
     const currentMonth = String(new Date().getMonth() + 1);
     const isDefaultMonth = periodSetup.committed.preset === 'month' && periodSetup.committed.selectedMonths?.length === 1 && periodSetup.committed.selectedMonths[0] === currentMonth;
     const isFullYear = periodSetup.committed.preset === 'full-year' || (periodSetup.committed.monthFrom === 1 && periodSetup.committed.monthTo === 12);
     const isPeriodFiltered = !(isDefaultMonth || isFullYear) || periodSetup.committed.compareActive1 || periodSetup.committed.compareActive2;
-    
-    const isGroupsFiltered = selGroups.length !== ACTIVE_GROUP_IDS.length || !ACTIVE_GROUP_IDS.every((id: string) => selGroups.includes(id));
+
+    const isGroupsFiltered = manualGroups !== null;
     return isPeriodFiltered || isGroupsFiltered;
-  }, [periodSetup.committed, selGroups]);
+  }, [periodSetup.committed, manualGroups]);
 
   const resetFilters = () => {
     periodSetup.actions.reset();
@@ -80,9 +76,7 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
 
   return {
     periodSetup,
-    selGroups,
-    setSelGroups,
-    toggleGroup,
+    groupSelection: { manualGroups, setManualGroups },
     isFiltered,
     resetFilters
   };

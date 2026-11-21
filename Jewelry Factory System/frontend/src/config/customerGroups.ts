@@ -83,7 +83,7 @@ export const GENERAL_GROUP: CustomerGroup = {
 /** ALL_GROUPS including General — Used for UI toggle / legend */
 export const ALL_GROUPS: CustomerGroup[] = [...CUSTOMER_GROUPS, GENERAL_GROUP];
 
-/** Groups selected by default (every group). Whether a group is Active/Inactive for a period comes from the data — see getActiveGroupIds. */
+/** Every group id. Used as the Active list before the data is known; the default selection is the period's Active groups (hooks/useGroupSelection.ts). */
 export const ACTIVE_GROUP_IDS: string[] = ALL_GROUPS.map(g => g.id);
 
 /**

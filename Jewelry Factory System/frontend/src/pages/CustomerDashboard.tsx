@@ -10,6 +10,7 @@ import { BREADCRUMBS } from '../config/breadcrumbs';
 import PeriodSetupPanel from '../components/period/PeriodSetupPanel';
 import { CustomerGroupFilter } from '../components/dashboard/customerSales/CustomerGroupFilter';
 import { useCustomerPageFilters } from '../hooks/useCustomerPageFilters';
+import { useGroupSelection } from '../hooks/useGroupSelection';
 import { FilterX } from 'lucide-react';
 import { useCustomerSalesData, getActiveCustomerCodes, type Metric, type CustomerSummaryRow } from '../hooks/useCustomerSalesData';
 import { CustomerSalesChart } from '../components/dashboard/customerSales/CustomerSalesChart';
@@ -28,9 +29,7 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
 
   const {
     periodSetup,
-    selGroups,
-    setSelGroups,
-    toggleGroup,
+    groupSelection,
     isFiltered,
     resetFilters
   } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'this-month', 'last-month', 'custom'] });
@@ -69,6 +68,8 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
     () => getActiveGroupIds(loading && custData.length === 0 ? null : getActiveCustomerCodes(custData, activeYears)),
     [loading, custData, activeYears]
   );
+  // Default selection = the Active groups (follows the period until the user changes it)
+  const { selGroups, setSelGroups, toggleGroup } = useGroupSelection(groupSelection.manualGroups, groupSelection.setManualGroups, dynamicActiveGroups);
 
   const handlePrint = useCallback(() => {
     const scopeYears = activeYears.join('-');

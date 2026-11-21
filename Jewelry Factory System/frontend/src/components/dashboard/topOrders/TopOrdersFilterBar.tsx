@@ -98,7 +98,8 @@ export function TopOrdersFilterBar({
   const activeCustomerGroups = ALL_GROUPS.filter(g => dynamicActiveGroups.includes(g.id));
   const inactiveCustomerGroups = ALL_GROUPS.filter(g => !dynamicActiveGroups.includes(g.id));
 
-  const isAllActiveSelected = selGroups.length === ALL_GROUPS.length && ALL_GROUPS.every(g => selGroups.includes(g.id));
+  // "All" selects the Active groups (the automatic default); Inactive groups stay selectable one by one.
+  const isAllActiveSelected = dynamicActiveGroups.length > 0 && dynamicActiveGroups.every(id => selGroups.includes(id));
 
   const typeOptions = PRODUCT_TYPE_OPTIONS.filter(opt => opt.value !== 'ALL');
   const activeTypes = selTypes ?? (productType && productType !== 'ALL' ? (productType === 'NONE' ? [] : productType.split(',')) : typeOptions.map(t => t.value));
@@ -411,7 +412,7 @@ export function TopOrdersFilterBar({
               <span style={{ fontWeight: 900, fontSize: 'var(--erp-text-control)', color: 'var(--color-text-primary)' }}>Customer Groups</span>
               <button
                 type="button"
-                onClick={() => isAllActiveSelected ? setSelGroups([]) : setSelGroups(ALL_GROUPS.map(g => g.id))}
+                onClick={() => isAllActiveSelected ? setSelGroups([]) : setSelGroups(dynamicActiveGroups)}
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 700,

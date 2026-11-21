@@ -5,6 +5,7 @@ import { fetchCustomerSummary } from '../services/customerSummaryAPI';
 import { ALL_GROUPS, getActiveGroupIds, getCustomerGroupId } from '../config/customerGroups';
 import { useTheme } from '../contexts/useTheme';
 import { useCustomerPageFilters } from './useCustomerPageFilters';
+import { useGroupSelection } from './useGroupSelection';
 import { getActiveCustomerCodes } from './useCustomerSalesData';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -37,7 +38,7 @@ export function useCustomerReportData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { availableYears, refreshCounter, triggerRefresh, isRefreshing, setIsChildLoading, setIsRefreshing } = useOutletContext<CustomerDashboardOutletContext>();
 
-  const { periodSetup, selGroups, setSelGroups, toggleGroup, isFiltered, resetFilters } = useCustomerPageFilters(
+  const { periodSetup, groupSelection, isFiltered, resetFilters } = useCustomerPageFilters(
     availableYears, 
     { 
       presets: ['ytd', 'custom', 'month', 'week', 'day'],
@@ -81,6 +82,8 @@ export function useCustomerReportData() {
     () => getActiveGroupIds(loading && custData.length === 0 ? null : getActiveCustomerCodes(custData, activeYears)),
     [loading, custData, activeYears]
   );
+  // Default selection = the Active groups (follows the period until the user changes it)
+  const { selGroups, setSelGroups, toggleGroup } = useGroupSelection(groupSelection.manualGroups, groupSelection.setManualGroups, dynamicActiveGroups);
 
   const periodSetupPreset = periodSetup.committed.preset;
   const viewMode: 'ytd' | 'monthly' | 'weekly' | 'daily' = periodSetupPreset === 'day' ? 'daily' : periodSetupPreset === 'week' ? 'weekly' : (periodSetupPreset === 'custom' || periodSetupPreset === 'month' ? 'monthly' : 'ytd');

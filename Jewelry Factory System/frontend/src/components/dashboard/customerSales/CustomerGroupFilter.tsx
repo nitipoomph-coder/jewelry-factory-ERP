@@ -28,7 +28,8 @@ export function CustomerGroupFilter({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAllActiveSelected = selGroups.length === ALL_GROUPS.length && ALL_GROUPS.every(g => selGroups.includes(g.id));
+  // "All" selects the Active groups (the automatic default); Inactive groups stay selectable one by one.
+  const isAllActiveSelected = dynamicActiveGroups.length > 0 && dynamicActiveGroups.every(id => selGroups.includes(id));
 
   return (
     <div style={{ position: 'relative' }} ref={groupPopoverRef}>
@@ -56,7 +57,7 @@ export function CustomerGroupFilter({
             <span style={{ fontWeight: 900, fontSize: 'var(--erp-text-control)', color: 'var(--color-text-primary)' }}>Customer Groups</span>
             <button
               type="button"
-              onClick={() => isAllActiveSelected ? setSelGroups([]) : setSelGroups(ALL_GROUPS.map(g => g.id))}
+              onClick={() => isAllActiveSelected ? setSelGroups([]) : setSelGroups(dynamicActiveGroups)}
               style={{ fontSize: 'var(--erp-text-meta)', fontWeight: 800, background: 'none', border: 'none', color: isAllActiveSelected ? 'var(--color-danger-500)' : 'var(--color-ui-interactive)', cursor: 'pointer' }}>
               {isAllActiveSelected ? 'None' : 'All'}
             </button>

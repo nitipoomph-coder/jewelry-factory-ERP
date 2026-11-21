@@ -290,7 +290,8 @@ gemstone-lifecycle-management/
     │       │   ├── usePeriodSetup.ts            # ⭐ Centralized period filter state management
     │       │   ├── useCustomerSalesData.ts      # Customer sales data hook
     │       │   ├── useCustomerReportData.ts     # Customer report data hook
-    │       │   ├── useCustomerPageFilters.ts    # Customer page filter state
+    │       │   ├── useCustomerPageFilters.ts    # Customer page filter state (period + manual group list)
+    │       │   ├── useGroupSelection.ts         # Group selection: default = the period's Active groups
     │       │   ├── usePOTrackerAdvanced.ts      # PO Tracker data hook
     │       │   └── useTopOrdersGalleryData.ts   # Top orders gallery hook
     │       │
@@ -1218,7 +1219,12 @@ A user may open a page when their `allowedMenus` is unrestricted (`null`), conta
 
 > Order Trends (`/dashboard/customer/trends`) was removed on 2026-11-18; its old URLs redirect to Sales Summary.
 
-The customer group dropdown (`CustomerGroupFilter.tsx`, `TopOrdersFilterBar.tsx`) lists groups in two sections. **A group is Active when it has ordered quantity (> 0) in the selected period under every page filter except the group filter itself**; other groups appear under "Inactive" (still selectable). Default selection is still every group (`ACTIVE_GROUP_IDS`). Until the first data load, every group is shown as active (`getActiveGroupIds(null)`), so groups do not jump between sections.
+The customer group dropdown (`CustomerGroupFilter.tsx`, `TopOrdersFilterBar.tsx`) lists groups in two sections. **A group is Active when it has ordered quantity (> 0) in the selected period under every page filter except the group filter itself**; other groups appear under "Inactive" (still selectable). Until the first data load, every group is shown as active (`getActiveGroupIds(null)`), so groups do not jump between sections.
+
+**Default selection = the Active groups (since 2026-11-21)** — `hooks/useGroupSelection.ts`:
+- Automatic mode (`manualGroups === null`): the selection is the period's Active groups and follows them when the period changes. Inactive groups are not selected; this changes no totals (they have no orders in the scope).
+- Any user change stores an explicit list (URL `groups=<ids>` or `groups=none` on Sales Summary / Customer Report). Selecting exactly the Active groups — e.g. the popover's `All` button, which now selects the Active groups — returns to automatic; Reset also returns to automatic. Automatic mode writes no `groups` param; an old `groups=all` link opens in automatic mode.
+- In automatic mode the APIs still get every group (`groups=all` on `/api/items/top-gallery`), so there is no second request once the Active groups are known.
 
 | Page | Source of the active groups |
 |------|------------------------------|

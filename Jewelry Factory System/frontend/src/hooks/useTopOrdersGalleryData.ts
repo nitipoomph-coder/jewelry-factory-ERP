@@ -4,6 +4,7 @@ import { fetchAvailableYears } from '../services/dashboardAPI';
 import { fetchTopItemsGallery, fetchAvailableSalespersons, type TopGalleryItem, type TopGalleryResponse } from '../services/itemYearlySummaryAPI';
 import { ALL_GROUPS, ACTIVE_GROUP_IDS, type CustomerGroup } from '../config/customerGroups';
 import { usePeriodSetup } from './usePeriodSetup';
+import { useGroupSelection } from './useGroupSelection';
 
 // --- Shared Constants & Types ---
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -90,9 +91,10 @@ export function useTopOrdersGalleryData() {
 
   const [rowLimit, setRowLimit] = useState<number | 'all'>(50);
 
-  const [selGroups, setSelGroups] = useState<string[]>(() => {
+  // Group selection: null = automatic (the Active groups of the period), see useGroupSelection
+  const [manualGroups, setManualGroups] = useState<string[] | null>(() => {
     const urlGroups = searchParams.get("groups");
-    if (!urlGroups || urlGroups.toLowerCase() === 'all') return ACTIVE_GROUP_IDS;
+    if (!urlGroups || urlGroups.toLowerCase() === 'all') return null;
     if (urlGroups.toLowerCase() === 'none') return [];
     return urlGroups.split(",").map(s => s.trim()).filter(Boolean);
   });
@@ -159,7 +161,7 @@ export function useTopOrdersGalleryData() {
   }, [periodSetup.committed.monthFrom, periodSetup.committed.monthTo]);
 
   const selectedPeriodLabel = monthRangeLabel(periodSetup.committed.monthFrom, periodSetup.committed.monthTo);
-  const selectedGroupsKey = selGroups.join(",");
+  const manualGroupsKey = manualGroups ? manualGroups.join(",") : '';
 
   const analyticsPath = useMemo(() => {
     const params = new URLSearchParams();
@@ -173,14 +175,14 @@ export function useTopOrdersGalleryData() {
     if (periodSetup.committed.weekTo) params.set("wEnd", String(periodSetup.committed.weekTo));
     if (periodSetup.committed.dateField !== 'dueDate') params.set("dateField", periodSetup.committed.dateField);
     if (salesName && salesName !== 'ALL') params.set("salesName", salesName);
-    if (selectedGroupsKey && selGroups.length < ALL_GROUPS.length) params.set("groups", selectedGroupsKey);
+    if (manualGroups && manualGroupsKey && manualGroups.length < ALL_GROUPS.length) params.set("groups", manualGroupsKey);
     if (selTypes.length > 0 && selTypes.length < ALL_PRODUCT_TYPES.length) {
       params.set("type", selTypes.join(','));
     } else if (selTypes.length === 0) {
       params.set("type", "NONE");
     }
     return `/dashboard/top-orders/analytics?${params.toString()}`;
-  }, [periodSetup.committed, metric, selTypes, selectedGroupsKey, selectedMonthNumbers, salesName]);
+  }, [periodSetup.committed, metric, selTypes, manualGroups, manualGroupsKey, selectedMonthNumbers, salesName]);
 
   const startFilterTransition = (duration = 600) => {
     setFilterLoading(true);
@@ -273,7 +275,8 @@ export function useTopOrdersGalleryData() {
       months: monthsToFetch,
       baseYear: baseYr,
       compareYear: compYr1,
-      groups: selGroups.length === ALL_GROUPS.length ? ['all'] : selGroups,
+      // Automatic selection asks for every group: Inactive groups have no rows, so the result is the same
+      groups: manualGroups === null || manualGroups.length === ALL_GROUPS.length ? ['all'] : manualGroups,
       salesName: salesName !== 'ALL' ? salesName : undefined,
       metric,
       search: searchQuery,
@@ -322,11 +325,12 @@ export function useTopOrdersGalleryData() {
     return () => {
       cancelled = true;
     };
-  }, [availableYears, periodSetup.committed, metric, perspectiveMode, productType, salesName, searchQuery, selGroups, selectedMonthNumbers, refreshVersion, rowLimit]);
+  }, [availableYears, periodSetup.committed, metric, perspectiveMode, productType, salesName, searchQuery, manualGroups, selectedMonthNumbers, refreshVersion, rowLimit]);
 
   const items = galleryResponse?.items || [];
   // Group filter Active / Inactive split; before the first response every group counts as active
   const dynamicActiveGroups = galleryResponse?.activeGroups ?? ACTIVE_GROUP_IDS;
+  const { selGroups, setSelGroups, toggleGroup } = useGroupSelection(manualGroups, setManualGroups, dynamicActiveGroups, startFilterTransition);
   const portfolioAllItems = portfolioAllResponse?.items || galleryResponse?.items || [];
   const summary = galleryResponse?.summary || {
     totalItemsCount: 0,
@@ -340,12 +344,6 @@ export function useTopOrdersGalleryData() {
 
 
 
-  const toggleGroup = (gId: string) => {
-    startFilterTransition();
-    setSelGroups((prev) =>
-      prev.includes(gId) ? prev.filter((x) => x !== gId) : [...prev, gId]
-    );
-  };
 
   const swapYears = () => {
     if (!periodSetup.committed.compareActive1 || !periodSetup.committed.compareYear1 || periodSetup.committed.compareYear1 === periodSetup.committed.baseYear) return;
@@ -396,7 +394,7 @@ export function useTopOrdersGalleryData() {
       dateField: 'dueDate',
     });
 
-    setSelGroups(ACTIVE_GROUP_IDS);
+    setManualGroups(null);
     setRefreshVersion((v) => v + 1);
 
     if (searchParams.toString()) {
@@ -417,9 +415,9 @@ export function useTopOrdersGalleryData() {
     const isSalesFiltered = salesName !== 'ALL' && salesName !== '';
     const isSearchFiltered = searchQuery.trim() !== '' || searchDraft.trim() !== '';
     const isPeriodFiltered = (periodSetup.committed.preset !== 'full-year' || periodSetup.committed.monthFrom !== 1 || periodSetup.committed.monthTo !== 12 || (periodSetup.committed.baseYear !== '' && periodSetup.committed.baseYear !== defaultBase) || periodSetup.committed.dateField !== 'dueDate');
-    const isGroupsFiltered = selGroups.length !== ACTIVE_GROUP_IDS.length || !ACTIVE_GROUP_IDS.every(id => selGroups.includes(id));
+    const isGroupsFiltered = manualGroups !== null;
     return isPerspectiveFiltered || isCompareFiltered || isProductTypeFiltered || isSalesFiltered || isSearchFiltered || isPeriodFiltered || isGroupsFiltered;
-  }, [periodSetup, perspectiveMode, productType, salesName, searchDraft, searchQuery, selGroups]);
+  }, [periodSetup, perspectiveMode, productType, salesName, searchDraft, searchQuery, manualGroups]);
 
   const refreshData = useCallback(() => {
     startFilterTransition(400);
