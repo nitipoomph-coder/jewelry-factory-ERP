@@ -354,8 +354,7 @@ gemstone-lifecycle-management/
         │   ├── procurementReceiving.js # /api/procurement — Procurement & Receiving documents (SPA/SRA/SRB/SIR, admin)
         │   ├── orderLinesIssues.js    # /api/requisition — Requisition documents (SOA/SIA/SIB/SIP/SIS, admin)
         │   ├── sampleDepartment.js    # /api/sample — Sample Room documents (SSA/SIM, admin)
-        │   ├── lock.js                # /api/lock — Document edit locks (in-memory)
-        │   └── items.js               # ⚠️ Unused — re-exports topOrdersGallery.js; server.js mounts topOrdersGallery.js directly
+        │   └── lock.js                # /api/lock — Document edit locks (in-memory)
         │
         └── sql/                        # 🗄️ SP baselines, views, and planned index scripts
             ├── indexes.sql             # Planned index set (NOT deployed — see docs/dba/index-gap-and-proposal.md)
@@ -934,7 +933,6 @@ Design blueprint based on the companion **"PCC System: Subcontract Management"**
 - backend/routes/customerReportMatrix.js: /api/dashboard/customer-summary.
 - backend/routes/orderVolumeSummary.js: /api/dashboard/sales-orders (Order List).
 - backend/routes/topOrdersGallery.js: /api/items (`/yearly-summary`, `/:styleNo/yearly-summary`, `/salespersons`, `/top-gallery`).
-- backend/routes/items.js: unused re-export of topOrdersGallery.js (not required by server.js).
 - backend/server.js mounts the three dashboard routers under the same /api/dashboard prefix (guarded by `DASHBOARD_MENU_RULES`) and topOrdersGallery.js under /api/items, so frontend URLs do not change.
 - The `/api/dashboard/top-items` endpoint no longer exists; its rule in `DASHBOARD_MENU_RULES` is leftover.
 
