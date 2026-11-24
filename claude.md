@@ -338,15 +338,24 @@ gemstone-lifecycle-management/
         │   ├── authMiddleware.js      # 🔐 JWT verification + requireRole / requireMenu / requireMenuByPath / hasMenu
         │   └── apiMenuRules.js        # 🔐 API → menu permission map (ids match frontend menuConfig)
         │
-        ├── routes/
-        │   ├── auth.js                # 🔐 /api/auth — Login & Admin verification
-        │   ├── orders.js              # ⭐ /api/orders — PO Tracker APIs (protected)
-        │   ├── dashboard.js           # /api/dashboard — Dashboard/Sales/Customer stats (protected)
-        │   ├── search.js              # /api/search — Global search (protected)
-        │   ├── procurement.js         # /api/procurement — Procurement document APIs (protected)
-        │   ├── requisition.js         # /api/requisition — Requisition document APIs (protected)
-        │   ├── sample.js              # /api/sample — Sample room APIs (protected)
-        │   └── lock.js                # /api/lock — Document locking (protected)
+        ├── routes/                    # Mount prefixes and guards are set in server.js
+        │   ├── auth.js                # 🔐 /api/auth — Login, permissions, admin verification, register (rate limited)
+        │   ├── adminAudit.js          # 🛡️ /api/admin/audit — Audit logs, sessions, IP bans (admin, Zero-DB)
+        │   ├── adminUsers.js          # 👥 /api/admin/users — User management + per-user menu permissions (admin)
+        │   ├── poTracker.js           # ⭐ /api/orders — PO Tracker list (SP), order/PO/group detail, remarks
+        │   ├── productionDashboard.js # /api/dashboard — Factory Overview (/, /years, /detail/:cardType, /sales-summary)
+        │   ├── customerReportMatrix.js # /api/dashboard/customer-summary — Sales Summary + Customer Report Matrix
+        │   ├── orderVolumeSummary.js  # /api/dashboard/sales-orders — Order List
+        │   ├── productionSummary.js   # /api/production-summary — Production Summary (year/week/month/daily, holidays)
+        │   ├── productionForecast.js  # /api/production-forecast — Production Forecast
+        │   ├── orderTracking.js       # /api/order-tracking — FBE Order Tracker (/suggest, /track)
+        │   ├── topOrdersGallery.js    # /api/items — Top Item Gallery + item yearly summaries + salespersons
+        │   ├── search.js              # /api/search — Global search (results filtered per user)
+        │   ├── procurementReceiving.js # /api/procurement — Procurement & Receiving documents (SPA/SRA/SRB/SIR, admin)
+        │   ├── orderLinesIssues.js    # /api/requisition — Requisition documents (SOA/SIA/SIB/SIP/SIS, admin)
+        │   ├── sampleDepartment.js    # /api/sample — Sample Room documents (SSA/SIM, admin)
+        │   ├── lock.js                # /api/lock — Document edit locks (in-memory)
+        │   └── items.js               # ⚠️ Unused — re-exports topOrdersGallery.js; server.js mounts topOrdersGallery.js directly
         │
         └── sql/                        # 🗄️ SP baselines, views, and planned index scripts
             ├── indexes.sql             # Planned index set (NOT deployed — see docs/dba/index-gap-and-proposal.md)
@@ -557,14 +566,22 @@ Dashboard/report endpoint details moved to docs/sales/dashboard.md. Sales menu/n
 
 | Method | Endpoint                              | Description                        |
 |--------|---------------------------------------|------------------------------------|
-| GET    | `/api/procurement/list`               | Procurement document list (SPA/SRA/SRB/SIR) |
-| GET    | `/api/procurement/:docNo`             | Procurement document detail        |
-| GET    | `/api/requisition/list`               | Requisition document list (SOA/SIA/SIB/SIP/SIS) |
-| GET    | `/api/requisition/:docNo`             | Requisition document detail        |
-| GET    | `/api/sample/list`                    | Sample room document list (SSA/SIM) |
-| GET    | `/api/sample/:docNo`                  | Sample room document detail        |
-| POST   | `/api/lock/acquire`                   | Acquire document edit lock         |
+| GET    | `/api/procurement/documents/:docType` | Procurement document list (`SPA`/`SRA`/`SRB`/`SIR`) |
+| GET    | `/api/procurement/document/:docNo`    | Procurement document detail (header + lines) |
+| GET    | `/api/procurement/next-number/:docType` | Next document number (`PREFIX + YYMM + running no.`) |
+| GET    | `/api/procurement/summary/:docType`   | Document count / total value summary |
+| PUT    | `/api/procurement/document/:docNo`    | Update header fields — ⚠️ writes `DocuDate`, `VendorCode`, `CurrCode`, `ExchRate`, plus `DueDate`/`BuyName` (SPA) and `RefDocuNo` (SRA/SRB/SIR); the read-only policy allows only `BuyName`/`RefDocuNo` |
+| GET    | `/api/requisition/documents/:docType` | Requisition document list (`SOA`/`SIA`/`SIB`/`SIP`/`SIS`) |
+| GET    | `/api/requisition/document/:docuNo`   | Requisition document detail        |
+| GET    | `/api/requisition/next-number/:docType` | Next document number (read without NOLOCK) |
+| GET    | `/api/requisition/order/:ordNo`       | Order lookup used to prepare SOA / issue documents |
+| GET    | `/api/sample/documents/:docType`      | Sample room document list (`SSA`/`SIM`) |
+| GET    | `/api/sample/document/:docuNo`        | Sample room document detail (header + lines) |
+| POST   | `/api/lock/acquire`                   | Acquire document edit lock (in-memory, auto-release after 15 min) |
 | POST   | `/api/lock/release`                   | Release document edit lock         |
+| GET    | `/api/lock/status/:docNo`             | Check document lock status         |
+
+Routers: `procurementReceiving.js`, `orderLinesIssues.js`, `sampleDepartment.js` (all `requireRole('admin')`), and `lock.js` (any signed-in user).
 
 ### Photo Bridge (Network File Server → HTTP)
 
@@ -648,7 +665,7 @@ All 5 SPs share an identical CTE aggregation pipeline, differing only in the **W
 ```
 *(Never append `@Status` or additional parameters to Stored Procedures)*
 
-**Backend Call Site:** `routes/poTracker.js` (and `routes/orders.js`) → `request.execute(spName)` passing strictly `@FromDate` and `@ToDate`.
+**Backend Call Site:** `routes/poTracker.js` (mounted at `/api/orders`) → `request.execute(spName)` passing strictly `@FromDate` and `@ToDate`.
 
 **Internal CTE Pipeline Structure (Identical across all 5 SPs):**
 1. `DupOnePONo`: Identifies POs with exactly 1 OrdHD record (N008 customer group).
@@ -908,16 +925,18 @@ Design blueprint based on the companion **"PCC System: Subcontract Management"**
 ### Frontend Service Ownership
 - src/services/dashboardAPI.ts: dashboard core only (years, dashboard cards, card detail, sales summary) plus temporary compatibility re-exports.
 - src/services/customerSummaryAPI.ts: customer summary fetch for /api/dashboard/customer-summary.
-- src/services/customerSalesAPI.ts: sales customer groups, sales monthly/type analytics, sales orders, and top items.
-- src/services/itemYearlySummaryAPI.ts: item yearly and item/customer yearly comparison endpoints under /api/items.
+- src/services/orderVolumeSummaryAPI.ts: Order List order lines (/api/dashboard/sales-orders).
+- src/services/itemYearlySummaryAPI.ts: item yearly and item/customer yearly comparison, top gallery, and salespersons endpoints under /api/items.
+- (`customerSalesAPI.ts` from the original split no longer exists; its Order List call lives in `orderVolumeSummaryAPI.ts`.)
 
-### Backend Route Ownership
-- backend/routes/dashboard.js: dashboard core endpoints only.
-- backend/routes/customerSummary.js: /api/dashboard/customer-summary.
-- backend/routes/customerSales.js: /api/dashboard/sales-* and /api/dashboard/top-items endpoints with shared sales filters.
-- backend/routes/itemYearlySummary.js: item yearly summary endpoints.
-- backend/routes/items.js: compatibility wrapper for itemYearlySummary.
-- backend/server.js mounts the new routers under the same /api/dashboard and /api/items prefixes, so frontend URLs do not change.
+### Backend Route Ownership (current file names — renamed after the original split)
+- backend/routes/productionDashboard.js: dashboard core endpoints (`/`, `/years`, `/detail/:cardType`, `/sales-summary`) under /api/dashboard.
+- backend/routes/customerReportMatrix.js: /api/dashboard/customer-summary.
+- backend/routes/orderVolumeSummary.js: /api/dashboard/sales-orders (Order List).
+- backend/routes/topOrdersGallery.js: /api/items (`/yearly-summary`, `/:styleNo/yearly-summary`, `/salespersons`, `/top-gallery`).
+- backend/routes/items.js: unused re-export of topOrdersGallery.js (not required by server.js).
+- backend/server.js mounts the three dashboard routers under the same /api/dashboard prefix (guarded by `DASHBOARD_MENU_RULES`) and topOrdersGallery.js under /api/items, so frontend URLs do not change.
+- The `/api/dashboard/top-items` endpoint no longer exists; its rule in `DASHBOARD_MENU_RULES` is leftover.
 
 ### Refactor Rule
 - When moving more code, split by real business responsibility first, then rename. Do not rename a large file blindly if it still contains multiple domains.
