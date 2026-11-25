@@ -47,9 +47,7 @@ export default function CustomerReportPage() {
     dynamicActiveGroups,
     isFiltered,
     resetFilters,
-    availableYears,
-    triggerRefresh,
-    isRefreshing
+    availableYears
   } = useCustomerReportData();
 
   const handleRenderGrowthAmt = useCallback((baseVal: number, compVal: number) => {
@@ -322,8 +320,6 @@ export default function CustomerReportPage() {
                 renderGrowthPct={handleRenderGrowthPct}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
-                onRefresh={triggerRefresh}
-                isRefreshing={isRefreshing}
               />
             </div>
           </div>

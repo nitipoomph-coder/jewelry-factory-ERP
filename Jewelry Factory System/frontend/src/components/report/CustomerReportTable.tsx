@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowUp, DollarSign, Hash, RefreshCw, Search, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, DollarSign, Hash, Search, X } from 'lucide-react';
 import { ErpButton, ErpSegmentedControl } from '../ui/ErpButtons';
 import './CustomerReportTable.css';
 
@@ -42,8 +42,6 @@ interface CustomerReportTableProps {
   searchQuery?: string;
   setSearchQuery?: (value: string) => void;
   onResetMatrix?: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 type MatrixSkeletonStyle = React.CSSProperties & {
@@ -74,8 +72,6 @@ export default function CustomerReportTable({
   renderGrowthPct,
   searchQuery = '',
   setSearchQuery,
-  onRefresh,
-  isRefreshing,
 }: CustomerReportTableProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -359,20 +355,6 @@ export default function CustomerReportTable({
         )}
 
         <span className="customer-matrix-count">{visibleRows.length} customers</span>
-        <span className="customer-matrix-control-spacer" />
-
-        {onRefresh && (
-          <ErpButton
-            size="sm"
-            variant="ghost"
-            icon={<RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            style={{ color: 'var(--color-text-tertiary)' }}
-          >
-            Refresh
-          </ErpButton>
-        )}
       </div>
 
       <div className="customer-matrix-scroll content-scrollbar">
