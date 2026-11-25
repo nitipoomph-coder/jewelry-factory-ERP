@@ -617,3 +617,22 @@ Dragging a PO Tracker column wider felt slow ("หน่วง"): the column fol
 3. Do not drive per-cell values from a CSS variable on a large ancestor during a drag — changing it re-styles every descendant. Use a class + one stylesheet rule.
 4. Do not give every cell `position`/`z-index`; only sticky cells need them.
 5. Rule added to `claude.md` → Frontend Rules → "Data Tables — Performance".
+
+---
+
+## Issue: Customer Report Matrix KPI Put MLT Sales Under General
+**Date:** 2026-11-25
+**Component:** `frontend/src/hooks/useCustomerReportData.ts` (`groupKpis`)
+
+### Symptoms:
+On Customer Report Matrix in By Group mode, the MLT Group KPI card showed $0.00 and the General card showed General + MLT (e.g. $15,736,540.66 vs $13,809,838.00 in the table; the difference equals the MLT row total). The table itself was correct. By Customer mode was correct.
+
+### Root Cause:
+`groupKpis` found each row's group with `getCustomerGroupId(row.id)`, which matches customer-code prefixes. In By Group mode `row.id` is the group id, not a customer code. N008, N044, N051 and N098 worked by accident (their group id is also one of their prefixes); `MLT` matches no prefix (MLT customers are U411–U426), so it fell through to General.
+
+### Fix:
+In By Group mode the row id is used directly as the group id; the prefix lookup is used only for customer rows (`aggregationMode` added to the memo dependencies).
+
+### Prevention & Lessons Learned:
+1. `getCustomerGroupId()` takes a customer code only. Never pass a group id to it.
+2. When a summary is rebuilt from table rows, check what the row id means in every aggregation mode.

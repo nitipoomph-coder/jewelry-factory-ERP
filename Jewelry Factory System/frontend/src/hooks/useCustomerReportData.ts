@@ -336,7 +336,8 @@ export function useCustomerReportData() {
     });
 
     tableData.rows.forEach(row => {
-      const gId = getCustomerGroupId(row.id);
+      // By Group rows already carry the group id (e.g. "MLT"); only customer codes need the prefix lookup
+      const gId = aggregationMode === 'group' ? row.id : getCustomerGroupId(row.id);
       if (!groupTotals[gId]) return;
       activeYears.forEach((yr: string) => {
         groupTotals[gId][yr] += Number(row[`${yr}_total`] || 0);
@@ -346,7 +347,7 @@ export function useCustomerReportData() {
     return ALL_GROUPS
       .filter((g) => selGroups.includes(g.id) && groupTotals[g.id])
       .map((g) => ({ ...g, totals: groupTotals[g.id] }));
-  }, [tableData, selGroups, activeYears]);
+  }, [tableData, selGroups, activeYears, aggregationMode]);
 
   return {
     theme,
