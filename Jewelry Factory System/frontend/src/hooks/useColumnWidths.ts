@@ -6,13 +6,26 @@
 //   table body is not re-rendered on every pointer move; the width is saved once on release.
 // - Saved in localStorage as overrides only ({ columnKey: width }), keyed by the username in the
 //   login token (auth_user can be renamed from the profile menu, the token username cannot).
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
+// - Tables that show/hide columns pass `keys` (visible columns, in order); widths of hidden columns
+//   stay saved. Columns pinned on the left pass `stickyKeys` and put `stickyClass(key)` on their
+//   header and body cells: the `left` offsets live in one small <style> rule per pinned column, so a
+//   drag updates a few CSS rules instead of every cell. (A CSS variable on the <table> was measured
+//   to force a style recalculation of the whole table on every frame — see debug-history 2026-11-24.)
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 export interface ColumnWidthOptions {
   minWidth?: number;
   maxWidth?: number;
+  /** Visible columns in display order (default: every key of `defaults`). */
+  keys?: string[];
+  /** Columns pinned on the left (position: sticky); offsets = widths of the pinned columns before them. */
+  stickyKeys?: string[];
 }
+
+export type ColumnWidths = ReturnType<typeof useColumnWidths>;
+
+const cssSafe = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '_');
 
 const STORAGE_PREFIX = 'table-col-widths:v1';
 const KEY_STEP = 10;
@@ -62,8 +75,62 @@ export function useColumnWidths(tableId: string, defaults: Record<string, number
     } catch { /* storage blocked: widths still apply for this visit */ }
   }, [storageKey]);
 
+  // Compare by content so callers do not have to memoize the arrays.
+  const keysSig = options.keys?.join('\u0001');
+  const stickySig = options.stickyKeys?.join('\u0001') ?? '';
+  const order = useMemo(() => (keysSig !== undefined ? keysSig.split('\u0001').filter(Boolean) : Object.keys(defaults)), [keysSig, defaults]);
+  const stickySet = useMemo(() => new Set(stickySig ? stickySig.split('\u0001') : []), [stickySig]);
+
   const getWidth = useCallback((key: string) => overrides[key] ?? defaults[key] ?? 100, [overrides, defaults]);
-  const totalWidth = useMemo(() => Object.keys(defaults).reduce((sum, key) => sum + getWidth(key), 0), [defaults, getWidth]);
+  const totalWidth = useMemo(() => order.reduce((sum, key) => sum + getWidth(key), 0), [order, getWidth]);
+
+  const stickyOffsets = useCallback((widthOf: (key: string) => number) => {
+    const offsets: [string, number][] = [];
+    let left = 0;
+    for (const key of order) {
+      if (!stickySet.has(key)) continue;
+      offsets.push([key, left]);
+      left += widthOf(key);
+    }
+    return offsets;
+  }, [order, stickySet]);
+
+  const tableStyle = useMemo<CSSProperties>(() => ({ width: totalWidth }), [totalWidth]);
+
+  // Pinned-column offsets: one rule per pinned column in a <style> element owned by this hook.
+  const scopeId = cssSafe(useId());
+  const stickyClass = useCallback((key: string) => `cw${scopeId}-${cssSafe(key)}`, [scopeId]);
+  const styleEl = useRef<HTMLStyleElement | null>(null);
+  const stickyRules = useRef(new Map<string, CSSStyleRule>());
+
+  const setStickyLeft = useCallback((offsets: [string, number][]) => {
+    for (const [key, left] of offsets) stickyRules.current.get(key)?.style.setProperty('left', `${left}px`);
+  }, []);
+
+  useLayoutEffect(() => {
+    const offsets = stickyOffsets(getWidth);
+    if (offsets.length === 0 && !styleEl.current) return;
+    if (!styleEl.current) {
+      styleEl.current = document.createElement('style');
+      styleEl.current.dataset.columnWidths = scopeId;
+      document.head.appendChild(styleEl.current);
+    }
+    styleEl.current.textContent = offsets.map(([key, left]) => `.${stickyClass(key)}{left:${left}px}`).join('\n');
+    stickyRules.current.clear();
+    const rules = styleEl.current.sheet?.cssRules;
+    if (rules) {
+      offsets.forEach(([key], index) => {
+        const rule = rules[index];
+        if (rule instanceof CSSStyleRule) stickyRules.current.set(key, rule);
+      });
+    }
+  }, [stickyOffsets, getWidth, stickyClass, scopeId]);
+
+  useLayoutEffect(() => () => {
+    styleEl.current?.remove();
+    styleEl.current = null;
+    stickyRules.current.clear();
+  }, []);
 
   const commit = useCallback((key: string, width: number | null) => {
     setOverrides(prev => {
@@ -105,11 +172,15 @@ export function useColumnWidths(tableId: string, defaults: Record<string, number
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
+    const resizesSticky = stickySet.has(key);
     const apply = () => {
       frame = 0;
       const col = colEls.current.get(key);
       if (col) col.style.width = `${width}px`;
-      if (tableRef.current) tableRef.current.style.width = `${baseTotal + width}px`;
+      const table = tableRef.current;
+      if (!table) return;
+      table.style.width = `${baseTotal + width}px`;
+      if (resizesSticky) setStickyLeft(stickyOffsets(k => (k === key ? width : getWidth(k))));
     };
     const onMove = (e: PointerEvent) => {
       width = clamp(startWidth + e.clientX - startX);
@@ -129,7 +200,7 @@ export function useColumnWidths(tableId: string, defaults: Record<string, number
     handle.addEventListener('pointermove', onMove);
     handle.addEventListener('pointerup', onEnd);
     handle.addEventListener('pointercancel', onEnd);
-  }, [clamp, commit, getWidth, totalWidth]);
+  }, [clamp, commit, getWidth, totalWidth, stickySet, stickyOffsets, setStickyLeft]);
 
   const onHandleKeyDown = useCallback((key: string, event: ReactKeyboardEvent<HTMLElement>) => {
     const step = event.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
@@ -161,6 +232,10 @@ export function useColumnWidths(tableId: string, defaults: Record<string, number
   return {
     getWidth,
     totalWidth,
+    /** Table width; spread into the <table> style. */
+    tableStyle,
+    /** Class for the header and body cells of a pinned column (sets its `left`). */
+    stickyClass,
     tableRef,
     colRef,
     handleProps,

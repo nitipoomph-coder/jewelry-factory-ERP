@@ -7,8 +7,10 @@ import { RefreshCw, AlertTriangle, Filter, Layers, FilterX, RotateCcw } from 'lu
 import { usePOTrackerAdvanced } from '../hooks/usePOTrackerAdvanced';
 import { useTopbarActions } from '../contexts/TopbarActionContext';
 import { ErpSegmentedControl } from '../components/ui/ErpButtons';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MultiSelectFilterInput } from '../components/dashboard/poTracker/MultiSelectFilterInput';
+import { DEFAULT_COL_WIDTHS, PINNED_KEYS, getActiveColumnKeys } from '../components/dashboard/poTracker/orderTableConfig';
+import { useColumnWidths } from '../hooks/useColumnWidths';
 
 const GROUP_OPTIONS = [
   { value: 'N008', label: 'N008' },
@@ -26,9 +28,6 @@ const STATUS_OPTIONS = [
 ];
 
 export default function POTrackerAdvanced() {
-  const [colWidths, setColWidths] = useState<Record<string, number>>({});
-  const hasCustomWidths = Object.keys(colWidths).length > 0;
-
   const {
     isFiltered,
     resetFilters,
@@ -78,6 +77,11 @@ export default function POTrackerAdvanced() {
     pageNumbers,
     activeFilterCount
   } = usePOTrackerAdvanced();
+
+  // Column widths: dragged without re-rendering the table, remembered per user (hooks/useColumnWidths).
+  const activeColumnKeys = useMemo(() => getActiveColumnKeys(visibleKeys), [visibleKeys]);
+  const columnWidths = useColumnWidths('po-tracker', DEFAULT_COL_WIDTHS, { minWidth: 40, keys: activeColumnKeys, stickyKeys: PINNED_KEYS });
+  const hasCustomWidths = columnWidths.isCustomized;
 
   const { setTopbarActions } = useTopbarActions();
   const [isSpinning, setIsSpinning] = useState(false);
@@ -501,7 +505,7 @@ export default function POTrackerAdvanced() {
             {/* Reset Columns Widths Button */}
             <button
               type="button"
-              onClick={() => setColWidths({})}
+              onClick={columnWidths.resetAll}
               disabled={!hasCustomWidths}
               style={{
                 display: 'inline-flex',
@@ -540,8 +544,7 @@ export default function POTrackerAdvanced() {
               loading={loading}
               pageOffset={pageStart}
               visibleKeys={visibleKeys}
-              colWidths={colWidths}
-              onColWidthsChange={setColWidths}
+              columnWidths={columnWidths}
             />
 
             {/* Single Pagination Bar — record count, page size, and page nav together */}

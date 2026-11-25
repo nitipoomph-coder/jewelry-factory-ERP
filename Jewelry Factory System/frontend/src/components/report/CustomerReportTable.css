@@ -145,7 +145,6 @@
   line-height: 1.1;
   text-align: center;
   white-space: nowrap;
-  transition: background-color 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
 }
 
 .customer-matrix-th--top {
@@ -189,18 +188,15 @@
   font-weight: 800;
 }
 
+/* No row entrance animation and no cell transitions: with hover changing while the table scrolls they
+   restart on every cell and drop frames (same fix as Order List, docs/debug-history.md 2026-11-21). */
 .customer-matrix-row {
   min-height: var(--matrix-row-min-height);
   background: var(--matrix-row-bg);
-  animation: customerMatrixRowIn 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .customer-matrix-row:nth-child(even) {
   background: var(--matrix-row-bg);
-}
-
-.customer-matrix-shell--searching .customer-matrix-row {
-  animation: none;
 }
 
 .customer-matrix-row:hover td:not(.customer-matrix-current):not(.customer-matrix-td--growth) {
@@ -218,7 +214,6 @@
   font-weight: 800;
   line-height: 1.25;
   white-space: nowrap;
-  transition: background-color 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
 }
 
 .customer-matrix-td--customer,
@@ -536,14 +531,11 @@
 @media (prefers-reduced-motion: reduce) {
 
   .customer-matrix-shell,
-  .customer-matrix-row,
   .customer-matrix-loading-row-grid--data,
   .customer-matrix-skeleton::after {
     animation: none;
   }
 
-  .customer-matrix-th,
-  .customer-matrix-td,
   .customer-matrix-skeleton {
     transition: none;
   }

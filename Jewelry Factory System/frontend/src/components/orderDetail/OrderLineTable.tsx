@@ -3,16 +3,16 @@
 // shared registry filtered by visibleKeys. Sticky left columns (No./Photo/Item No.) approximate
 // Excel's freeze-pane behavior while the production columns scroll horizontally.
 // TODO: column sort if requested — not built in this pass, wasn't present in the old card view.
-import { useState, useRef } from 'react';
+// Column widths: hooks/useColumnWidths (drag changes only the <col>, so the body is not re-rendered
+// on every pointer move; widths are remembered per user). No transitions on rows / cells.
+import { useMemo } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { ORDER_DETAIL_COLUMNS, type OrderDetailColumn } from '../../config/orderDetailColumns';
 import { formatColumnValue } from './format';
 import { psPhotoUrl, attachPhotoFallback } from '../../utils/photoUrl';
+import { useColumnWidths } from '../../hooks/useColumnWidths';
 
-/** Global cursor while a column is being resized (kept outside the component: DOM side effect). */
-function setBodyCursor(cursor: string) {
-  document.body.style.cursor = cursor;
-}
+const DEFAULT_WIDTHS: Record<string, number> = Object.fromEntries(ORDER_DETAIL_COLUMNS.map(c => [c.key, c.width]));
 
 // รูปดึงfrom network path (ps ก่อน, onError fallback ไป cad, ถ้าไม่มีทั้งคู่จะซ่อนรูปเผยไอคอน placeholder ด้านหลัง)
 // วางไอคอนเป็น layer ด้านหลัง + <img> ทับด้านบน (key={itemNo} รีเซ็ตทุกครั้งที่สลับ item) — ไม่ต้องใช้ state/effect
@@ -80,39 +80,13 @@ const headerCellStyle = (sticky: boolean, left: number, userInput = false): Reac
 });
 
 export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhotoClick }: OrderLineTableProps) {
-  const visibleCols = ORDER_DETAIL_COLUMNS.filter((c) => c.locked || visibleKeys.includes(c.key));
-
-  const [colWidths, setColWidths] = useState<Record<string, number>>({});
-  const resizingCol = useRef<string | null>(null);
-  const startX = useRef<number>(0);
-  const startWidth = useRef<number>(0);
-
-  const handleMouseDown = (e: React.MouseEvent, key: string, defaultWidth: number) => {
-    e.stopPropagation();
-    e.preventDefault();
-    resizingCol.current = key;
-    startX.current = e.pageX;
-    startWidth.current = colWidths[key] || defaultWidth;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!resizingCol.current) return;
-      const diffX = moveEvent.pageX - startX.current;
-      let newWidth = startWidth.current + diffX;
-      if (newWidth < 40) newWidth = 40;
-      setColWidths(prev => ({ ...prev, [resizingCol.current!]: newWidth }));
-    };
-
-    const handleMouseUp = () => {
-      resizingCol.current = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      setBodyCursor('');
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    setBodyCursor('col-resize');
-  };
+  const visibleCols = useMemo(
+    () => ORDER_DETAIL_COLUMNS.filter((c) => c.locked || visibleKeys.includes(c.key)),
+    [visibleKeys],
+  );
+  const { tableRef, colRef, getWidth, tableStyle, handleProps } = useColumnWidths(
+    'order-detail-lines', DEFAULT_WIDTHS, { minWidth: 40, keys: visibleCols.map(c => c.key) },
+  );
 
   const renderCell = (col: OrderDetailColumn, line: Record<string, unknown>, rowIdx: number) => {
     if (col.key === '_rowNo') return rowIdx + 1;
@@ -128,32 +102,34 @@ export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhoto
 
   return (
     <div className="custom-scrollbar order-line-table-scroll" style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative', borderLeft: '1px solid var(--color-border-strong)' }}>
-      <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: 'max-content', fontFamily: 'var(--font-body)' }}>
+      <table ref={tableRef} style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', fontFamily: 'var(--font-body)', ...tableStyle }}>
+        <colgroup>
+          {visibleCols.map((col) => (
+            <col key={col.key} ref={colRef(col.key)} style={{ width: getWidth(col.key) }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            {visibleCols.map((col) => {
-              const currentWidth = colWidths[col.key] || col.width;
-              return (
-                <th key={col.key} style={{ ...headerCellStyle(false, 0, col.group === 'remark'), width: currentWidth, minWidth: currentWidth, maxWidth: currentWidth, textAlign: col.align }}>
-                  {col.label}
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, col.key, col.width)}
-                    className="col-resizer hover:bg-brand-500"
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '5px',
-                      cursor: 'col-resize',
-                      zIndex: 10,
-                      transition: 'background 0.2s ease',
-                      opacity: 0.5
-                    }}
-                  />
-                </th>
-              );
-            })}
+            {visibleCols.map((col) => (
+              <th key={col.key} style={{ ...headerCellStyle(false, 0, col.group === 'remark'), overflow: 'hidden', textOverflow: 'ellipsis', textAlign: col.align }}>
+                {col.label}
+                <div
+                  className="col-resizer"
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '5px',
+                    cursor: 'col-resize',
+                    zIndex: 10,
+                    opacity: 0.5,
+                    touchAction: 'none',
+                  }}
+                  {...handleProps(col.key, col.label)}
+                />
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -176,8 +152,6 @@ export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhoto
                     ? `color-mix(in srgb, var(--color-warning-500) 9%, ${rowBg})`
                     : (col.key === 'BalQty' ? 'color-mix(in srgb, var(--color-brand-500), transparent 95%)' : rowBg);
 
-                  const currentWidth = colWidths[col.key] || col.width;
-
                   return (
                     <td
                       key={col.key}
@@ -188,8 +162,7 @@ export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhoto
                         textAlign: col.align,
                         borderBottom: '1px solid var(--color-border-strong)',
                         borderRight: '1px solid var(--color-border-light)',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', 
-                        minWidth: currentWidth, width: currentWidth, maxWidth: currentWidth,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}
                     >
                       {renderCell(col, line, i)}
@@ -206,9 +179,12 @@ export default function OrderLineTable({ lines, visibleKeys, onRowClick, onPhoto
         .order-line-row:hover td {
           background: color-mix(in srgb, var(--color-brand-500), transparent 90%) !important;
         }
-        .col-resizer:hover {
+        .col-resizer:hover,
+        .col-resizer[data-active='true'],
+        .col-resizer:focus-visible {
           background: var(--color-brand-500) !important;
           opacity: 1 !important;
+          outline: none;
         }
       `}</style>
     </div>

@@ -579,3 +579,41 @@ The years API returns only years up to the current server year (`YEAR(OrdDate) <
 
 ### Prevention & Lessons Learned:
 1. Lists built from `DISTINCT` values of user-entered dates need a sanity bound; one bad row can change every page's default.
+
+---
+
+## Issue: PO Tracker Column Resize Lagged Behind the Mouse
+**Date:** 2026-11-24
+**Component:** `components/dashboard/poTracker/OrderTable.tsx`, `pages/POTrackerAdvanced.tsx`, `components/orderDetail/OrderLineTable.tsx`, `hooks/useColumnWidths.ts`
+
+### Symptoms:
+Dragging a PO Tracker column wider felt slow ("หน่วง"): the column followed the mouse with a visible delay. The Order Detail line table resized the same way.
+
+### Root Cause:
+1. Every PO Tracker cell had `transition: 'all 0.2s'`, so each width change animated for 200 ms on every cell instead of following the pointer. Rows and headers also had background transitions (the same pattern fixed on Order List on 2026-11-21).
+2. Each `mousemove` during a drag called `setColWidths`, re-rendering the whole table (e.g. 50 rows x 30+ columns). Every cell also recomputed its pinned `left` offset with `slice/filter/reduce`, and every cell carried `width/minWidth/maxWidth`.
+3. `OrderLineTable.tsx` used the same per-mousemove state update.
+
+### Fix:
+- Both tables use `hooks/useColumnWidths.ts` (widths on `<col>` + `table-layout: fixed`; during a drag only the `<col>` and the table width change, saved once on release, remembered per user). The hook gained `keys` (visible columns, for tables that show/hide columns) and `stickyKeys` (pinned columns). Order List behaviour is unchanged.
+- Pinned `left` offsets: first tried as CSS variables on the `<table>`; measured, this forced a style recalculation of every cell on every frame (13–15 s of style work for one drag at 4x CPU throttle). Replaced with one `<style>` rule per pinned column (`stickyClass(key)` on its cells), so a drag touches only that column's cells.
+- Removed `position: relative` and `z-index` from non-pinned cells (each cell was its own stacking context, which made every frame repaint and re-layer the whole table).
+- Removed all row/cell/header transitions from the PO Tracker table, the Customer Report Matrix (row entrance animation + 140 ms cell transitions) and the small tables (Factory Overview panels, Top Items Qty, admin pages, BOM Print, DocumentLayout, Stone PO workspace).
+- Verified: `tsc` clean, `npm run lint` 0 errors (same 22 pre-existing warnings as HEAD), production build passes.
+- Measured in headless Chrome (Playwright, 1920x1080, 50 rows x 29 columns, mocked API with synthetic rows — no backend or DB access), 80-step drag:
+
+  | Scenario | Before (HEAD) | After |
+  |----------|---------------|-------|
+  | Drag a normal column, 4x CPU throttle | script 32 s, 162 slow frames (>33 ms) | script 76 ms, style 0.42 s, 84 slow frames |
+  | Drag a normal column, normal CPU | 83 slow frames | 5 slow frames, max 42 ms |
+  | Drag a pinned column, normal CPU | 83 slow frames, max 142 ms, style 3.2 s | 82 slow frames, max 50 ms, style 0.6 s |
+  | Scroll + hover, 4x CPU throttle | 71 slow frames | 28 slow frames |
+
+- Remaining cost (accepted 2026-11-25): while dragging, cells to the right of the column move, so the browser repaints ~1,450 cells per frame (~20–25 ms), plus layer work for ~300 pinned cells. Removing borders, backgrounds, text or images one at a time did not change it noticeably. Options if it becomes a problem: a guide-line preview applied on release (no repaint while dragging), or fewer pinned columns.
+
+### Prevention & Lessons Learned:
+1. Never put `transition: all` on table cells — it also animates widths.
+2. Resizable columns must use `useColumnWidths`; never set React state on every mouse move for a drag.
+3. Do not drive per-cell values from a CSS variable on a large ancestor during a drag — changing it re-styles every descendant. Use a class + one stylesheet rule.
+4. Do not give every cell `position`/`z-index`; only sticky cells need them.
+5. Rule added to `claude.md` → Frontend Rules → "Data Tables — Performance".

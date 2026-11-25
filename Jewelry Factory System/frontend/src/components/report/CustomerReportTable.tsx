@@ -115,7 +115,6 @@ export default function CustomerReportTable({
     }
   };
 
-  const isSearchActive = appliedSearch.trim().length > 0;
 
   const handleCustomerClick = (custId: string) => {
     const params = new URLSearchParams(searchParams);
@@ -310,7 +309,7 @@ export default function CustomerReportTable({
   const totalCellClassName = (yr: string) => `customer-matrix-td customer-matrix-td--number customer-matrix-td--total customer-matrix-total ${isCurrentYear(yr) ? 'customer-matrix-current' : ''}`.trim();
 
   return (
-    <section className={['customer-matrix-shell', isSearchActive ? 'customer-matrix-shell--searching' : ''].filter(Boolean).join(' ')} aria-label="Customer report matrix">
+    <section className="customer-matrix-shell" aria-label="Customer report matrix">
       <div className="customer-matrix-control-bar">
         {setMetric && (
           <ErpSegmentedControl

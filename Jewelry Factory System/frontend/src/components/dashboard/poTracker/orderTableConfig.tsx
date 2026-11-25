@@ -226,6 +226,26 @@ export const MASTER_COLS: Record<string, ColDef> = {
   }
 };
 
+// ── Column layout shared by POTrackerAdvanced (column widths hook) and OrderTable ──
+/** Default width per column (user overrides are saved by hooks/useColumnWidths). */
+export const DEFAULT_COL_WIDTHS: Record<string, number> = Object.fromEntries(
+  Object.entries(MASTER_COLS).map(([key, col]) => [key, col.w]),
+);
+
+/** Columns pinned on the left while scrolling sideways. */
+export const PINNED_KEYS = ['no', 'week', 'cust', 'po', 'po2', 'ordno', 'newReplen'];
+
+const MANDATORY_KEYS = ['no', 'week', 'cust', 'po', 'arrow'];
+
+/** Columns shown in the table, in display order: the chosen columns plus the mandatory ones. */
+export function getActiveColumnKeys(visibleKeys: string[]): string[] {
+  const ordered = [
+    ...visibleKeys.filter(key => key in MASTER_COLS),
+    ...MANDATORY_KEYS.filter(key => !visibleKeys.includes(key)),
+  ];
+  return [...new Set(ordered)];
+}
+
 // ── คอลัมน์ที่ฝ่ายผลิต "คีย์เอง" (ข้อมูลติดตามWorkfromตาราง OrdTrackDT) ──
 // ลงสีพื้นอำพัน (amber) เพื่อแยกให้เห็นชัดfromคอลัมน์Order/ยอดที่SystemคำนวณAuto (OrdHD/OrdDT)
 export const USER_INPUT_KEYS = new Set<string>([

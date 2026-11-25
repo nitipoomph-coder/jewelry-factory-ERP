@@ -242,7 +242,6 @@ export const FactoryRiskPanel: React.FC<FactoryRiskPanelProps> = ({
                     borderBottom: '1px solid var(--color-border-light)',
                     backgroundColor: idx % 2 === 0 ? 'var(--color-surface-0)' : 'var(--color-surface-1)',
                     cursor: 'pointer',
-                    transition: 'background-color 0.12s ease',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--color-danger-500) 6%, var(--color-surface-0))';

@@ -755,7 +755,7 @@ export const StonePOWorkspace: React.FC<StonePOWorkspaceProps> = ({
                           <tr
                             key={line.seq || idx}
                             onClick={() => setSelectedLineIndex(idx)}
-                            className="border-b transition-colors cursor-pointer"
+                            className="border-b cursor-pointer"
                             style={{
                               borderColor: 'var(--color-border-light)',
                               backgroundColor: isSelected

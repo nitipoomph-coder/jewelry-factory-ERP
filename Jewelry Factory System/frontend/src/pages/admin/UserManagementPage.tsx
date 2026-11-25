@@ -237,7 +237,7 @@ export default function UserManagementPage() {
                     return (
                       <tr
                         key={String(user.id)}
-                        className="hover:bg-fixed-slate-50/80 dark:hover:bg-fixed-slate-800/40 transition-colors group cursor-pointer"
+                        className="hover:bg-fixed-slate-50/80 dark:hover:bg-fixed-slate-800/40 group cursor-pointer"
                         onClick={() => handleOpenDrawer(user)}
                       >
                         {/* User Profile */}

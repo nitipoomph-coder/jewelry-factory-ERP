@@ -324,7 +324,7 @@ export default function ActiveSessionsPage() {
                     const statusBadge = getActiveStatusBadge(session.lastActiveAt);
 
                     return (
-                      <tr key={session.sessionId} className="hover:bg-fixed-slate-50/80 dark:hover:bg-fixed-slate-800/40 transition-colors">
+                      <tr key={session.sessionId} className="hover:bg-fixed-slate-50/80 dark:hover:bg-fixed-slate-800/40">
                         {/* User */}
                         <td className="py-3 px-5 whitespace-nowrap">
                           <div className="flex items-center gap-3">

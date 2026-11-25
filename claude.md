@@ -70,8 +70,9 @@ The PO tracker is a core operational production feature designed to:
 - **Filters — Toolbar + Popover + Chips (modern table-filter pattern, not a sidebar)**: Group toggle and Status toggle remain permanently visible in a single toolbar row. Secondary filters (Week/Customer/PO/Type/ShipTo/Date Range) are housed inside the "Filters" button (with active count badge), opening a floating popover (matching the View Columns popover pattern in `OrderTable.tsx`). Active filters appear as removable chips directly underneath the toolbar for immediate awareness without reopening the popover. When no filters are active, the upper layout collapses cleanly into a single toolbar row (inspired by Linear/Notion/GitHub Issues design patterns, avoiding bulky BI dashboard sidebars).
 - **KPI Tiles → Smart KPI Toolbar**: Replaced legacy flat icon-circle grids with a unified inline toolbar: Priority Metrics (ACTIVE ORDERS, LATE, PENDING) displayed prominently on the left | vertical divider | Secondary Metrics (TOTAL QTY, TOTAL AMOUNT) in compact typography | Refresh button + "Last updated" indicator on the right — aligned with the Top Item Gallery Summary Header design.
 - **Pagination — Pinned, Zero Whole-Page Scrolling**: Consolidated into a single pinned bottom toolbar (Showing X–Y of Z + page size selector + Prev/page numbers/Next unified in one row). `OrderTable.tsx` no longer accepts `totalCount`/`pageSize`/`onPageSizeChange` props since pagination logic lives in `POTrackerAdvanced.tsx`. The Data Table card utilizes flex column (`flex: 1, minHeight: 0`) to fill the remaining viewport, and the scroll container in `OrderTable.tsx` replaces fixed `maxHeight: calc(100vh - 280px)` with `flex: 1, minHeight: 0`, pinning pagination to the bottom of the screen permanently.
+- **Column Widths — Smooth Resize, Remembered Per User (2026-11-24)**: `POTrackerAdvanced.tsx` owns `useColumnWidths('po-tracker', DEFAULT_COL_WIDTHS, { keys, stickyKeys: PINNED_KEYS })` and passes it to `OrderTable.tsx` as the `columnWidths` prop (also drives the Reset Columns button). Dragging changes only the `<col>` width, the table width and (for a pinned column) one small `<style>` rule per pinned column (`stickyClass(key)` on its header and body cells sets `left`), so the table body is not re-rendered or fully re-styled on every pointer move; widths of hidden columns stay saved. Only pinned cells get `position: sticky` / `z-index` — normal cells have no position, so they do not each create a stacking context. Known limit (accepted 2026-11-25): dragging a pinned column still repaints the whole table each frame (~20–25 ms per frame on the test machine); a guide-line preview applied on release was offered and declined for now. The visible column list comes from `getActiveColumnKeys()` in `orderTableConfig.tsx` (shared by both files). No transitions on rows/cells (they made the resize lag 0.2 s behind the pointer).
 - **Line Detail Drawer & Order Line Table**:
-  - `OrderLineTable.tsx` avoids awkward text wrapping in narrow columns (e.g., 'Plating') for clean readability.
+  - `OrderLineTable.tsx` avoids awkward text wrapping in narrow columns (e.g., 'Plating') for clean readability. Its column widths use `useColumnWidths('order-detail-lines', ...)` the same way (remembered per user).
   - Photo container backgrounds in `LineDetailDrawer.tsx` utilize `--color-product-canvas` for high contrast across all themes, with close buttons mirroring the Lightbox pattern.
 - **Column Presets Synchronization**: Default column presets (Sales, Production, All) in `orderDetailColumns.ts` achieve 100% parity with legacy VB.NET checkboxes (adding `QCDate`, `FinishQty` to Sales and `OrdRemark` to Production).
 
@@ -287,7 +288,7 @@ gemstone-lifecycle-management/
     │       │
     │       ├── hooks/
     │       │   ├── useCctvAuditForm.ts          # CCTV audit form state (localStorage + import/export + holidays)
-    │       │   ├── useColumnWidths.ts           # User-resizable table columns, saved per user (Order List)
+    │       │   ├── useColumnWidths.ts           # User-resizable table columns, saved per user (Order List, PO Tracker, Order Detail lines)
     │       │   ├── usePeriodSetup.ts            # ⭐ Centralized period filter state management
     │       │   ├── useCustomerSalesData.ts      # Customer sales data hook
     │       │   ├── useCustomerReportData.ts     # Customer report data hook
@@ -404,6 +405,11 @@ gemstone-lifecycle-management/
     - Avoid native `<datalist>` for complex dropdowns; use custom React dropdown components to maintain full control over styling, z-index, hover states, and interactions.
     - **Accessibility & Contrast**: Body text must maintain a contrast ratio of at least 4.5:1, and large text at least 3:1 across all themes. Use opaque surfaces when backgrounds hinder readability.
     - **Capitalization**: Maintain consistent casing standards across the entire application (e.g., Title Case for "Sales", "Password") rather than mixing ALL CAPS and Title Case at the same hierarchy level.
+12. **Data Tables — Performance**:
+    - No `transition` or `animation` on table rows (`tr`), cells (`td`/`th`), or their CSS classes — hover and selection change instantly. Buttons and controls inside cells may keep short transitions.
+    - Resizable columns use `hooks/useColumnWidths.ts` (widths on `<col>` + `table-layout: fixed`, saved per user). Never resize by setting React state on every mouse move, and do not put `width`/`minWidth`/`maxWidth` on every cell.
+    - Pinned (sticky) columns use `stickyKeys` + `stickyClass(key)` from the hook. Only pinned cells get `position`/`z-index`; never drive per-cell values from a CSS variable on the `<table>` during a drag (it re-styles every cell each frame).
+    - See `docs/debug-history.md` (2026-11-21 Order List, 2026-11-24 PO Tracker).
 
 ### System-Wide Responsive And Loading Standard
 

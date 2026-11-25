@@ -370,7 +370,7 @@ export default function AuditLogsPage() {
                   logs.map(log => (
                     <tr
                       key={log.id}
-                      className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40 transition-colors cursor-pointer"
+                      className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40 cursor-pointer"
                       onClick={() => setSelectedLog(log)}
                     >
                       {/* Severity */}

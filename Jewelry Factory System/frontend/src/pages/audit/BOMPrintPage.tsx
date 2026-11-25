@@ -423,7 +423,7 @@ export default function BOMPrintPage() {
                         <tr
                           key={item.id}
                           onClick={() => setSelectedId(item.id)}
-                          className={`cursor-pointer transition-colors ${
+                          className={`cursor-pointer ${
                             isSelected
                               ? 'bg-[var(--color-surface-2)] font-semibold'
                               : 'hover:bg-[var(--color-surface-1)]/70'

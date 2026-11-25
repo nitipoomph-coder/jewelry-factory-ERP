@@ -625,7 +625,7 @@ export default function DocumentLayout({
                       return (
                         <tr key={i}
                           onClick={() => setSelectedLineIdx(i)}
-                          className={`border-b border-[var(--color-border-default)]/30 transition-colors cursor-pointer ${isSelected ? 'bg-[var(--color-brand-50)]' : 'bg-transparent hover:bg-[var(--color-surface-1)]/50'}`}>
+                          className={`border-b border-[var(--color-border-default)]/30 cursor-pointer ${isSelected ? 'bg-[var(--color-brand-50)]' : 'bg-transparent hover:bg-[var(--color-surface-1)]/50'}`}>
                           {tableColumns.map(col => {
                             const val = getCellValue(line, col.key, i);
                             const isNum = col.align === 'right';

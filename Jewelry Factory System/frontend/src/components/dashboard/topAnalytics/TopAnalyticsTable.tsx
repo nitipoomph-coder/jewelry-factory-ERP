@@ -334,7 +334,7 @@ export function TopAnalyticsTable({
                 setSortKey('price');
                 setSortOrder('desc');
               }}
-              className="py-3 px-3 text-center w-16 select-none cursor-pointer hover:text-[var(--color-text-primary)] transition-colors"
+              className="py-3 px-3 text-center w-16 select-none cursor-pointer hover:text-[var(--color-text-primary)]"
               title="Click to reset to default rank (Top Price descending)"
             >
               Rank
@@ -346,7 +346,7 @@ export function TopAnalyticsTable({
             {/* Price & Trend (USD): locked fixed width of 220px */}
             <th 
               onClick={() => handleSort('price')}
-              className="py-3 px-4 w-[220px] min-w-[220px] max-w-[220px] cursor-pointer select-none transition-colors group hover:text-[var(--color-text-primary)]"
+              className="py-3 px-4 w-[220px] min-w-[220px] max-w-[220px] cursor-pointer select-none group hover:text-[var(--color-text-primary)]"
               style={{ color: sortKey === 'price' ? 'var(--color-ui-interactive)' : undefined }}
               title="Click to sort by Total Price (USD)"
             >
@@ -361,7 +361,7 @@ export function TopAnalyticsTable({
               <th 
                 key={yr} 
                 onClick={() => handleSort(yr)}
-                className="py-3 px-4 text-right w-28 tabular-nums cursor-pointer select-none transition-colors group hover:text-[var(--color-text-primary)]"
+                className="py-3 px-4 text-right w-28 tabular-nums cursor-pointer select-none group hover:text-[var(--color-text-primary)]"
                 style={{ color: sortKey === yr ? 'var(--color-ui-interactive)' : undefined }}
                 title={`Click to sort by Year ${yr}`}
               >
@@ -376,7 +376,7 @@ export function TopAnalyticsTable({
             {showAvg && (
               <th 
                 onClick={() => handleSort('total')}
-                className="py-3 px-4 text-right w-28 tabular-nums font-bold cursor-pointer select-none transition-colors group hover:text-[var(--color-text-primary)]"
+                className="py-3 px-4 text-right w-28 tabular-nums font-bold cursor-pointer select-none group hover:text-[var(--color-text-primary)]"
                 style={{
                   backgroundColor: 'var(--color-ui-raised)',
                   color: sortKey === 'total' ? 'var(--color-ui-interactive)' : 'var(--color-text-primary)',
@@ -392,7 +392,7 @@ export function TopAnalyticsTable({
             {showAvg && (
               <th 
                 onClick={() => handleSort('avg')}
-                className="py-3 px-4 text-right w-28 tabular-nums font-bold cursor-pointer select-none transition-colors group hover:text-[var(--color-text-primary)]"
+                className="py-3 px-4 text-right w-28 tabular-nums font-bold cursor-pointer select-none group hover:text-[var(--color-text-primary)]"
                 style={{
                   backgroundColor: 'var(--color-ui-raised)',
                   color: sortKey === 'avg' ? 'var(--color-ui-interactive)' : 'var(--color-text-primary)',
@@ -636,7 +636,7 @@ function AnalyticsTableRow({
 
   return (
     <tr 
-      className="transition-colors hover:bg-[var(--color-ui-raised)]"
+      className="hover:bg-[var(--color-ui-raised)]"
       style={{ borderBottom: '1px solid var(--color-border-light)' }}
     >
       {/* Rank Column */}

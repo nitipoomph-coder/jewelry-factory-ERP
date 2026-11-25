@@ -599,7 +599,7 @@ export default function SecurityRadarPage() {
                 </thead>
                 <tbody className="divide-y divide-fixed-slate-100 dark:divide-fixed-slate-800/40 bg-fixed-white dark:bg-fixed-slate-900/30">
                   {bannedIPs.map(item => (
-                    <tr key={item.ip} className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40 transition-colors">
+                    <tr key={item.ip} className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40">
                       <td className="py-3 px-5 font-mono font-bold text-fixed-rose-600 dark:text-fixed-rose-400">
                         <span className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-fixed-rose-500 animate-ping inline-block" />
@@ -722,7 +722,7 @@ export default function SecurityRadarPage() {
                   filteredLogs.map(item => (
                     <tr
                       key={item.id}
-                      className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40 transition-colors cursor-pointer"
+                      className="hover:bg-fixed-slate-50/70 dark:hover:bg-fixed-slate-800/40 cursor-pointer"
                       onClick={() => setSelectedEvent(item)}
                     >
                       <td className="py-3 px-5 whitespace-nowrap">

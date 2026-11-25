@@ -764,7 +764,7 @@ export default function CardDetailPanel({ cardType, selectedYear, onClose }: { c
                   </thead>
                   <tbody>
                     {data.breakdown.map((r: BreakdownItem) => (
-                      <tr key={r.code} style={{ borderBottom:'1px solid var(--color-border-light)', transition:'background 0.15s' }}
+                      <tr key={r.code} style={{ borderBottom:'1px solid var(--color-border-light)' }}
                         onMouseEnter={e => e.currentTarget.style.background='var(--color-surface-1)'}
                         onMouseLeave={e => e.currentTarget.style.background='transparent'}
                       >
