@@ -32,8 +32,8 @@ The primary goal is to modernize the legacy system (originally built on Windows 
 
 ### 📍 Core Manuals (Must-Read)
 0. `claude.md`
-   - **Content:** Full project context (DB guardrails, business modules, tech stack versions, design system/themes, directory structure, customer groups).
-   - **Note:** Comprehensive document (~100KB). Always read the top section (rules, overview, tech stack) first, then consult specific sections as needed.
+   - **Content:** Rules most tasks need (DB guardrails, business modules, coding rules, cross-cutting data rules, commands) and a "Where to Find More" table.
+   - **Note:** Short on purpose (~280 lines). Folder structure, API endpoints, database details and per-module notes live in the `docs/` files listed in that table (`docs/architecture/`, `docs/api/`, `docs/database/`, `docs/modules/`, `docs/auth/`, `docs/history/`).
 
 1. `docs/design/PRODUCT.md` 
    - **Content:** Product philosophy and UI/UX guardrails.
