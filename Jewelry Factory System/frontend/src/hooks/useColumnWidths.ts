@@ -32,7 +32,7 @@ const KEY_STEP = 10;
 const KEY_STEP_LARGE = 50;
 
 // Username from the JWT payload (display only, not verified here — it only picks a storage key).
-function currentUserKey(): string {
+export function currentUserKey(): string {
   try {
     const token = localStorage.getItem('auth_token') || '';
     const payload = token.split('.')[1];

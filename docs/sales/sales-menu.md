@@ -107,13 +107,21 @@ Recommended URL cleanup rules:
 Do not move Matrix state to `sessionStorage` only unless shareable/report URLs are no longer required.
 
 ## Order List
-`SalesCustomerGroupDetail.tsx`, route `/dashboard/sales-customer-detail`.
+`SalesCustomerGroupDetail.tsx` (+ `OrderList.css`), route `/dashboard/sales-customer-detail`.
 
-- Opened from Customer Report Matrix: a customer row sends `customers=<code>`, a group row sends `groups=<id>`; the page also keeps the report's period / metric query.
-- Data: `GET /api/dashboard/sales-orders` reads `VW_Web_SalesDashboard` with the same filters as Sales Summary (`/customer-summary`): years, months, week range (`preset=week` → `wStart`/`wEnd`), day range (`preset=day` → `dateFrom`/`dateTo` sent as `startDate`/`endDate`) and date basis (`dateField`). Per-customer qty and amount match Sales Summary. Groups are sent through `getGroupCustomerFilter` (General → `excludeCustomers`).
-- Back button `Customer Report` returns to `/dashboard/customer/matrix` with the same query minus `customers` / `groups`.
-- Table (`components/sales/SalesDenseTable.css`, used only by this page): `OrdNo` column pinned on the left (`sales-dense-table--sticky-first`), sticky header, no row entrance animation and no cell transitions (they made scrolling drop frames — see `docs/debug-history.md`, 2026-11-21).
-- Column widths are user-resizable (`hooks/useColumnWidths.ts`, columns defined once in `COLUMNS` in the page): drag a header's right edge, double-click it to reset, or focus it and use ArrowLeft / ArrowRight (Shift = 50 px, Delete = reset); min 48 px, max 800 px. Widths are saved in this browser's `localStorage` per signed-in user and per table (`table-col-widths:v1:<USERNAME from the login token>:order-list`, overrides only). `Reset widths` appears when any width differs from the default. Cells cut off by a narrow column show the full text on hover (`title`). The body is a memo component (`OrderListBody`), so resizing or typing in the search box does not re-render the body cells.
+Purpose: show the order lines behind one number of the Customer Report Matrix, for one customer group or one customer.
+
+- Period with no `years` in the URL (the Period default) is the current year, the same default as the API, and the scope line says that year.
+- Scope comes from the URL: a Matrix group row sends `groups=<id>`, a customer row sends `customers=<code>`; the period / metric query is kept. The scope line shows the group (a dropdown to switch group), the customer, the period and the date basis. Opened from the menu with no group or customer, the page asks for a group first instead of loading every order.
+- Data: `GET /api/dashboard/sales-orders` reads `VW_Web_SalesDashboard` with the same filters as the Matrix (`/customer-summary`): years, months, week range, day range, date basis, and active customers only (`CustStatus = 'Y'`, added 2026-11-26), so the Order List total equals the Matrix number it was opened from. Groups are sent through `getGroupCustomerFilter` (General → `excludeCustomers`).
+- Layout (2026-11-26 redesign, option D): one flat surface like the Matrix. Scope line → KPI row (Sales Amount, Ordered Qty, Shipped Qty with % of ordered, Open Qty, Orders with line count) → breakdown "By customer" (hidden for one customer) and "By product type" (bars by the metric, click a bar to filter the table, the other breakdown follows) → toolbar → table → pager. On desktop the table is the only scroll area; at 620px and below the page scrolls.
+- Toolbar: Amount / Qty (sort and breakdown metric), Customers menu (only the customers of the scope), active Type filter chip, search (Enter applies, Escape restores), Columns menu, Reset widths, line count.
+- Excel: no button on the page. The page registers its export with `usePageExcelExport` (`contexts/pageExportStore.ts`), so the Global Topbar's Print / Export menu → `Export to Excel` downloads the filtered lines with every column. The item is disabled when there is nothing to export.
+- Columns: 13 shown by default (OrdNo pinned, OrdDate or DueDate following the date basis, CustCode (hidden when the scope is one customer), PONo, ItemNo, Type, ItemDesc, Shipping, ItemQTY, ItemPrice, ItemAmt, ExportQTY, OpenQTY); the other 17 are under `Columns` (Dates, Order, Item, Amounts). Choices are saved per signed-in user (`order-list-columns:v1:<USERNAME>`, overrides only). The Excel file always has every column of the filtered lines.
+- Shipping status uses the sales vocabulary: `Shipped` (ExportQTY ≥ ItemQTY), `Partial nn%`, `Open`, shown as a pill with a dot and text.
+- Sort: biggest ItemAmt (or ItemQTY) first, then OrdNo and line number as tie-breakers. 50 lines per page; the pinned Total row sums every filtered line, not only the page.
+- Column widths: `hooks/useColumnWidths.ts` (`order-list`, `keys` = visible columns, OrdNo pinned with `stickyKeys`), drag / double-click / arrow keys, saved per user. The body is a memo component (`OrderListBody`); no transitions on rows or cells (`docs/debug-history.md`, 2026-11-21).
+- Back button `Customer Report Matrix` returns to `/dashboard/customer/matrix` with the same query minus `customers` / `groups`.
 
 ## Sales vs Production Boundary
 Sales pages should stay focused on sales, quantity, customer, item, and order evidence.

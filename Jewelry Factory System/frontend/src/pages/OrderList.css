@@ -1,0 +1,681 @@
+/* Order List page (SalesCustomerGroupDetail.tsx).
+   One flat surface like the Customer Report Matrix: no frames, spacing and hairlines only.
+   On desktop the page does not scroll; the table is the only scroll area. */
+.order-list-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-ui-canvas);
+}
+
+.order-list-page {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px var(--app-page-gutter);
+  box-sizing: border-box;
+}
+
+.order-list-body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Scope line ── */
+.order-list-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: var(--erp-text-control);
+}
+
+.order-list-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-brand-600);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+}
+
+.order-list-back:hover {
+  text-decoration: underline;
+}
+
+.order-list-scope-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border-light);
+}
+
+.order-list-scope-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.order-list-scope-key {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+/* ── No scope yet (opened from the menu) ── */
+.order-list-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px 0;
+}
+
+.order-list-pick-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--erp-text-section);
+  font-weight: 900;
+}
+
+.order-list-pick-text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--erp-text-control);
+  font-weight: 700;
+}
+
+.order-list-pick-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.order-list-pick-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-ui-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+}
+
+.order-list-pick-group:hover {
+  border-color: var(--color-ui-interactive);
+}
+
+/* ── KPI row (uses .customer-kpi from SalesResponsive.css) ── */
+.order-list-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 36px;
+}
+
+.order-list-kpi-sub {
+  margin-left: 6px;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+}
+
+/* ── Breakdowns: where the number comes from ── */
+.order-list-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 36px;
+}
+
+.order-list-breakdowns--single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 50%;
+}
+
+.order-list-breakdown {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-list-breakdown-title {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.order-list-breakdown-title span {
+  font-weight: 700;
+}
+
+/* At most 5 rows visible; longer lists scroll inside */
+.order-list-breakdown-list {
+  max-height: 124px;
+  overflow-y: auto;
+}
+
+.order-list-breakdown-row {
+  display: grid;
+  width: 100%;
+  height: 24px;
+  grid-template-columns: 64px minmax(40px, 1fr) 118px 48px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0 6px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-dense);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.order-list-breakdown-row:hover {
+  background: var(--color-table-row-alt);
+}
+
+.order-list-breakdown-row.is-active {
+  background: var(--color-ui-interactive-soft);
+  box-shadow: inset 2px 0 0 var(--color-ui-interactive);
+}
+
+.order-list-breakdown-row:focus-visible {
+  outline: 2px solid var(--color-ui-focus-ring);
+  outline-offset: -2px;
+}
+
+.order-list-breakdown-row--skeleton {
+  cursor: default;
+}
+
+.order-list-breakdown-key {
+  overflow: hidden;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-list-breakdown-bar {
+  height: 8px;
+  background: var(--color-ui-raised);
+}
+
+.order-list-breakdown-bar i {
+  display: block;
+  height: 100%;
+  background: var(--color-chart-1);
+}
+
+.order-list-breakdown-value {
+  font-weight: 800;
+  text-align: right;
+}
+
+.order-list-breakdown-pct {
+  color: var(--color-text-tertiary);
+  font-weight: 800;
+  text-align: right;
+}
+
+/* ── Toolbar ── */
+.order-list-toolbar {
+  display: flex;
+  min-height: 32px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-list-search {
+  display: inline-flex;
+  width: min(260px, 100%);
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-ui-surface);
+  padding: 0 8px;
+  color: var(--color-text-tertiary);
+}
+
+.order-list-search:focus-within {
+  border-color: var(--color-ui-interactive);
+}
+
+.order-list-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+.order-list-search-clear,
+.order-list-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.order-list-chip {
+  height: 28px;
+  border-radius: 6px;
+  background: var(--color-ui-interactive-soft);
+  padding: 0 10px;
+  color: var(--color-text-primary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.order-list-count {
+  margin-left: auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.order-list-error {
+  color: var(--color-danger-500);
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+}
+
+/* ── Check menu (customers, columns) ── */
+.order-list-menu-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.order-list-menu-wrap {
+  position: relative;
+}
+
+.order-list-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  display: flex;
+  min-width: 220px;
+  max-height: min(420px, 60dvh);
+  flex-direction: column;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-ui-surface);
+  padding: 6px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+}
+
+.order-list-menu-section + .order-list-menu-section {
+  border-top: 1px solid var(--color-border-light);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.order-list-menu-title {
+  padding: 4px 8px 2px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.order-list-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 5px;
+  padding: 5px 8px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.order-list-menu-item:hover {
+  background: var(--color-table-row-alt);
+}
+
+.order-list-menu-item.is-disabled {
+  color: var(--color-text-tertiary);
+  cursor: default;
+}
+
+.order-list-menu-meta {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-list-menu-footer {
+  margin-top: 4px;
+  border: 0;
+  border-top: 1px solid var(--color-border-light);
+  background: transparent;
+  padding: 8px 8px 4px;
+  color: var(--color-brand-600);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+  text-align: left;
+}
+
+/* ── Table: the only scroll area. Widths on <col> (hooks/useColumnWidths.ts) + table-layout: fixed.
+   No transitions on rows or cells (docs/debug-history.md 2026-11-21). ── */
+.order-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.order-list-table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-list-table th,
+.order-list-table td {
+  box-sizing: border-box;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 0 8px;
+  text-align: left;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.order-list-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 30px;
+  background: var(--color-ui-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.order-list-table td {
+  height: 34px;
+  background: var(--color-ui-canvas);
+  color: var(--color-text-primary);
+  font-size: var(--erp-text-control);
+  font-weight: 700;
+}
+
+.order-list-table tbody tr:hover td {
+  background: var(--color-table-row-alt);
+}
+
+.order-list-table .order-list-num {
+  text-align: right;
+}
+
+.order-list-table .order-list-group-start {
+  border-left: 1px solid var(--color-border-light);
+}
+
+/* Pinned OrdNo column (left offset from useColumnWidths' stickyClass) */
+.order-list-table .order-list-pin {
+  position: sticky;
+  z-index: 5;
+  border-right: 1px solid var(--color-border-light);
+}
+
+.order-list-table th.order-list-pin {
+  z-index: 15;
+}
+
+.order-list-th-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-list-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.order-list-resizer::after {
+  position: absolute;
+  top: 6px;
+  right: 3px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  content: '';
+}
+
+.order-list-resizer:hover::after,
+.order-list-resizer[data-active='true']::after,
+.order-list-resizer:focus-visible::after {
+  background: var(--color-ui-interactive);
+}
+
+.order-list-resizer:focus {
+  outline: none;
+}
+
+.order-list-table td.order-list-order {
+  color: var(--color-brand-600);
+  font-weight: 900;
+}
+
+.order-list-table td.order-list-strong {
+  font-weight: 900;
+}
+
+.order-list-table td.order-list-soft {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.order-list-table td.order-list-zero {
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+/* Total row pinned at the bottom */
+.order-list-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 0;
+  background: var(--color-ui-raised);
+  font-weight: 900;
+}
+
+.order-list-table tfoot td.order-list-pin {
+  z-index: 16;
+}
+
+.order-list-empty {
+  padding: 36px !important;
+  color: var(--color-text-secondary);
+  text-align: center !important;
+}
+
+/* Shipping state: shape (dot + pill) and text, not color alone */
+.order-list-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+}
+
+.order-list-status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.order-list-status--done {
+  background: color-mix(in srgb, var(--color-success-500) 14%, transparent);
+  color: var(--color-success-600);
+}
+
+.order-list-status--part {
+  background: color-mix(in srgb, var(--color-warning-500) 16%, transparent);
+  color: var(--color-warning-600);
+}
+
+.order-list-status--open,
+.order-list-status--none {
+  background: var(--color-ui-raised);
+  color: var(--color-text-secondary);
+}
+
+/* ── Pager ── */
+.order-list-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+.order-list-pager b {
+  color: var(--color-text-primary);
+}
+
+.order-list-pager-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-list-pager-buttons button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-ui-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.order-list-pager-buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── First-load skeleton rows (same 30 px header / 34 px rows as the table) ── */
+.order-list-skeleton-row {
+  display: grid;
+  height: 34px;
+  grid-template-columns: 118px repeat(11, minmax(60px, 1fr));
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 0 8px;
+}
+
+.order-list-skeleton-row--head {
+  height: 30px;
+  background: var(--color-ui-raised);
+}
+
+/* ── Smaller screens: breakdowns stack; at phone width the page scrolls instead of the table ── */
+@container app-main (max-width: 1120px) {
+  .order-list-breakdowns,
+  .order-list-breakdowns--single {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+  }
+}
+
+@container app-main (max-width: 620px) {
+  .order-list-host {
+    overflow-y: auto;
+  }
+
+  .order-list-page {
+    height: auto;
+  }
+
+  .order-list-scroll {
+    flex: none;
+    height: max(420px, 70dvh);
+  }
+
+  .order-list-count {
+    margin-left: 0;
+  }
+
+  .order-list-search {
+    width: 100%;
+  }
+
+  .order-list-breakdown-row {
+    grid-template-columns: 56px minmax(30px, 1fr) 96px 44px;
+  }
+}

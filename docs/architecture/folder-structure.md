@@ -91,7 +91,6 @@ gemstone-lifecycle-management/
     │       │   │   └── topAnalytics/                    # Top analytics components
     │       │   ├── period/
     │       │   │   └── PeriodSetupPanel.tsx             # ⭐ Centralized period filter popover (used across all dashboards)
-    │       │   ├── sales/                               # Sales-specific sub-components
     │       │   ├── topOrders/                            # Top orders gallery sub-components
     │       │   ├── orderDetail/
     │       │   │   ├── LineDetailDrawer.tsx      # Order line detail side drawer (with photo tabs)
@@ -125,7 +124,8 @@ gemstone-lifecycle-management/
     │       │   ├── TopOrdersGalleryPage.tsx    # ⭐ Top Orders Gallery
     │       │   ├── TopOrdersAnalyticsPage.tsx  # Top Orders Analytics (draft)
     │       │   ├── POTrackerAdvanced.tsx       # ⭐ PO Tracker main (list view)
-    │       │   ├── SalesCustomerGroupDetail.tsx     # ✅ Customer Order List
+    │       │   ├── SalesCustomerGroupDetail.tsx     # ✅ Order List (orders behind a Matrix group / customer)
+    │       │   ├── OrderList.css               # Order List layout (flat surface, breakdowns, table)
     │       │   ├── OrderDetailPage.tsx         # Order detail (by ord/po/group)
     │       │   ├── ProductionSummaryPage.tsx   # ⭐ Production Summary (chart + table, period-aware)
     │       │   ├── ProductionForecastPage.tsx  # Production Forecast (wrapper)
@@ -175,6 +175,8 @@ gemstone-lifecycle-management/
     │       │   └── productionSummaryConfig.ts # Production step/group/mode definitions
     │       │
     │       ├── contexts/
+    │       │   ├── PageExportContext.tsx  # Holds the Excel export the current page registered (in AppLayout)
+    │       │   ├── pageExportStore.ts     # usePageExcelExport (page) / usePageExcelExportAction (Global Topbar)
     │       │   └── ThemeContext.tsx    # Theme provider (dark-gold/royal-white/modern-dark)
     │       │
     │       ├── types/

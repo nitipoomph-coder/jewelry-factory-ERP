@@ -674,3 +674,22 @@ The Total row is sticky (`bottom: 0`) over the scrolling rows. Growth cells set 
 ### Prevention & Lessons Learned:
 1. Every cell of a sticky row must have an opaque background; never let an inline style replace it with a transparent one.
 2. Check pinned rows while the table is scrolled, not only at the top.
+
+---
+
+## Issue: Order List Counted Inactive Customers, Matrix Did Not
+**Date:** 2026-11-26
+**Component:** `backend/routes/orderVolumeSummary.js`
+
+### Symptoms:
+The Order List opened from a Customer Report Matrix group could show a higher total than the Matrix number it was opened from.
+
+### Root Cause:
+`/api/dashboard/customer-summary` (Matrix) keeps only active customers (`ISNULL(CustStatus, 'Y') = 'Y'`); `/api/dashboard/sales-orders` (Order List) had no such filter, although its header comment said it used the same filters. Orders of closed customers were counted only in the Order List.
+
+### Fix:
+`/api/dashboard/sales-orders` now adds `AND ISNULL(v.CustStatus, 'Y') = 'Y'` (read-only, no database change), and the comment states the rule.
+
+### Prevention & Lessons Learned:
+1. A drill-down must use exactly the filters of the number it explains; compare the WHERE clauses, not the comments.
+2. Check a drill-down by opening it from a Matrix cell and comparing the totals.

@@ -10,6 +10,8 @@
 //         BBS showroom, BBK stock, BBD development samples).
 // Filter: years / months / week range / day range / date basis (buildSalesFilters)
 //         + customers or excludeCustomers (General group)
+//         + active customers only (CustStatus = 'Y'), the same rule as /api/dashboard/customer-summary,
+//           so the Order List total equals the Customer Report Matrix cell it was opened from
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const express = require('express');
@@ -63,6 +65,7 @@ router.get('/sales-orders', async (req, res) => {
         ISNULL(v.ExportQty * v.ItemPrice, 0) AS shippedAmnt
       FROM ${SALES_VIEW} v WITH (NOLOCK)
       WHERE ${whereSql}
+        AND ISNULL(v.CustStatus, 'Y') = 'Y'
       ORDER BY v.OrdDate DESC, v.OrdNo, v.OrdLineNo
     `);
 

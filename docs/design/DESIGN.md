@@ -287,3 +287,4 @@ Don't:
 - Do not introduce a new font unless the whole system is intentionally migrating.
 - Do not use thick colored borders on one side of a card (`borderLeft: 4px solid...`). This is a recognizable tell of AI-generated UIs. Use subtler accents or remove them entirely.
 - Do not add redundant or duplicate page-level Refresh buttons in the page header. The application shell already provides the standard Global Topbar Refresh button (which pages hook into using `useTopbarActions`).
+- Excel export lives in the Global Topbar (Print / Export menu → `Export to Excel`), not as a page button. A page that can export registers its own function with `usePageExcelExport` (`contexts/pageExportStore.ts`); the topbar never checks the route. Pages that register nothing show the item disabled.

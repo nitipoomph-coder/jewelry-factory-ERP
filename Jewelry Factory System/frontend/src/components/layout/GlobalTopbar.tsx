@@ -6,6 +6,7 @@ import NotificationDropdown from './NotificationDropdown';
 import UserAvatarDropdown from './UserAvatarDropdown';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useTopbarActions } from '../../contexts/TopbarActionContext';
+import { usePageExcelExportAction } from '../../contexts/pageExportStore';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { FACTORY_OVERVIEW_PATH } from '../../utils/authRedirect';
 
@@ -20,6 +21,9 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
   const { effectiveBreadcrumbs } = useBreadcrumbs();
   const { theme, setTheme } = useTheme();
   const { topbarActions } = useTopbarActions();
+  // Excel export registered by the current page (contexts/pageExportStore.ts); null → item disabled
+  const pageExcelExport = usePageExcelExportAction();
+  const excelReady = Boolean(pageExcelExport && !pageExcelExport.disabled);
   const { workspace, switchWorkspace } = useWorkspace();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -43,6 +47,11 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleExportExcel = () => {
+    setShowExportMenu(false);
+    if (pageExcelExport && !pageExcelExport.disabled) void pageExcelExport.run();
+  };
 
   const handlePrintPDF = () => {
     setShowExportMenu(false);
@@ -281,9 +290,10 @@ export default function GlobalTopbar({ isSidebarOpen, onToggleSidebar }: GlobalT
               </div>
               <button
                 type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 border-none rounded-lg px-3 py-2 text-[length:var(--erp-text-body)] opacity-40 bg-transparent text-[var(--color-text-primary)] font-semibold select-none"
-                title="Currently unavailable"
+                disabled={!excelReady}
+                onClick={handleExportExcel}
+                className={`flex w-full items-center gap-3 border-none rounded-lg px-3 py-2 text-[length:var(--erp-text-body)] bg-transparent text-[var(--color-text-primary)] font-semibold ${excelReady ? 'cursor-pointer transition-colors hover:bg-[var(--color-surface-2)]' : 'cursor-not-allowed opacity-40 select-none'}`}
+                title={excelReady ? (pageExcelExport?.description ? `Export ${pageExcelExport.description} to Excel` : 'Export this page to Excel') : pageExcelExport ? 'Nothing to export' : 'This page has no Excel export'}
               >
                 <FileSpreadsheet size={16} strokeWidth={1.75} className="text-[var(--color-success-600)] shrink-0" />
                 <span>Export to Excel</span>
