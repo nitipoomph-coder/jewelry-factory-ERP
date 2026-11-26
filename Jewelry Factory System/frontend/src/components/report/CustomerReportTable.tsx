@@ -599,6 +599,10 @@ function MatrixGrid({
               <th key={g.key} colSpan={g.span} className="customer-matrix-th customer-matrix-th--top customer-matrix-group-start">
                 <span className="customer-matrix-group-label">{g.label}</span>
                 {g.sub && <span className="customer-matrix-group-sub">{g.sub}</span>}
+                {/* A header over one column (stacked Year view) resizes that column too */}
+                {g.span === 1 && columnKeys.includes(g.key) && (
+                  <span className="customer-matrix-resizer" {...handleProps(g.key, g.label)} />
+                )}
               </th>
             ))}
           </tr>

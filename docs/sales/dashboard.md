@@ -97,7 +97,7 @@ Table UX rules:
 
 Column widths:
 - Starting widths fit the longest number of each column kind (month values, totals, growth amounts), measured on all rows and the Total row, so Sales columns are wider than Qty columns and a search does not make columns jump
-- Drag a header's right edge to resize (a dragged width wins over the fitted width), double-click to reset, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
+- Drag a header's right edge to resize (in the stacked Year view the month name row has a handle too) (a dragged width wins over the fitted width), double-click to reset, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
 - Saved per signed-in user and per view (`customer-matrix:ytd|monthly|weekly|daily`). Stacked Year view keys: `s_{Mon}`, `s_total`. Keys use the year position (`y0` = newest year), not the year value, so widths still apply after the period moves to a new year
 
 Search UX:
