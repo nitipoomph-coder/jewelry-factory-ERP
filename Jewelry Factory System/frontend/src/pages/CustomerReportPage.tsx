@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { DollarSign, Hash } from 'lucide-react';
 import './SalesResponsive.css';
 import { ALL_GROUPS, type CustomerGroup } from '../config/customerGroups';
@@ -8,7 +8,7 @@ import PeriodSetupPanel from '../components/period/PeriodSetupPanel';
 import { CustomerGroupFilter } from '../components/dashboard/customerSales/CustomerGroupFilter';
 import { FilterX } from 'lucide-react';
 import CustomerReportTable from '../components/report/CustomerReportTable';
-import { useCustomerReportData, YEAR_COLORS } from '../hooks/useCustomerReportData';
+import { useCustomerReportData } from '../hooks/useCustomerReportData';
 import { renderGrowthAmt, renderGrowthPct } from '../components/dashboard/customerReport/GrowthHelpers';
 
 export default function CustomerReportPage() {
@@ -49,6 +49,16 @@ export default function CustomerReportPage() {
     resetFilters,
     availableYears
   } = useCustomerReportData();
+
+  // Group KPIs: By Customer view only, and only groups flagged showKpi in config/customerGroups.ts
+  const visibleGroupKpis = useMemo(
+    () => (aggregationMode === 'customer' ? groupKpis.filter((g: CustomerGroup) => g.showKpi) : []),
+    [aggregationMode, groupKpis],
+  );
+  const skeletonGroupKpis = useMemo(
+    () => (aggregationMode === 'customer' ? ALL_GROUPS.filter(g => g.showKpi && selGroups.includes(g.id)) : []),
+    [aggregationMode, selGroups],
+  );
 
   const handleRenderGrowthAmt = useCallback((baseVal: number, compVal: number) => {
     return renderGrowthAmt(baseVal, compVal, fmt, theme);
@@ -102,200 +112,90 @@ export default function CustomerReportPage() {
           </div>
         }
       />
-      <div className="content-scrollbar flex-1 overflow-y-auto" style={{ background: 'var(--color-surface-1)' }}>
+      <div className="customer-report-host content-scrollbar">
         <div className="app-content-frame app-content-frame--dashboard-wide sales-report-page">
-          {/* Loading Skeletons for KPIs */}
+          {/* KPI row: Year totals always; group KPIs only in By Customer view, only for groups flagged showKpi */}
           {(loading && tableData.rows.length === 0) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 20 }}>
-              {/* Year KPI Skeletons */}
-              <div className="sales-report-kpis flex-wrap" style={{ display: 'flex', gap: 12, marginBottom: 1 }}>
-                {(displayYears.length > 0 ? displayYears : ['2025', '2024']).map((yr, i) => (
-                  <div
-                    key={`kpi-skeleton-yr-${yr}`}
-                    style={{
-                      background: 'var(--color-surface-0)',
-                      border: '1px solid var(--color-border-light)',
-                      borderLeft: `4px solid ${YEAR_COLORS[i % YEAR_COLORS.length] || 'var(--color-border-light)'}`,
-                      borderRadius: 8,
-                      padding: '12px 16px',
-                      flex: '1 1 200px',
-                      minWidth: 180,
-                      boxShadow: '0 8px 20px -16px color-mix(in srgb, var(--color-surface-900) 25%, transparent)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 5
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div className="app-skeleton" style={{ width: 16, height: 16, borderRadius: 4 }} />
-                      <div className="app-skeleton" style={{ width: 85, height: 16, borderRadius: 4 }} />
-                    </div>
-                    <div className="app-skeleton" style={{ width: '70%', height: 26, borderRadius: 6, marginTop: 4 }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Group KPI Skeletons */}
-              {selGroups.length > 1 && (
-                <div className="sales-report-kpis flex-wrap" style={{ display: 'flex', gap: 12 }}>
-                  {selGroups.map((gId: string) => {
-                    const group = ALL_GROUPS.find(x => x.id === gId);
-                    const color = group?.color || 'var(--color-border-light)';
-                    const label = group?.label || gId;
-                    return (
-                      <div
-                        key={`kpi-skeleton-grp-${gId}`}
-                        style={{
-                          background: 'var(--color-surface-0)',
-                          border: '1px solid var(--color-border-light)',
-                          borderLeft: `4px solid ${color}`,
-                          borderRadius: 8,
-                          padding: '12px 16px',
-                          flex: '1 1 200px',
-                          minWidth: 180,
-                          boxShadow: '0 8px 20px -16px color-mix(in srgb, var(--color-surface-900) 25%, transparent)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 12
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 'var(--erp-text-dense)', fontWeight: 900, color: 'var(--color-text-secondary)', opacity: 0.7 }}>{label}</span>
-                          <div className="app-skeleton" style={{ width: 35, height: 14, borderRadius: 4 }} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div className="app-skeleton" style={{ width: '75%', height: 24, borderRadius: 6 }} />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div className="app-skeleton" style={{ width: 90, height: 14, borderRadius: 4 }} />
-                            <div className="app-skeleton" style={{ width: 45, height: 12, borderRadius: 4 }} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="customer-kpi-strip" aria-hidden="true">
+              {(displayYears.length > 0 ? displayYears : ['2025', '2024']).map((yr) => (
+                <div key={`kpi-skeleton-yr-${yr}`} className="customer-kpi">
+                  <div className="app-skeleton" style={{ width: 84, height: 12, borderRadius: 4 }} />
+                  <div className="app-skeleton" style={{ width: 150, height: 24, borderRadius: 6 }} />
                 </div>
-              )}
+              ))}
+              {skeletonGroupKpis.length > 0 && <span className="customer-kpi-divider" />}
+              {skeletonGroupKpis.map((g) => (
+                <div key={`kpi-skeleton-grp-${g.id}`} className="customer-kpi customer-kpi--group">
+                  <span className="customer-kpi-label">{g.label}</span>
+                  <div className="app-skeleton" style={{ width: 120, height: 18, borderRadius: 4 }} />
+                  <div className="app-skeleton" style={{ width: 110, height: 12, borderRadius: 4 }} />
+                </div>
+              ))}
             </div>
           )}
 
           {(!loading || tableData.rows.length > 0) && (
-            <div className={`transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`} key={`kpis-${displayYears.join(',')}-${selGroups.join(',')}-${selMonths.join(',')}-${metric}`}>
-              <div className="sales-report-kpis flex-wrap" style={{ display: 'flex', gap: 12, marginBottom: 1 }}>
-                {displayYears.map((yr, yIdx) => (
-                  <div
-                    key={yr}
-                    className="kpi-card"
-                    style={{
-                      background: 'var(--color-surface-0)',
-                      border: '1px solid var(--color-border-light)',
-                      borderLeft: `4px solid ${YEAR_COLORS[yIdx % YEAR_COLORS.length] || 'var(--color-border-light)'}`,
-                      borderRadius: 8,
-                      padding: '12px 16px',
-                      flex: '1 1 200px',
-                      minWidth: 180,
-                      boxShadow: '0 8px 20px -16px color-mix(in srgb, var(--color-surface-900) 25%, transparent)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 5
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text-tertiary)' }}>
-                      {metric === 'qty' ? <Hash size={14} /> : <DollarSign size={14} />}
-                      <span style={{ fontSize: 'var(--erp-text-dense)', fontWeight: 900, textTransform: 'capitalize', letterSpacing: 0 }}>
-                        Year {yr} {metric === 'qty' ? '(PCS)' : ''}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 'var(--erp-text-kpi)', fontWeight: 900, color: yIdx === 0 ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontFamily: 'var(--font-display)', letterSpacing: 0, marginTop: 2 }}>
-                      {fmtCurr(tableData.colTotals[`${yr}_total`] || 0)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Customer Groups Growth KPI Cards */}
-              {groupKpis.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div className="sales-report-kpis flex-wrap" style={{ display: 'flex', gap: 12 }}>
-                    {groupKpis.map((g: CustomerGroup & { totals: Record<string, number> }) => {
-                      const sortedYearsDesc = [...activeYears].map(String).sort((y1, y2) => Number(y2) - Number(y1));
-                      const cardBaseYear = sortedYearsDesc[0] || activeYears[0];
-                      const cardCompYear = kpiCompareYear === 'none' ? null : (kpiCompareYear && activeYears.includes(kpiCompareYear) && kpiCompareYear !== cardBaseYear
-                        ? kpiCompareYear
-                        : (sortedYearsDesc.length > 1 ? sortedYearsDesc.find(y => y !== cardBaseYear) || null : null));
-
-                      const bTotal = g.totals[cardBaseYear] || 0;
-                      const cTotal = cardCompYear ? (g.totals[cardCompYear] || 0) : 0;
-
-                      let diff = null;
-                      let pct = null;
-                      if (cardCompYear) {
-                        if (bTotal > 0 || cTotal > 0) diff = bTotal - cTotal;
-                        if (cTotal > 0) pct = ((bTotal - cTotal) / cTotal) * 100;
-                      }
-
-                      const isUp = diff !== null && diff > 0;
-                      const isDown = diff !== null && diff < 0;
-
-                      return (
-                        <div
-                          key={g.id}
-                          className="kpi-card"
-                          style={{
-                            background: 'var(--color-surface-0)',
-                            border: '1px solid var(--color-border-light)',
-                            borderLeft: `4px solid ${g.color || 'var(--color-border-light)'}`,
-                            borderRadius: 8,
-                            padding: '12px 16px',
-                            flex: '1 1 200px',
-                            minWidth: 180,
-                            boxShadow: '0 8px 20px -16px color-mix(in srgb, var(--color-surface-900) 25%, transparent)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div style={{ fontSize: 'var(--erp-text-dense)', fontWeight: 900, color: 'var(--color-text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>{g.label}</span>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-tertiary)', fontWeight: 800 }}>{cardBaseYear}</span>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              <div style={{ fontSize: 'var(--erp-text-panel)', fontWeight: 900, color: 'var(--color-text-secondary)', fontFamily: 'var(--font-display)' }}>
-                                {fmtCurr(bTotal)}
-                              </div>
-                              {diff !== null && cardCompYear && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span
-                                    style={{
-                                      fontSize: '0.72rem',
-                                      fontWeight: 900,
-                                      color: isUp ? 'var(--color-success-500)' : isDown ? 'var(--color-danger-500)' : 'var(--color-text-tertiary)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 4
-                                    }}
-                                  >
-                                    <span>
-                                      {isUp ? '↑ ' : isDown ? '↓ ' : ''}
-                                      {metric === 'qty' ? Math.abs(diff).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '$' + Math.abs(diff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      {pct !== null && ` (${pct > 0 ? '+' : ''}${pct.toFixed(2)}%)`}
-                                    </span>
-                                  </span>
-                                  <span style={{ fontSize: '0.62rem', opacity: 0.75, color: 'var(--color-text-quaternary)', fontWeight: 800 }}>
-                                    vs {cardCompYear}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            <div
+              className={`customer-kpi-strip transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+              key={`kpis-${displayYears.join(',')}-${selGroups.join(',')}-${selMonths.join(',')}-${metric}`}
+            >
+              {displayYears.map((yr, yIdx) => (
+                <div key={yr} className="customer-kpi">
+                  <span className="customer-kpi-label">
+                    {metric === 'qty' ? <Hash size={13} /> : <DollarSign size={13} />}
+                    Year {yr} {metric === 'qty' ? '(PCS)' : ''}
+                  </span>
+                  <span className={`customer-kpi-value ${yIdx === 0 ? '' : 'customer-kpi-value--previous'}`.trim()}>
+                    {fmtCurr(tableData.colTotals[`${yr}_total`] || 0)}
+                  </span>
                 </div>
-              )}
+              ))}
+
+              {visibleGroupKpis.length > 0 && <span className="customer-kpi-divider" aria-hidden="true" />}
+
+              {visibleGroupKpis.map((g: CustomerGroup & { totals: Record<string, number> }) => {
+                const sortedYearsDesc = [...activeYears].map(String).sort((y1, y2) => Number(y2) - Number(y1));
+                const cardBaseYear = sortedYearsDesc[0] || activeYears[0];
+                const cardCompYear = kpiCompareYear === 'none' ? null : (kpiCompareYear && activeYears.includes(kpiCompareYear) && kpiCompareYear !== cardBaseYear
+                  ? kpiCompareYear
+                  : (sortedYearsDesc.length > 1 ? sortedYearsDesc.find(y => y !== cardBaseYear) || null : null));
+
+                const bTotal = g.totals[cardBaseYear] || 0;
+                const cTotal = cardCompYear ? (g.totals[cardCompYear] || 0) : 0;
+
+                let diff = null;
+                let pct = null;
+                if (cardCompYear) {
+                  if (bTotal > 0 || cTotal > 0) diff = bTotal - cTotal;
+                  if (cTotal > 0) pct = ((bTotal - cTotal) / cTotal) * 100;
+                }
+
+                const isUp = diff !== null && diff > 0;
+                const isDown = diff !== null && diff < 0;
+
+                return (
+                  <div key={g.id} className="customer-kpi customer-kpi--group">
+                    <span className="customer-kpi-label">
+                      <span className="customer-kpi-swatch" style={{ background: g.color }} aria-hidden="true" />
+                      {g.label} · {cardBaseYear}
+                    </span>
+                    <span className="customer-kpi-value customer-kpi-value--group">{fmtCurr(bTotal)}</span>
+                    {diff !== null && cardCompYear && (
+                      <span className={`customer-kpi-delta ${isUp ? 'customer-kpi-delta--up' : isDown ? 'customer-kpi-delta--down' : ''}`.trim()}>
+                        {isUp ? '↑ ' : isDown ? '↓ ' : ''}
+                        {metric === 'qty' ? Math.abs(diff).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '$' + Math.abs(diff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {pct !== null && ` (${pct > 0 ? '+' : ''}${pct.toFixed(2)}%)`}
+                        <span className="customer-kpi-basis"> vs {cardCompYear}</span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
           <div className={`sales-report-table-region transition-opacity duration-300 ${(loading && tableData.rows.length > 0) ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <CustomerReportTable
                 loading={loading && tableData.rows.length === 0}
                 baseYear={baseYear}

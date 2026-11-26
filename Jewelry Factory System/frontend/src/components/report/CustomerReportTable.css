@@ -1,51 +1,38 @@
+/* Customer Report Matrix (CustomerReportTable.tsx).
+   One flat surface on the page canvas: no frame, no radius, hairlines only.
+   The table scroll area is the only scroll area on desktop. */
 .customer-matrix-shell {
-  --matrix-header-height: 34px;
-  --matrix-subheader-height: 34px;
-  --matrix-row-min-height: 48px;
-  --matrix-cell-padding-x: 6px;
-  --matrix-cell-padding-y: 6px;
+  --matrix-header-height: 30px;
+  --matrix-subheader-height: 30px;
+  --matrix-row-min-height: 34px;
+  --matrix-cell-padding-x: 8px;
   --matrix-border-color: var(--color-border-light);
-  --matrix-border-strong: var(--color-border-strong);
-  --matrix-header-bg: var(--color-surface-2);
-  --matrix-subheader-bg: var(--color-surface-1);
-  --matrix-row-bg: var(--color-surface-0);
-  --matrix-row-alt-bg: var(--matrix-row-bg);
-  --matrix-hover-bg: var(--matrix-row-bg);
+  --matrix-header-bg: var(--color-ui-raised);
+  --matrix-subheader-bg: var(--color-ui-raised);
+  --matrix-row-bg: var(--color-ui-canvas);
+  --matrix-hover-bg: var(--color-table-row-alt);
   --matrix-data-text: var(--color-text-primary);
-  --matrix-current-bg: color-mix(in srgb, var(--color-brand-500) 12%, var(--matrix-row-bg));
+  --matrix-previous-text: var(--color-text-secondary);
+  --matrix-faint-text: var(--color-text-tertiary);
+  --matrix-current-bg: color-mix(in srgb, var(--color-brand-500) 10%, var(--matrix-row-bg));
   --matrix-font-size-header: var(--erp-text-dense);
-  --matrix-font-size-cell: var(--erp-text-dense);
+  --matrix-font-size-cell: var(--erp-text-control);
   display: flex;
   min-height: 0;
   width: 100%;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--matrix-border-color);
-  border-radius: 8px;
   background: var(--matrix-row-bg);
-  animation: customerMatrixTableIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .customer-matrix-control-bar {
   display: flex;
   min-height: 42px;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  border-bottom: 1px solid var(--matrix-border-color);
-  background: var(--matrix-row-bg);
-  padding: 5px 8px;
-}
-
-.customer-matrix-control-group {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-}
-
-.customer-matrix-control-spacer {
-  flex: 1;
+  padding: 6px 0;
 }
 
 .customer-matrix-search {
@@ -56,7 +43,7 @@
   gap: 6px;
   border: 1px solid var(--matrix-border-color);
   border-radius: 6px;
-  background: var(--color-surface-1);
+  background: var(--color-ui-surface);
   padding: 0 8px;
   color: var(--color-text-tertiary);
 }
@@ -104,34 +91,47 @@
 }
 
 .customer-matrix-count {
+  margin-left: auto;
   color: var(--color-text-tertiary);
   font-size: var(--erp-text-dense);
   font-weight: 800;
   white-space: nowrap;
 }
 
+/* The only scroll area: header rows, customer column and Total row stay pinned inside it. */
 .customer-matrix-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  border-top: 1px solid var(--matrix-border-color);
 }
 
+/* Width comes from the <col> elements (useColumnWidths) + table-layout: fixed. */
+/* min-width: a narrow table (one year, Qty) stretches its columns to the page width instead of
+   leaving empty space on the right; wider tables keep their exact column widths and scroll. */
 .customer-matrix-table {
-  width: max-content;
   min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
   font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
 }
 
 .customer-matrix-table th,
 .customer-matrix-table td {
   box-sizing: border-box;
-  border-right: 1px solid var(--matrix-border-strong);
-  border-bottom: 1px solid var(--matrix-border-strong);
-  padding: var(--matrix-cell-padding-y) var(--matrix-cell-padding-x);
+  overflow: hidden;
+  border-bottom: 1px solid var(--matrix-border-color);
+  padding: 0 var(--matrix-cell-padding-x);
+  text-overflow: ellipsis;
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Divider at the start of each header group (a year, a month, a growth pair). */
+.customer-matrix-table .customer-matrix-group-start {
+  border-left: 1px solid var(--matrix-border-color);
 }
 
 .customer-matrix-th {
@@ -139,63 +139,100 @@
   z-index: 20;
   height: var(--matrix-header-height);
   background: var(--matrix-header-bg);
-  color: var(--matrix-data-text);
+  color: var(--matrix-previous-text);
   font-size: var(--matrix-font-size-header);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1.1;
-  text-align: center;
-  white-space: nowrap;
+  text-align: right;
 }
 
 .customer-matrix-th--top {
   top: 0;
+  color: var(--matrix-data-text);
+  font-weight: 900;
+  text-align: center;
 }
 
 .customer-matrix-th--sub {
   top: var(--matrix-header-height);
+  height: var(--matrix-subheader-height);
   background: var(--matrix-subheader-bg);
+}
+
+.customer-matrix-th.customer-matrix-current {
+  color: var(--color-brand-600);
 }
 
 .customer-matrix-th--customer {
   left: 0;
-  min-width: 160px;
-  width: 160px;
-  padding: 7px 8px;
-  text-align: left;
   z-index: 31;
+  border-right: 1px solid var(--matrix-border-color);
+  text-align: left;
 }
 
 .customer-matrix-sort-stack {
   display: flex;
-  min-height: 58px;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.customer-matrix-year-label,
-.customer-matrix-growth-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: center;
   gap: 2px;
+  color: var(--matrix-data-text);
 }
 
-.customer-matrix-year-label span:last-child,
-.customer-matrix-growth-label span:last-child {
+.customer-matrix-group-label {
+  font-weight: 900;
+}
+
+.customer-matrix-group-sub {
+  margin-left: 6px;
   color: var(--color-brand-600);
   font-size: var(--erp-text-meta);
   font-weight: 800;
 }
 
+.customer-matrix-th-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Column resize handle (hooks/useColumnWidths.ts): drag the header's right edge,
+   double-click to reset, or focus it and use the arrow keys. */
+.customer-matrix-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.customer-matrix-resizer::after {
+  position: absolute;
+  top: 6px;
+  right: 3px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  content: '';
+}
+
+.customer-matrix-resizer:hover::after,
+.customer-matrix-resizer[data-active='true']::after,
+.customer-matrix-resizer:focus-visible::after {
+  background: var(--color-ui-interactive);
+}
+
+.customer-matrix-resizer:focus {
+  outline: none;
+}
+
 /* No row entrance animation and no cell transitions: with hover changing while the table scrolls they
    restart on every cell and drop frames (same fix as Order List, docs/debug-history.md 2026-11-21). */
 .customer-matrix-row {
-  min-height: var(--matrix-row-min-height);
-  background: var(--matrix-row-bg);
-}
-
-.customer-matrix-row:nth-child(even) {
   background: var(--matrix-row-bg);
 }
 
@@ -203,17 +240,12 @@
   background: var(--matrix-hover-bg);
 }
 
-.customer-matrix-row:hover td.customer-matrix-current {
-  background: var(--matrix-current-bg);
-}
-
 .customer-matrix-td {
   height: var(--matrix-row-min-height);
   color: var(--matrix-data-text);
   font-size: var(--matrix-font-size-cell);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
-  white-space: nowrap;
 }
 
 .customer-matrix-td--customer,
@@ -221,64 +253,82 @@
   position: sticky;
   left: 0;
   z-index: 9;
-  min-width: 160px;
-  width: 160px;
-  background: inherit;
-  color: var(--matrix-data-text);
+  border-right: 1px solid var(--matrix-border-color);
+  background: var(--matrix-row-bg);
+  text-align: left;
+}
+
+.customer-matrix-customer-link {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-brand-600);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
   font-weight: 900;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.customer-matrix-td--number {
-  min-width: 92px;
-  width: 92px;
-  text-align: right;
+.customer-matrix-customer-link:hover {
+  text-decoration: underline;
 }
 
-.customer-matrix-td--total {
-  min-width: 108px;
-  width: 108px;
-  text-align: right;
-}
-
-.customer-matrix-total {
-  color: var(--matrix-data-text);
-  font-weight: 900;
-  text-align: right;
-}
-
+.customer-matrix-td--number,
 .customer-matrix-td--growth {
-  min-width: 118px;
-  width: 118px;
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 .customer-matrix-th.customer-matrix-td--growth {
-  text-align: center;
+  text-align: right;
+}
+
+.customer-matrix-td.customer-matrix-td--total {
+  font-weight: 900;
+}
+
+/* Older years are softer; the newest year keeps the strongest text. */
+.customer-matrix-td--previous,
+.customer-matrix-th--previous {
+  color: var(--matrix-previous-text);
+}
+
+.customer-matrix-td--zero {
+  color: var(--matrix-faint-text);
+  font-weight: 600;
+}
+
+.customer-matrix-future {
+  color: var(--matrix-faint-text);
+  font-weight: 900;
 }
 
 .customer-matrix-current {
   background: var(--matrix-current-bg);
 }
 
-.customer-matrix-total {
-  color: var(--matrix-data-text);
-  font-weight: 900;
-}
-
-.customer-matrix-footer {
+.customer-matrix-footer td {
   position: sticky;
   bottom: 0;
   z-index: 18;
-}
-
-.customer-matrix-footer td {
+  border-top: 1px solid var(--matrix-border-color);
+  border-bottom: 0;
   background: var(--matrix-header-bg);
-  color: var(--matrix-data-text);
+  font-weight: 900;
 }
 
 .customer-matrix-footer td.customer-matrix-current {
-  background: var(--matrix-current-bg);
+  background: color-mix(in srgb, var(--color-brand-500) 10%, var(--matrix-header-bg));
+}
+
+.customer-matrix-footer td.customer-matrix-footer-label {
+  z-index: 25;
+  color: var(--matrix-data-text);
 }
 
 .customer-matrix-empty {
@@ -289,19 +339,101 @@
   text-align: center;
 }
 
+.customer-matrix-cell-value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.customer-matrix-currency {
+  color: var(--matrix-faint-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 800;
+}
+
+/* Stacked cells (Year view, 2+ years): newest year, older years, Growth % on their own lines.
+   The row height comes from --matrix-row-min-height, set on the shell from the line count. */
+.customer-matrix-table .customer-matrix-td--stack {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.customer-matrix-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.customer-matrix-stack-line {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-matrix-stack-line--newest {
+  color: var(--matrix-data-text);
+  font-weight: 800;
+}
+
+.customer-matrix-stack-line--previous {
+  color: var(--matrix-previous-text);
+  font-weight: 600;
+}
+
+.customer-matrix-stack-line--zero {
+  color: var(--matrix-faint-text);
+  font-weight: 600;
+}
+
+.customer-matrix-td--total .customer-matrix-stack-line--newest,
+.customer-matrix-footer .customer-matrix-stack-line--newest {
+  font-weight: 900;
+}
+
+.customer-matrix-td--total .customer-matrix-stack-line--previous,
+.customer-matrix-footer .customer-matrix-stack-line--previous {
+  font-weight: 800;
+}
+
+/* Growth lines: direction by color and by the arrow / sign; NEW is plain text, no frame. */
+.customer-matrix-growth {
+  font-weight: 900;
+}
+
+.customer-matrix-growth--up,
+.customer-matrix-growth--new {
+  color: var(--color-success-500);
+}
+
+.customer-matrix-growth--down {
+  color: var(--color-danger-500);
+}
+
+.customer-matrix-growth--flat {
+  color: var(--matrix-faint-text);
+}
+
+.customer-matrix-top-item {
+  display: block;
+  overflow: hidden;
+  color: var(--matrix-previous-text);
+  font-size: var(--erp-text-meta);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Loading skeleton: same footprint as the table (30 + 30 px header, 34 px rows) ── */
 .customer-matrix-shell--loading {
   min-height: 420px;
 }
 
 .customer-matrix-control-bar--loading {
   pointer-events: none;
-}
-
-.customer-matrix-loading-status {
-  color: var(--color-text-tertiary);
-  font-size: var(--erp-text-dense);
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .customer-matrix-loading-table {
@@ -312,7 +444,7 @@
 .customer-matrix-loading-row-grid {
   display: grid;
   min-height: var(--matrix-row-min-height);
-  grid-template-columns: minmax(160px, 1.2fr) repeat(var(--matrix-skeleton-columns), minmax(92px, 1fr));
+  grid-template-columns: 170px repeat(var(--matrix-skeleton-columns), var(--matrix-skeleton-column-width, 96px));
   width: max-content;
   min-width: 100%;
 }
@@ -339,54 +471,33 @@
   z-index: 18;
 }
 
-.customer-matrix-loading-row-grid--data {
-  opacity: 0;
-  animation: customerMatrixRowIn 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
 .customer-matrix-loading-cell {
   display: flex;
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  border-right: 1px solid var(--matrix-border-strong);
-  border-bottom: 1px solid var(--matrix-border-strong);
+  border-bottom: 1px solid var(--matrix-border-color);
   background: var(--matrix-row-bg);
-  padding: var(--matrix-cell-padding-y) var(--matrix-cell-padding-x);
+  padding: 0 var(--matrix-cell-padding-x);
 }
 
-.customer-matrix-loading-cell--header {
-  background: var(--matrix-header-bg);
-}
-
+.customer-matrix-loading-cell--header,
 .customer-matrix-loading-cell--subheader {
-  background: var(--matrix-subheader-bg);
+  background: var(--matrix-header-bg);
 }
 
 .customer-matrix-loading-cell--footer {
   background: var(--matrix-header-bg);
-  border-top: 1px solid var(--matrix-border-strong);
-}
-
-.customer-matrix-loading-cell--current {
-  background: var(--matrix-current-bg);
+  border-top: 1px solid var(--matrix-border-color);
+  border-bottom: 0;
 }
 
 .customer-matrix-loading-cell--customer {
   position: sticky;
   left: 0;
   z-index: 21;
-  align-items: flex-start;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-  background: inherit;
-  padding: 7px 8px;
-}
-
-.customer-matrix-loading-cell--customer.customer-matrix-loading-cell--header,
-.customer-matrix-loading-cell--customer.customer-matrix-loading-cell--subheader {
-  background: var(--matrix-header-bg);
+  justify-content: flex-start;
+  border-right: 1px solid var(--matrix-border-color);
 }
 
 .customer-matrix-skeleton {
@@ -417,27 +528,6 @@
   height: 28px;
 }
 
-.customer-matrix-skeleton--icon {
-  width: 26px;
-  height: 26px;
-}
-
-.customer-matrix-loading-reload {
-  display: inline-grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border: 1px solid var(--matrix-border-color);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-brand-500) 8%, var(--matrix-row-bg));
-  color: var(--color-brand-600);
-}
-
-.customer-matrix-skeleton--button {
-  width: 74px;
-  height: 28px;
-}
-
 .customer-matrix-skeleton--header,
 .customer-matrix-skeleton--subheader,
 .customer-matrix-skeleton--value {
@@ -451,46 +541,11 @@
 
 .customer-matrix-skeleton--sort {
   width: 86px;
-  height: 20px;
+  height: 18px;
 }
 
 .customer-matrix-skeleton--customer-id {
   height: 11px;
-}
-
-.customer-matrix-skeleton--customer-sub {
-  width: 62%;
-  height: 8px;
-  opacity: 0.72;
-}
-
-.customer-matrix-cell-value {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-}
-
-.customer-matrix-currency {
-  color: var(--matrix-data-text);
-  font-size: var(--erp-text-meta);
-  font-weight: 900;
-}
-
-.customer-matrix-muted {
-  color: var(--matrix-data-text);
-}
-
-.customer-matrix-top-item {
-  display: block;
-  max-width: 150px;
-  overflow: hidden;
-  color: var(--matrix-data-text);
-  font-size: var(--erp-text-meta);
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @keyframes customerMatrixSkeletonSweep {
@@ -504,62 +559,19 @@
   }
 }
 
-@keyframes customerMatrixTableIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes customerMatrixRowIn {
-  from {
-    opacity: 0;
-    transform: translateY(3px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-
-  .customer-matrix-shell,
-  .customer-matrix-loading-row-grid--data,
   .customer-matrix-skeleton::after {
     animation: none;
   }
-
-  .customer-matrix-skeleton {
-    transition: none;
-  }
 }
 
-@media (max-width: 900px) {
-  .customer-matrix-control-bar {
-    align-items: stretch;
-    flex-wrap: wrap;
-  }
-
-  .customer-matrix-control-spacer {
-    display: none;
-  }
-
-  .customer-matrix-search {
-    width: 100%;
-  }
-
+@container app-main (max-width: 620px) {
+  .customer-matrix-search,
   .customer-matrix-skeleton--search {
     width: 100%;
   }
 
-  .customer-matrix-loading-status {
-    width: 100%;
+  .customer-matrix-count {
+    margin-left: 0;
   }
 }

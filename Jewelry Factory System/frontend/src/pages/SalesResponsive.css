@@ -29,6 +29,15 @@
   grid-template-columns: repeat(2, minmax(130px, 1fr));
 }
 
+/* Customer Report Matrix page (CustomerReportPage.tsx): the page does not scroll on desktop,
+   only the matrix table does. Small phones (620px and below) let the page scroll instead. */
+.customer-report-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-ui-canvas);
+}
+
 .sales-report-page {
   display: flex;
   height: 100%;
@@ -36,14 +45,85 @@
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  padding-bottom: 40px;
 }
 
-.sales-report-kpis {
+/* KPI row: plain numbers on the page surface, no cards. */
+.customer-kpi-strip {
   display: flex;
-  gap: 12px;
   flex-wrap: wrap;
-  padding: 16px var(--app-page-gutter);
+  align-items: flex-end;
+  gap: 10px 32px;
+  padding: 14px var(--app-page-gutter) 6px;
+}
+
+.customer-kpi {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customer-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.customer-kpi-swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.customer-kpi-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: var(--erp-text-kpi);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.customer-kpi-value--previous {
+  color: var(--color-text-secondary);
+}
+
+.customer-kpi-value--group {
+  color: var(--color-text-secondary);
+  font-size: var(--erp-text-panel);
+}
+
+.customer-kpi-delta {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.customer-kpi-delta--up {
+  color: var(--color-success-500);
+}
+
+.customer-kpi-delta--down {
+  color: var(--color-danger-500);
+}
+
+.customer-kpi-basis {
+  color: var(--color-text-quaternary);
+  font-weight: 800;
+}
+
+.customer-kpi-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border-light);
 }
 
 .sales-report-table-region {
@@ -52,7 +132,7 @@
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: 0 var(--app-page-gutter) 32px;
+  padding: 0 var(--app-page-gutter) 12px;
 }
 
 .sales-gallery-scroll {
@@ -116,7 +196,7 @@
     border-bottom: 1px solid var(--color-border-light);
   }
 
-  .sales-report-kpis {
+  .customer-kpi-strip {
     padding-top: 12px;
   }
 
@@ -134,13 +214,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .sales-report-kpis {
-    gap: 8px;
+  .customer-report-host {
+    overflow-y: auto;
   }
 
-  .sales-report-kpis > * {
-    min-width: 0 !important;
-    flex-basis: 100% !important;
+  .customer-report-host .sales-report-page {
+    height: auto;
+  }
+
+  .customer-report-host .sales-report-table-region {
+    flex: none;
+    height: max(420px, 75dvh);
+  }
+
+  .customer-kpi-strip {
+    gap: 10px 20px;
+  }
+
+  .customer-kpi-divider {
+    display: none;
   }
 
   .sales-gallery-scroll {

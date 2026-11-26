@@ -636,3 +636,41 @@ In By Group mode the row id is used directly as the group id; the prefix lookup 
 ### Prevention & Lessons Learned:
 1. `getCustomerGroupId()` takes a customer code only. Never pass a group id to it.
 2. When a summary is rebuilt from table rows, check what the row id means in every aggregation mode.
+
+---
+
+## Issue: Customer Report Matrix Day View Total Row Showed 0
+**Date:** 2026-11-25
+**Component:** `frontend/src/components/report/CustomerReportTable.tsx`
+
+### Symptoms:
+In the Day view (Period preset Day) every day cell of the Total row showed 0, while the rows above had values. The Week view "no customers" row also spanned the wrong number of columns when Growth columns were shown.
+
+### Root Cause:
+Each view had its own copy-pasted header, body and footer markup. The Total row was summed from a fixed list of keys (months, quarters, weeks, year totals); the day keys (`<year>_D_<MM-DD>`) were never summed. The Week view empty-row `colSpan` left out the Growth columns.
+
+### Fix:
+Found during the 2026-11-25 matrix redesign. All views are now built from one column list (`buildColumns`); the body, the Total row and the empty row read the same list, and the Total row sums every field a column uses. The unreachable Quarterly branch was removed (no Period preset selects it).
+
+### Prevention & Lessons Learned:
+1. When one table has several views, build them from one column list instead of copying markup per view.
+2. A Total row must sum the same fields the body shows, taken from the same column definitions.
+
+---
+
+## Issue: Customer Report Matrix Total Row Text Overlapped
+**Date:** 2026-11-26
+**Component:** `frontend/src/components/report/CustomerReportTable.tsx`
+
+### Symptoms:
+In the Year view with 2+ years, the numbers in the pinned Total row at the bottom of the table overlapped with the numbers of the rows scrolling behind it, mostly in the Growth columns.
+
+### Root Cause:
+The Total row is sticky (`bottom: 0`) over the scrolling rows. Growth cells set their own inline background from `GrowthHelpers.tsx`; when the tint was `transparent` (or a see-through color-mix), it replaced the opaque footer background, so the rows behind showed through the text.
+
+### Fix:
+`growthCellStyle()` makes Total row growth cells opaque: the tint is laid over the header background (`linear-gradient(tint, tint), var(--matrix-header-bg)`), and a transparent tint keeps the CSS footer background.
+
+### Prevention & Lessons Learned:
+1. Every cell of a sticky row must have an opaque background; never let an inline style replace it with a transparent one.
+2. Check pinned rows while the table is scrolled, not only at the top.

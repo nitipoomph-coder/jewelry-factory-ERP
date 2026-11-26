@@ -70,17 +70,35 @@ Routes (nested under `CustomerDashboardLayout`):
 
 Legacy redirect: `/dashboard/customer-report` -> `/dashboard/customer/matrix`
 
-View modes:
-- `YTD`: year blocks with months and year total
-- `Monthly`: month blocks with years and optional growth columns
+View modes (picked by the Period preset, `hooks/useCustomerReportData.ts`):
+- `YTD` (Year / YTD preset), one year: one year block with months and the year total
+- `YTD`, 2+ years (2026-11-26, requested by management for month-to-month review): one stacked cell per month, so all 12 months fit one screen without sliding. Each cell always has 3 lines: the newest year (bold), one compare year (soft) and Growth %. The compare year defaults to the Period compare target; with 3+ years a `vs 2025 | vs 2024` switch in the table toolbar changes it (the other years stay in the KPI row). With every Growth removed the cell has 2 lines. The sub header shows the line order (`2026 / 2025 / %`). Hovering a cell shows the Growth amount. The last column is the Grand Total with the year totals, Growth % and Growth amount (full-year comparison, unchanged). Rows are taller (15px per line + 8px)
+- Growth of a month that has not started yet (for the newer year) shows `·` instead of a misleading -100%
+- A customer new in the newer year shows `NEW` as plain green text (no frame, no cell tint)
+- `Monthly` (Month / Custom preset), `Weekly` (Week preset), `Daily` (Day preset): one block per month / week / day with every year (and Growth) inside it, then a Grand Total block
+- All four views are built from one column list (`buildColumns` in `components/report/CustomerReportTable.tsx`), so headers, body, Total row and resize handles always line up
+
+Layout (2026-11-25 redesign, "option 5"):
+- One flat surface on the page canvas: no card around the KPIs, no frame or radius around the table; sections are separated by spacing and hairlines only
+- The page does not scroll on desktop; the table area is the only scroll area. Header rows, the customer column and the Total row stay pinned. At 620px container width and below the page scrolls and the table gets a fixed height (`pages/SalesResponsive.css`)
+- KPI row: Year totals always show. Group KPIs show only in By Customer view and only for groups with `showKpi: true` in `config/customerGroups.ts` (N008, N044, N098, N051). By Group view has no group KPIs (the table rows are the groups)
+- The loading skeleton uses the same KPI row and the same table row heights (30 + 30 px header, 34 px rows; taller rows in the stacked Year view)
 
 Table UX rules:
 - First screen must be the data table/report surface
 - Dense ERP/Excel-style table, not a card grid
-- Header and filter rows stay compact
-- Current month highlight should continue through that month and the current-year total
-- Grand total row uses the same background as the table header, except current-month/current-total cells keep the current highlight
-- Data values should use one neutral text color; only Growth may use semantic direction color as a secondary cue
+- Cell text 12px (`--erp-text-control`), header text 11px (`--erp-text-dense`), rows 34px
+- Vertical lines only at the start of each header group (a year, a month, a Growth pair) and after the customer column
+- Only the current month column is highlighted; Total columns stand out by bold text, not by a background
+- Grand total row uses the table header background, except current-month cells keep the current highlight
+- The newest year uses primary text; older years use secondary text; zero values use tertiary text
+- A month that has not started yet shows `·` instead of `0` (only when its value is 0)
+- Only Growth uses semantic direction color. The Growth formula lives once in `growthPctInfo` / `growthAmtInfo` (`components/dashboard/customerReport/GrowthHelpers.tsx`), used by both the side-by-side and the stacked cells
+
+Column widths:
+- Starting widths fit the longest number of each column kind (month values, totals, growth amounts), measured on all rows and the Total row, so Sales columns are wider than Qty columns and a search does not make columns jump
+- Drag a header's right edge to resize (a dragged width wins over the fitted width), double-click to reset, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
+- Saved per signed-in user and per view (`customer-matrix:ytd|monthly|weekly|daily`). Stacked Year view keys: `s_{Mon}`, `s_total`. Keys use the year position (`y0` = newest year), not the year value, so widths still apply after the period moves to a new year
 
 Search UX:
 - Force uppercase while typing

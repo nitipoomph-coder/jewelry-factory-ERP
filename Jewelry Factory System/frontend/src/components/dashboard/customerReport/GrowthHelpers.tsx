@@ -1,4 +1,54 @@
+// Growth formatting for the Customer Report Matrix (components/report/CustomerReportTable.tsx).
+// growthPctInfo / growthAmtInfo hold the one Growth calculation; renderGrowthPct / renderGrowthAmt
+// wrap them for the side-by-side columns, the stacked Year view uses the info functions directly.
 
+export type GrowthTone = 'up' | 'down' | 'flat' | 'new';
+
+export interface GrowthInfo {
+  text: string;
+  tone: GrowthTone;
+}
+
+const TONE_COLOR: Record<GrowthTone, string> = {
+  up: 'var(--color-success-500)',
+  down: 'var(--color-danger-500)',
+  flat: 'var(--color-text-tertiary)',
+  new: 'var(--color-success-500)',
+};
+
+/** Growth amount: base minus compare, with + or minus sign. */
+export function growthAmtInfo(baseVal: number, compVal: number, fmt: (val: number) => string): GrowthInfo {
+  const diff = baseVal - compVal;
+  if (diff === 0) return { text: fmt(0), tone: 'flat' };
+  const isUp = diff > 0;
+  return { text: `${isUp ? '+' : '−'}${fmt(Math.abs(diff))}`, tone: isUp ? 'up' : 'down' };
+}
+
+/** Growth rate %: (base - compare) / compare. A customer new in the base year shows NEW. */
+export function growthPctInfo(baseVal: number, compVal: number, isTrulyNew = false): GrowthInfo {
+  if (compVal === 0 && baseVal === 0) return { text: '0.00%', tone: 'flat' };
+  if (compVal === 0 && baseVal > 0 && isTrulyNew) return { text: 'NEW', tone: 'new' };
+  if (compVal === 0 && baseVal > 0) return { text: '0.00%', tone: 'flat' };
+  const pct = ((baseVal - compVal) / compVal) * 100;
+  if (pct === 0) return { text: '0.00%', tone: 'flat' };
+  const isUp = pct > 0;
+  return { text: `${isUp ? '↑ +' : '↓ −'}${Math.abs(pct).toFixed(2)}%`, tone: isUp ? 'up' : 'down' };
+}
+
+const tintFor = (tone: GrowthTone, theme: string) => {
+  if (theme !== 'royal-white') return 'transparent';
+  if (tone === 'up') return 'color-mix(in srgb, var(--color-success-500) 15%, transparent)';
+  if (tone === 'down') return 'color-mix(in srgb, var(--color-danger-500) 15%, transparent)';
+  return 'transparent';
+};
+
+const growthNode = (info: GrowthInfo) => (
+  <div style={{ width: '100%', textAlign: 'right' }}>
+    <span style={{ color: TONE_COLOR[info.tone], fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>
+      {info.text}
+    </span>
+  </div>
+);
 
 export function renderGrowthAmt(
   baseVal: number,
@@ -6,32 +56,8 @@ export function renderGrowthAmt(
   fmt: (val: number) => string,
   theme: string
 ) {
-  const diff = baseVal - compVal;
-  if (diff === 0) return {
-    bgColor: 'transparent',
-    node: (
-      <div style={{ width: '100%', textAlign: 'right' }}>
-        <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>{fmt(0)}</span>
-      </div>
-    )
-  };
-  const isUp = diff > 0;
-  const isDown = diff < 0;
-  const isRoyal = theme === 'royal-white';
-  const bgColor = isRoyal
-    ? (isUp ? 'color-mix(in srgb, var(--color-success-500) 15%, transparent)' : isDown ? 'color-mix(in srgb, var(--color-danger-500) 15%, transparent)' : 'transparent')
-    : 'transparent';
-  const textColor = isUp ? 'var(--color-success-500)' : isDown ? 'var(--color-danger-500)' : 'var(--color-text-tertiary)';
-  const sign = isUp ? '+' : isDown ? '\u2212' : '';
-  const signedValue = `${sign}${fmt(Math.abs(diff))}`;
-  return {
-    bgColor,
-    node: (
-      <div style={{ width: '100%', textAlign: 'right' }}>
-        <span style={{ color: textColor, fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>{signedValue}</span>
-      </div>
-    )
-  };
+  const info = growthAmtInfo(baseVal, compVal, fmt);
+  return { bgColor: tintFor(info.tone, theme), node: growthNode(info) };
 }
 
 export function renderGrowthPct(
@@ -40,56 +66,7 @@ export function renderGrowthPct(
   theme: string,
   isTrulyNew = false
 ) {
-  if (compVal === 0 && baseVal === 0) return {
-    bgColor: 'transparent',
-    node: (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-        <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>0.00%</span>
-      </div>
-    )
-  };
-  if (compVal === 0 && baseVal > 0 && isTrulyNew) return {
-    bgColor: theme === 'royal-white' ? 'color-mix(in srgb, var(--color-success-500) 8%, var(--color-surface-0))' : 'transparent',
-    node: (
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-        <span style={{ background: 'color-mix(in srgb, var(--color-success-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-success-500) 45%, var(--color-border-light))', color: 'var(--color-success-500)', padding: '2px 6px', borderRadius: '4px', fontWeight: 900, fontSize: 'var(--erp-text-meta)', letterSpacing: 0 }}>NEW</span>
-      </div>
-    )
-  };
-  if (compVal === 0 && baseVal > 0) return {
-    bgColor: 'transparent',
-    node: (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-        <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>0.00%</span>
-      </div>
-    )
-  };
-  const pct = ((baseVal - compVal) / compVal) * 100;
-  if (pct === 0) return {
-    bgColor: 'transparent',
-    node: (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-        <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>0.00%</span>
-      </div>
-    )
-  };
-  const isUp = pct > 0;
-  const isDown = pct < 0;
-  const isRoyal = theme === 'royal-white';
-  const bgColor = isRoyal
-    ? (isUp ? 'color-mix(in srgb, var(--color-success-500) 15%, transparent)' : isDown ? 'color-mix(in srgb, var(--color-danger-500) 15%, transparent)' : 'transparent')
-    : 'transparent';
-  const textColor = isUp ? 'var(--color-success-500)' : isDown ? 'var(--color-danger-500)' : 'var(--color-text-tertiary)';
-  const sign = isUp ? '+' : isDown ? '\u2212' : '';
-  const arrow = isUp ? '↑ ' : isDown ? '↓ ' : '';
-  return {
-    bgColor,
-    node: (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%', gap: 2 }}>
-        <span style={{ color: textColor, fontWeight: 900, fontSize: 'var(--erp-text-panel)', fontVariantNumeric: 'tabular-nums' }}>
-          {arrow}{sign}{Math.abs(pct).toFixed(2)}%
-        </span>
-      </div>
-    )
-  };
+  // NEW is plain green text: no frame, no cell tint
+  const info = growthPctInfo(baseVal, compVal, isTrulyNew);
+  return { bgColor: tintFor(info.tone, theme), node: growthNode(info) };
 }

@@ -15,6 +15,8 @@ export interface CustomerGroup {
   prefixes: string[];
   /** Default visibility status (if false, it won't be selected by default and is considered legacy) */
   isActive?: boolean;
+  /** Show this group's KPI on the Customer Report Matrix (By Customer view only) */
+  showKpi?: boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ export const CUSTOMER_GROUPS: CustomerGroup[] = [
     color: 'var(--color-customer-group-n008)',
     prefixes: ['N008', 'N048', 'N065', 'N066', 'N067', 'N068', 'N069', 'N070', 'N071', 'N072', 'N073', 'N074', 'N075'],
     isActive: true,
+    showKpi: true,
   },
   {
     id: 'N044',
@@ -35,6 +38,7 @@ export const CUSTOMER_GROUPS: CustomerGroup[] = [
     color: 'var(--color-customer-group-n044)',
     prefixes: ['N044'],
     isActive: true,
+    showKpi: true,
   },
   {
     id: 'N098',
@@ -42,6 +46,7 @@ export const CUSTOMER_GROUPS: CustomerGroup[] = [
     color: 'var(--color-customer-group-n098)',
     prefixes: ['N098'],
     isActive: true,
+    showKpi: true,
   },
   {
     id: 'N051',
@@ -49,6 +54,7 @@ export const CUSTOMER_GROUPS: CustomerGroup[] = [
     color: 'var(--color-customer-group-n051)',
     prefixes: ['N051'],
     isActive: true,
+    showKpi: true,
   },
   {
     id: 'N083',
