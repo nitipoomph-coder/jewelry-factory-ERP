@@ -94,11 +94,6 @@
   color: var(--color-text-secondary);
 }
 
-.customer-kpi-value--group {
-  color: var(--color-text-secondary);
-  font-size: var(--erp-text-panel);
-}
-
 .customer-kpi-delta {
   color: var(--color-text-tertiary);
   font-size: var(--erp-text-dense);
@@ -115,15 +110,65 @@
   color: var(--color-danger-500);
 }
 
-.customer-kpi-basis {
-  color: var(--color-text-quaternary);
-  font-weight: 800;
+.customer-kpi-growth {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.customer-kpi-divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--color-border-light);
+.customer-kpi-value--up {
+  color: var(--color-success-500);
+}
+
+.customer-kpi-value--down {
+  color: var(--color-danger-500);
+}
+
+.customer-kpi-value--flat {
+  color: var(--color-text-tertiary);
+}
+
+.customer-kpi-delta--new {
+  color: var(--color-success-500);
+}
+
+/* Group line under the year KPIs (By Customer view): one short chip per group, wraps when needed */
+.customer-kpi-groups {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 20px;
+}
+
+.customer-kpi-groups-basis {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.customer-kpi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--erp-text-dense);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.customer-kpi-chip-name {
+  color: var(--color-text-secondary);
+  font-weight: 900;
+}
+
+.customer-kpi-chip-value {
+  color: var(--color-text-primary);
+  font-weight: 900;
+}
+
+.customer-kpi-delta--flat {
+  color: var(--color-text-tertiary);
 }
 
 .sales-report-table-region {
@@ -153,11 +198,6 @@
   min-height: 0;
 }
 
-.sales-order-detail-frame {
-  height: 100%;
-  min-height: 0;
-}
-
 @container app-main (max-width: 1200px) {
   .sales-gallery-scroll {
     padding: 20px;
@@ -169,11 +209,6 @@
 }
 
 @container app-main (max-width: 820px) {
-  .sales-order-detail-frame {
-    height: auto;
-    min-height: 100%;
-  }
-
   .sales-page-commandbar {
     align-items: flex-start;
   }
@@ -229,10 +264,6 @@
 
   .customer-kpi-strip {
     gap: 10px 20px;
-  }
-
-  .customer-kpi-divider {
-    display: none;
   }
 
   .sales-gallery-scroll {

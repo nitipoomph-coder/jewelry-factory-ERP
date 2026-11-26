@@ -8,10 +8,10 @@
 //   still applies after the period moves to the next year.
 import React, { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowUp, DollarSign, Hash, Search, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, DollarSign, Hash, RotateCcw, Search, X } from 'lucide-react';
 import { ErpButton, ErpSegmentedControl } from '../ui/ErpButtons';
 import { useColumnWidths } from '../../hooks/useColumnWidths';
-import { growthAmtInfo, growthPctInfo } from '../dashboard/customerReport/GrowthHelpers';
+import { growthAmtCompactInfo, growthAmtInfo, growthPctInfo } from '../dashboard/customerReport/GrowthHelpers';
 import './CustomerReportTable.css';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -257,11 +257,11 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
     const stackYears = [newestYear, compareYear];
     // Growth stays optional: no Growth line when every comparison was removed
     const stackPairs: GrowthPair[] = growth.length > 0 ? [{ a: newestYear, b: compareYear }] : [];
-    const legend = [...stackYears, ...stackPairs.map(() => '%')].join(' / ');
+    const legend = [...stackYears, ...stackPairs.map(() => 'Growth')].join(' / ');
     const legendTitle = [
       `${newestYear} (bold)`,
       compareYear,
-      ...stackPairs.map(pair => `Growth % ${pair.a} vs ${pair.b}`),
+      ...stackPairs.map(pair => `Growth amount (short) and Growth % ${pair.a} vs ${pair.b}`),
     ].join(', ');
     const stackGrowth = (suffix: string, month?: string): StackGrowth[] => stackPairs.map(pair => ({
       a: pair.a,
@@ -283,7 +283,7 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
     });
     groups.push({ key: 's_total', label: metric === 'qty' ? 'Grand Total QTY' : 'Grand Total Sales', span: 1 });
     columns.push({
-      key: 's_total', kind: 'stack', label: stackPairs.length > 0 ? `${legend} / Growth` : legend,
+      key: 's_total', kind: 'stack', label: stackPairs.length > 0 ? `${legend} / Amount` : legend,
       title: `Year total: ${legendTitle}${stackPairs.length > 0 ? ', Growth amount' : ''}`,
       groupStart: true, stackTotal: true, stackAmount: true,
       stackValues: stackYears.map(yr => ({ year: yr, field: `${yr}_total`, previous: yr !== newestYear, future: false })),
@@ -404,6 +404,9 @@ interface MatrixGridProps {
   renderGrowthAmt: CustomerReportTableProps['renderGrowthAmt'];
   renderGrowthPct: CustomerReportTableProps['renderGrowthPct'];
   onCustomerClick: (id: string) => void;
+  /** Toolbar controls (left) and the row count (right); the Reset widths button sits between them */
+  toolbar: React.ReactNode;
+  toolbarEnd: React.ReactNode;
 }
 
 /** The table itself. Mounted per view (key = viewMode) so each view loads its own saved widths. */
@@ -422,6 +425,8 @@ function MatrixGrid({
   renderGrowthAmt,
   renderGrowthPct,
   onCustomerClick,
+  toolbar,
+  toolbarEnd,
 }: MatrixGridProps) {
   const columnKeys = useMemo(() => [CUSTOMER_KEY, ...columns.map(c => c.key)], [columns]);
 
@@ -451,8 +456,13 @@ function MatrixGrid({
           col.stackGrowth?.forEach(g => {
             const a = Number(src[g.fieldA] || 0);
             const b = Number(src[g.fieldB] || 0);
-            target.text.add(growthPctInfo(a, b).text);
-            if (col.stackAmount) target.text.add(growthAmtInfo(a, b, fmt).text);
+            if (col.stackAmount) {
+              target.text.add(growthPctInfo(a, b).text);
+              target.text.add(growthAmtInfo(a, b, fmt).text);
+            } else {
+              // month cells: short amount and % on one line (2 spaces between them)
+              target.text.add(`${growthAmtCompactInfo(a, b, isAmt).text}  ${growthPctInfo(a, b).text}`);
+            }
           });
         });
         return;
@@ -484,7 +494,7 @@ function MatrixGrid({
     return widths;
   }, [viewMode, columns, fitRows, metric, fmt]);
 
-  const { tableRef, colRef, getWidth, tableStyle, handleProps } = useColumnWidths(
+  const { tableRef, colRef, getWidth, tableStyle, handleProps, resetAll, isCustomized } = useColumnWidths(
     `customer-matrix:${viewMode}`, defaultWidths, { minWidth: 56, keys: columnKeys },
   );
 
@@ -518,14 +528,24 @@ function MatrixGrid({
       const pct = growthPctInfo(a, b, !isTotalRow && Boolean(source[g.newFlag]));
       const amt = growthAmtInfo(a, b, fmt);
       amountTips.push(`Growth ${g.a} vs ${g.b}: ${amt.text} (${pct.text})`);
+      if (!col.stackAmount) {
+        // Month cell: short Growth amount (2 decimals) and Growth % on one line; full amount on hover
+        const short = growthAmtCompactInfo(a, b, metric === 'amount');
+        growthLines.push(
+          <span key={`g${gi}`} className="customer-matrix-stack-line customer-matrix-growth">
+            <span className={`customer-matrix-growth--${short.tone}`}>{short.text}</span>
+            <span className={`customer-matrix-growth-pct customer-matrix-growth--${pct.tone}`}>{pct.text}</span>
+          </span>,
+        );
+        return;
+      }
       growthLines.push(
         <span key={`g${gi}`} className={`customer-matrix-stack-line customer-matrix-growth customer-matrix-growth--${pct.tone}`}>{pct.text}</span>,
       );
-      if (col.stackAmount) {
-        amountLines.push(
-          <span key={`a${gi}`} className={`customer-matrix-stack-line customer-matrix-growth customer-matrix-growth--${amt.tone}`}>{amt.text}</span>,
-        );
-      }
+      // Total column: Growth % then the full Growth amount on its own line
+      amountLines.push(
+        <span key={`a${gi}`} className={`customer-matrix-stack-line customer-matrix-growth customer-matrix-growth--${amt.tone}`}>{amt.text}</span>,
+      );
     });
     return (
       <td key={col.key} className={`customer-matrix-td ${columnClass(col)}`} title={amountTips.length > 0 ? amountTips.join('\n') : undefined}>
@@ -573,86 +593,97 @@ function MatrixGrid({
   };
 
   return (
-    <div className="customer-matrix-scroll content-scrollbar">
-      <table ref={tableRef} className="customer-matrix-table" style={tableStyle}>
-        <colgroup>
-          {columnKeys.map(key => <col key={key} ref={colRef(key)} style={{ width: getWidth(key) }} />)}
-        </colgroup>
-        <thead>
-          <tr>
-            <th rowSpan={2} className="customer-matrix-th customer-matrix-th--top customer-matrix-th--customer">
-              <div className="customer-matrix-sort-stack">
-                <span>{aggregationMode === 'group' ? 'Customer Group' : 'Customer ID'}</span>
-                <ErpButton
-                  size="sm"
-                  variant="ghost"
-                  icon={sortOrder === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
-                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                  title="Toggle sort order"
-                >
-                  {sortOrder === 'desc' ? 'High First' : 'Low First'}
-                </ErpButton>
-              </div>
-              <span className="customer-matrix-resizer" {...handleProps(CUSTOMER_KEY, 'Customer')} />
-            </th>
-            {groups.map(g => (
-              <th key={g.key} colSpan={g.span} className="customer-matrix-th customer-matrix-th--top customer-matrix-group-start">
-                <span className="customer-matrix-group-label">{g.label}</span>
-                {g.sub && <span className="customer-matrix-group-sub">{g.sub}</span>}
-                {/* A header over one column (stacked Year view) resizes that column too */}
-                {g.span === 1 && columnKeys.includes(g.key) && (
-                  <span className="customer-matrix-resizer" {...handleProps(g.key, g.label)} />
-                )}
-              </th>
-            ))}
-          </tr>
-          <tr>
-            {columns.map(col => (
-              <th
-                key={col.key}
-                className={`customer-matrix-th customer-matrix-th--sub ${columnClass(col)} ${col.previous ? 'customer-matrix-th--previous' : ''}`.trim()}
-                title={col.title}
-              >
-                <span className="customer-matrix-th-label">{col.label}</span>
-                <span className="customer-matrix-resizer" {...handleProps(col.key, col.title || col.label)} />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={columnKeys.length} className="customer-matrix-empty">No customers match the current filter.</td>
-            </tr>
-          ) : rows.map(row => (
-            <tr key={row.id} className="customer-matrix-row">
-              <td className="customer-matrix-td customer-matrix-td--customer">
-                <button
-                  type="button"
-                  className="customer-matrix-customer-link"
-                  onClick={() => onCustomerClick(row.id)}
-                  title={`View details for ${row.label}`}
-                >
-                  {row.label}
-                </button>
-                {viewMode === 'monthly' && metric === 'qty' && row.topItem && displayYears.some(yr => Number(row[`${yr}_total`] || 0) > 0) && (
-                  <span className="customer-matrix-top-item">Top: {row.topItem} ({fmt(Number(row.topItemQty || 0))} pcs)</span>
-                )}
-              </td>
-              {columns.map(col => renderCell(col, row, false))}
-            </tr>
-          ))}
-        </tbody>
-        {totals && (
-          <tfoot className="customer-matrix-footer">
-            <tr className="customer-matrix-row--total">
-              <td className="customer-matrix-td customer-matrix-td--customer customer-matrix-footer-label">Total</td>
-              {columns.map(col => renderCell(col, totals, true))}
-            </tr>
-          </tfoot>
+    <>
+      <div className="customer-matrix-control-bar">
+        {toolbar}
+        {isCustomized && (
+          <ErpButton variant="ghost" icon={<RotateCcw size={14} />} onClick={resetAll} title="Return every column of this view to its default width">
+            Reset widths
+          </ErpButton>
         )}
-      </table>
-    </div>
+        {toolbarEnd}
+      </div>
+      <div className="customer-matrix-scroll content-scrollbar">
+        <table ref={tableRef} className="customer-matrix-table" style={tableStyle}>
+          <colgroup>
+            {columnKeys.map(key => <col key={key} ref={colRef(key)} style={{ width: getWidth(key) }} />)}
+          </colgroup>
+          <thead>
+            <tr>
+              <th rowSpan={2} className="customer-matrix-th customer-matrix-th--top customer-matrix-th--customer">
+                <div className="customer-matrix-sort-stack">
+                  <span>{aggregationMode === 'group' ? 'Customer Group' : 'Customer ID'}</span>
+                  <ErpButton
+                    size="sm"
+                    variant="ghost"
+                    icon={sortOrder === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
+                    onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                    title="Toggle sort order"
+                  >
+                    {sortOrder === 'desc' ? 'High First' : 'Low First'}
+                  </ErpButton>
+                </div>
+                <span className="customer-matrix-resizer" {...handleProps(CUSTOMER_KEY, 'Customer')} />
+              </th>
+              {groups.map(g => (
+                <th key={g.key} colSpan={g.span} className="customer-matrix-th customer-matrix-th--top customer-matrix-group-start">
+                  <span className="customer-matrix-group-label">{g.label}</span>
+                  {g.sub && <span className="customer-matrix-group-sub">{g.sub}</span>}
+                  {/* A header over one column (stacked Year view) resizes that column too */}
+                  {g.span === 1 && columnKeys.includes(g.key) && (
+                    <span className="customer-matrix-resizer" {...handleProps(g.key, g.label)} />
+                  )}
+                </th>
+              ))}
+            </tr>
+            <tr>
+              {columns.map(col => (
+                <th
+                  key={col.key}
+                  className={`customer-matrix-th customer-matrix-th--sub ${columnClass(col)} ${col.previous ? 'customer-matrix-th--previous' : ''}`.trim()}
+                  title={col.title}
+                >
+                  <span className="customer-matrix-th-label">{col.label}</span>
+                  <span className="customer-matrix-resizer" {...handleProps(col.key, col.title || col.label)} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={columnKeys.length} className="customer-matrix-empty">No customers match the current filter.</td>
+              </tr>
+            ) : rows.map(row => (
+              <tr key={row.id} className="customer-matrix-row">
+                <td className="customer-matrix-td customer-matrix-td--customer">
+                  <button
+                    type="button"
+                    className="customer-matrix-customer-link"
+                    onClick={() => onCustomerClick(row.id)}
+                    title={`View details for ${row.label}`}
+                  >
+                    {row.label}
+                  </button>
+                  {viewMode === 'monthly' && metric === 'qty' && row.topItem && displayYears.some(yr => Number(row[`${yr}_total`] || 0) > 0) && (
+                    <span className="customer-matrix-top-item">Top: {row.topItem} ({fmt(Number(row.topItemQty || 0))} pcs)</span>
+                  )}
+                </td>
+                {columns.map(col => renderCell(col, row, false))}
+              </tr>
+            ))}
+          </tbody>
+          {totals && (
+            <tfoot className="customer-matrix-footer">
+              <tr className="customer-matrix-row--total">
+                <td className="customer-matrix-td customer-matrix-td--customer customer-matrix-footer-label">Total</td>
+                {columns.map(col => renderCell(col, totals, true))}
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -794,7 +825,8 @@ export default function CustomerReportTable({
     return skeletonYearCount * (skeletonMonthCount + 1) + activeGrowthCount * 2;
   }, [viewMode, skeletonYearCount, skeletonMonthCount, activeGrowthCount, displayWeeks, displayDays]);
 
-  const skeletonRowCount = aggregationMode === 'group' ? 4 : 10;
+  // Enough rows to fill a tall screen; the loading scroll area hides the overflow
+  const skeletonRowCount = 30;
   const skeletonColumns = useMemo(() => range(Math.max(skeletonColumnCount, 1)), [skeletonColumnCount]);
   const skeletonRows = useMemo(() => range(skeletonRowCount), [skeletonRowCount]);
   const skeletonWidths = [54, 72, 60, 84, 66, 78, 58, 70, 88, 62, 76, 56];
@@ -882,68 +914,6 @@ export default function CustomerReportTable({
 
   return (
     <section className="customer-matrix-shell" style={shellStyle} aria-label="Customer report matrix">
-      <div className="customer-matrix-control-bar">
-        {setMetric && (
-          <ErpSegmentedControl
-            ariaLabel="Metric mode"
-            value={metric === 'qty' ? 'qty' : 'amount'}
-            onChange={(v) => setMetric(v as 'amount' | 'qty')}
-            options={[
-              { value: 'amount', label: 'Sales', icon: <DollarSign size={13} /> },
-              { value: 'qty', label: 'Qty', icon: <Hash size={13} /> }
-            ]}
-          />
-        )}
-
-        {setAggregationMode && (
-          <ErpSegmentedControl
-            ariaLabel="Aggregation mode"
-            value={aggregationMode}
-            onChange={setAggregationMode}
-            options={[
-              { value: 'group', label: 'By Group' },
-              { value: 'customer', label: 'By Customer' }
-            ]}
-          />
-        )}
-
-        {setSearchQuery && (
-          <label className="customer-matrix-search">
-            <Search size={14} />
-            <input
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value.toUpperCase())}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search customer"
-            />
-            {searchDraft.length > 0 && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="customer-matrix-search-clear"
-                title="Clear search"
-                aria-label="Clear search"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </label>
-        )}
-
-        {isStackedYear && compareOptions.length > 1 && (
-          <ErpSegmentedControl
-            ariaLabel={`Compare ${newestYear} with`}
-            value={stackCompare}
-            onChange={(v) => setStackCompareChoice(v)}
-            options={compareOptions.map(yr => ({ value: yr, label: `vs ${yr}` }))}
-          />
-        )}
-
-        <span className="customer-matrix-count">
-          {visibleRows.length} {aggregationMode === 'group' ? 'groups' : 'customers'}
-        </span>
-      </div>
-
       <MatrixGrid
         key={viewMode}
         viewMode={viewMode}
@@ -960,6 +930,70 @@ export default function CustomerReportTable({
         renderGrowthAmt={renderGrowthAmt}
         renderGrowthPct={renderGrowthPct}
         onCustomerClick={handleCustomerClick}
+        toolbar={(
+          <>
+            {setMetric && (
+              <ErpSegmentedControl
+                ariaLabel="Metric mode"
+                value={metric === 'qty' ? 'qty' : 'amount'}
+                onChange={(v) => setMetric(v as 'amount' | 'qty')}
+                options={[
+                  { value: 'amount', label: 'Sales', icon: <DollarSign size={13} /> },
+                  { value: 'qty', label: 'Qty', icon: <Hash size={13} /> }
+                ]}
+              />
+            )}
+
+            {setAggregationMode && (
+              <ErpSegmentedControl
+                ariaLabel="Aggregation mode"
+                value={aggregationMode}
+                onChange={setAggregationMode}
+                options={[
+                  { value: 'group', label: 'By Group' },
+                  { value: 'customer', label: 'By Customer' }
+                ]}
+              />
+            )}
+
+            {setSearchQuery && (
+              <label className="customer-matrix-search">
+                <Search size={14} />
+                <input
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value.toUpperCase())}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Search customer"
+                />
+                {searchDraft.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="customer-matrix-search-clear"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </label>
+            )}
+
+            {isStackedYear && compareOptions.length > 1 && (
+              <ErpSegmentedControl
+                ariaLabel={`Compare ${newestYear} with`}
+                value={stackCompare}
+                onChange={(v) => setStackCompareChoice(v)}
+                options={compareOptions.map(yr => ({ value: yr, label: `vs ${yr}` }))}
+              />
+            )}
+          </>
+        )}
+        toolbarEnd={(
+          <span className="customer-matrix-count">
+            {visibleRows.length} {aggregationMode === 'group' ? 'groups' : 'customers'}
+          </span>
+        )}
       />
     </section>
   );

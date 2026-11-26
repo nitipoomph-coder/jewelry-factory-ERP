@@ -404,6 +404,10 @@
   font-weight: 900;
 }
 
+.customer-matrix-growth-pct {
+  margin-left: 8px;
+}
+
 .customer-matrix-growth--up,
 .customer-matrix-growth--new {
   color: var(--color-success-500);
@@ -427,9 +431,15 @@
   white-space: nowrap;
 }
 
-/* ── Loading skeleton: same footprint as the table (30 + 30 px header, 34 px rows) ── */
+/* ── Loading skeleton: same footprint as the table (30 + 30 px header, 34 px rows) ──
+   It fills the whole table area: columns stretch like the real table (min-width 100%), enough rows
+   are drawn for a tall screen and the overflow is hidden, the Total row stays at the bottom. */
 .customer-matrix-shell--loading {
   min-height: 420px;
+}
+
+.customer-matrix-shell--loading .customer-matrix-scroll {
+  overflow: hidden;
 }
 
 .customer-matrix-control-bar--loading {
@@ -444,7 +454,7 @@
 .customer-matrix-loading-row-grid {
   display: grid;
   min-height: var(--matrix-row-min-height);
-  grid-template-columns: 170px repeat(var(--matrix-skeleton-columns), var(--matrix-skeleton-column-width, 96px));
+  grid-template-columns: 170px repeat(var(--matrix-skeleton-columns), minmax(var(--matrix-skeleton-column-width, 96px), 1fr));
   width: max-content;
   min-width: 100%;
 }

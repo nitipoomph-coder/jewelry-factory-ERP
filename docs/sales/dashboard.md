@@ -8,7 +8,7 @@ Covered surfaces:
 - Sales/customer dashboard layout: `CustomerDashboardLayout.tsx`, `/dashboard/customer` (with nested routes)
   - Sales summary: `CustomerDashboard.tsx`, `/dashboard/customer` (index)
   - Customer matrix: `CustomerReportPage.tsx`, `/dashboard/customer/matrix`
-- Order List (drill-down from Customer Report Matrix): `SalesCustomerGroupDetail.tsx`, `/dashboard/sales-customer-detail`
+- Order List (drill-down from Customer Report Matrix, details in `docs/sales/sales-menu.md`): `SalesCustomerGroupDetail.tsx`, `/dashboard/sales-customer-detail`
 - Top item gallery: `TopOrdersGalleryPage.tsx`, `/dashboard/top-orders`
 - Sales dashboard (legacy redirect): `/dashboard/sales` -> `/dashboard/customer`
 
@@ -72,7 +72,7 @@ Legacy redirect: `/dashboard/customer-report` -> `/dashboard/customer/matrix`
 
 View modes (picked by the Period preset, `hooks/useCustomerReportData.ts`):
 - `YTD` (Year / YTD preset), one year: one year block with months and the year total
-- `YTD`, 2+ years (2026-11-26, requested by management for month-to-month review): one stacked cell per month, so all 12 months fit one screen without sliding. Each cell always has 3 lines: the newest year (bold), one compare year (soft) and Growth %. The compare year defaults to the Period compare target; with 3+ years a `vs 2025 | vs 2024` switch in the table toolbar changes it (the other years stay in the KPI row). With every Growth removed the cell has 2 lines. The sub header shows the line order (`2026 / 2025 / %`). Hovering a cell shows the Growth amount. The last column is the Grand Total with the year totals, Growth % and Growth amount (full-year comparison, unchanged). Rows are taller (15px per line + 8px)
+- `YTD`, 2+ years (2026-11-26, requested by management for month-to-month review): one stacked cell per month, so all 12 months fit one screen without sliding. Each cell always has 3 lines: the newest year (bold), one compare year (soft), and a Growth line with the short Growth amount (K/M, 2 decimals, e.g. `+$322.33K`) and Growth % side by side. The compare year defaults to the Period compare target; with 3+ years a `vs 2025 | vs 2024` switch in the table toolbar changes it (the other years stay in the KPI row). With every Growth removed the cell has 2 lines. The sub header shows the line order (`2026 / 2025 / Growth`). Hovering a cell shows the full Growth amount. The last column is the Grand Total with the year totals, Growth % and Growth amount (full-year comparison, unchanged). Rows are taller (15px per line + 8px)
 - Growth of a month that has not started yet (for the newer year) shows `·` instead of a misleading -100%
 - A customer new in the newer year shows `NEW` as plain green text (no frame, no cell tint)
 - `Monthly` (Month / Custom preset), `Weekly` (Week preset), `Daily` (Day preset): one block per month / week / day with every year (and Growth) inside it, then a Grand Total block
@@ -81,8 +81,8 @@ View modes (picked by the Period preset, `hooks/useCustomerReportData.ts`):
 Layout (2026-11-25 redesign, "option 5"):
 - One flat surface on the page canvas: no card around the KPIs, no frame or radius around the table; sections are separated by spacing and hairlines only
 - The page does not scroll on desktop; the table area is the only scroll area. Header rows, the customer column and the Total row stay pinned. At 620px container width and below the page scrolls and the table gets a fixed height (`pages/SalesResponsive.css`)
-- KPI row: Year totals always show. Group KPIs show only in By Customer view and only for groups with `showKpi: true` in `config/customerGroups.ts` (N008, N044, N098, N051). By Group view has no group KPIs (the table rows are the groups)
-- The loading skeleton uses the same KPI row and the same table row heights (30 + 30 px header, 34 px rows; taller rows in the stacked Year view)
+- KPI row: Year totals always show. With 2+ years a `Growth <newest> vs <older>` KPI follows for each older year (amount and %), built from the same year totals and Growth formula as the table's Grand Total, so the numbers always match (full-year comparison, like the Grand Total). Group KPIs show only in By Customer view (in By Group view the table rows are the groups, so the numbers would repeat). Every group picked in the Groups filter gets one short line under the year KPIs: name, newest-year total, Growth amount and Growth % vs the compare year, in K/M with 2 decimals (`NEW` when the compare year is 0); hovering shows the full numbers
+- The loading skeleton uses the same KPI row and the same table row heights (30 + 30 px header, 34 px rows; taller rows in the stacked Year view). It fills the whole table area: columns stretch to the page width and rows fill the height
 
 Table UX rules:
 - First screen must be the data table/report surface
@@ -97,7 +97,7 @@ Table UX rules:
 
 Column widths:
 - Starting widths fit the longest number of each column kind (month values, totals, growth amounts), measured on all rows and the Total row, so Sales columns are wider than Qty columns and a search does not make columns jump
-- Drag a header's right edge to resize (in the stacked Year view the month name row has a handle too) (a dragged width wins over the fitted width), double-click to reset, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
+- Drag a header's right edge to resize (in the stacked Year view the month name row has a handle too) (a dragged width wins over the fitted width), double-click to reset one column, `Reset widths` in the table toolbar (shown only after a resize) to reset every column of the current view, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
 - Saved per signed-in user and per view (`customer-matrix:ytd|monthly|weekly|daily`). Stacked Year view keys: `s_{Mon}`, `s_total`. Keys use the year position (`y0` = newest year), not the year value, so widths still apply after the period moves to a new year
 
 Search UX:
