@@ -4,7 +4,20 @@ import { getDefaultCompareYear, monthRange, parseMonths } from '../utils/periodU
 
 export type PeriodPreset = 'full-year' | 'ytd' | 'this-month' | 'last-month' | 'month' | 'week' | 'day' | 'custom';
 
+const ALL_MONTHS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+
+/**
+ * Months the page sums for a committed period. Day and Week: every month, because the API already limits
+ * the rows to the date range / ISO weeks (a leftover month choice made Day and Week totals 0 or partial).
+ */
+function committedMonths(preset: PeriodPreset, selectedMonths: string[] | undefined, monthFrom: number, monthTo: number): string[] {
+  if (preset === 'day' || preset === 'week') return [...ALL_MONTHS];
+  if (preset === 'month') return selectedMonths && selectedMonths.length > 0 ? selectedMonths : ['1'];
+  return monthRange(monthFrom, monthTo).map(String);
+}
+
 export interface PeriodSetupConfig {
+  /** Not read: the Period panel always offers Year / Month / Week / Day. Kept as a record of what the page expects. */
   presets: PeriodPreset[];
   allowWeekRange?: boolean;
   allowDateFieldToggle?: boolean;
@@ -147,6 +160,9 @@ export function usePeriodSetup(config: PeriodSetupConfig) {
       }
     }
 
+    // Day / Week (also from a link): sum every month, the API limits the rows
+    if (preset === 'day' || preset === 'week') selectedMonths = [...ALL_MONTHS];
+
     // Compute derived selections
     const selectedYears = [baseYear];
     if (compareActive1 && compareYear1 && compareYear1 !== 'none') selectedYears.push(compareYear1);
@@ -257,9 +273,7 @@ export function usePeriodSetup(config: PeriodSetupConfig) {
     if (config.compareSlots === 2 && draft.compareActive2 && draft.compareYear2 && draft.compareYear2 !== 'none') selectedYears.push(draft.compareYear2);
     
     // If not month mode, override selectedMonths with contiguous range, else use exactly what was drafted
-    const finalSelectedMonths = (draft.preset === 'month') 
-      ? (draft.selectedMonths?.length > 0 ? draft.selectedMonths : ['1']) 
-      : monthRange(draft.monthFrom, draft.monthTo).map(String);
+    const finalSelectedMonths = committedMonths(draft.preset, draft.selectedMonths, draft.monthFrom, draft.monthTo);
 
     const selectedWeeks = config.allowWeekRange && draft.weekFrom && draft.weekTo 
       ? Array.from({ length: draft.weekTo - draft.weekFrom + 1 }, (_, i) => String(draft.weekFrom! + i)) 
@@ -336,6 +350,7 @@ export function usePeriodSetup(config: PeriodSetupConfig) {
         next.delete('dateFrom');
         next.delete('dateTo');
         next.delete('kpiCompare');
+        next.delete('dateField');
         return next;
       }, { replace: true });
     }
@@ -354,9 +369,7 @@ export function usePeriodSetup(config: PeriodSetupConfig) {
       if (updatedDraft.compareActive1 && updatedDraft.compareYear1 && updatedDraft.compareYear1 !== 'none') selectedYears.push(updatedDraft.compareYear1);
       if (config.compareSlots === 2 && updatedDraft.compareActive2 && updatedDraft.compareYear2 && updatedDraft.compareYear2 !== 'none') selectedYears.push(updatedDraft.compareYear2);
 
-      const finalSelectedMonths = (updatedDraft.preset === 'month') 
-        ? (updatedDraft.selectedMonths?.length > 0 ? updatedDraft.selectedMonths : ['1']) 
-        : monthRange(updatedDraft.monthFrom, updatedDraft.monthTo).map(String);
+      const finalSelectedMonths = committedMonths(updatedDraft.preset, updatedDraft.selectedMonths, updatedDraft.monthFrom, updatedDraft.monthTo);
 
       const selectedWeeks = config.allowWeekRange && updatedDraft.weekFrom && updatedDraft.weekTo 
         ? Array.from({ length: updatedDraft.weekTo - updatedDraft.weekFrom + 1 }, (_, i) => String(updatedDraft.weekFrom! + i)) 

@@ -27,6 +27,20 @@
 - Users can toggle Compare 1 / Compare 2 independently via checkboxes.
 - When a checkbox is activated, the compare year auto-selects the nearest available year.
 
+## 2026-11-27 Day / Week Sum Every Month; Sales Summary Period List
+
+- `usePeriodSetup` → `committedMonths()`: with Day or Week the committed `selectedMonths` is always all 12 months (on Apply and when the period comes from a link). The API already limits the rows to the date range / ISO weeks, and pages (Sales Summary, Matrix) add up monthly values over `selectedMonths`; a leftover month choice (the current month when opened from a link) made Day / Week totals 0 or partial.
+- `PeriodSetupConfig.presets` is not read by anything: the Period panel always offers Year / Month / Week / Day. Sales Summary's old list (`full-year`, `ytd`, `this-month`, `last-month`, `custom`) was removed so it uses the shared list of `useCustomerPageFilters`, the same as the Matrix.
+
+## 2026-11-27 Order Date / Due Date on Every Sales Page
+
+- The Period Setup switch `Order Date` / `Due Date` (`allowDateFieldToggle`) was on Top Items only. It is now on in `useCustomerPageFilters`, so Sales Summary and the Customer Report Matrix have it too; the Order List follows the `dateField` in the URL.
+- `Order Date` = `OrdDate` (default), `Due Date` = `DueDate` (Factory Due). The choice applies to Year / Month / Week / Day and to every query of the page (`salesDateBasis` in `backend/utils/dateFilters.js`; no database change).
+- Saved in the URL as `dateField=dueDate` only when it is not the default, so it carries from Sales Summary to the Matrix to the Order List.
+- The Period button shows `· Due Date` after the range when Due Date is in use (Order Date shows nothing extra).
+- `Reset` now also clears `dateField` from the URL (before, the state went back to Order Date while the URL kept `dueDate`).
+- Production pages (Production Summary, Production Forecast) keep their own date rules; the switch is not on there.
+
 ## 2026-11-16 Customer Group Filter — Active / Inactive
 
 > Order Trends (`/dashboard/customer/trends`) was removed on 2026-11-18; its old URLs redirect to Sales Summary.

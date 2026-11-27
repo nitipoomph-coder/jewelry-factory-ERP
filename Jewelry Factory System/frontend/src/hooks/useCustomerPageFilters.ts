@@ -37,6 +37,9 @@ export function useCustomerPageFilters(availableYears: string[], configOverrides
     presets: ['full-year', 'ytd', 'month', 'week', 'day', 'custom'] as PeriodPreset[],
     compareSlots: 2 as const,
     allowWeekRange: true,
+    // Order Date / Due Date switch, the same as Top Items (every Sales page reads VW_Web_SalesDashboard
+    // through salesDateBasis, so the choice applies to every query of the page)
+    allowDateFieldToggle: true,
     onReset: () => {
       setManualGroups(null);
     },

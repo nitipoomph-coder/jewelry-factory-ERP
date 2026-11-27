@@ -241,11 +241,12 @@ export function useCustomerReportData() {
             const wVal = weekSource?.[yr]?.[String(w)] || 0;
             row[`${yr}_W${w}`] = Number(row[`${yr}_W${w}`]) + Number(wVal);
           }
+          // Day view: the API keys days 'MM-DD', the same key as the Day columns (`${yr}_D_MM-DD`)
           const daySource = metric === 'qty' ? cust.dailyQty : cust.daily;
-          for (let d = 1; d <= 31; d++) {
-            const dVal = daySource?.[yr]?.[String(d)] || 0;
-            row[`${yr}_D${d}`] = Number(row[`${yr}_D${d}`]) + Number(dVal);
-          }
+          displayDays.forEach((dStr: string) => {
+            const dVal = daySource?.[yr]?.[dStr] || 0;
+            row[`${yr}_D_${dStr}`] = Number(row[`${yr}_D_${dStr}`] || 0) + Number(dVal);
+          });
         });
       });
 
@@ -288,11 +289,12 @@ export function useCustomerReportData() {
             const wVal = weekSource?.[yr]?.[String(w)] || 0;
             row[`${yr}_W${w}`] = Number(row[`${yr}_W${w}`]) + Number(wVal);
           }
+          // Day view: the API keys days 'MM-DD', the same key as the Day columns (`${yr}_D_MM-DD`)
           const daySource = metric === 'qty' ? cust.dailyQty : cust.daily;
-          for (let d = 1; d <= 31; d++) {
-            const dVal = daySource?.[yr]?.[String(d)] || 0;
-            row[`${yr}_D${d}`] = Number(row[`${yr}_D${d}`]) + Number(dVal);
-          }
+          displayDays.forEach((dStr: string) => {
+            const dVal = daySource?.[yr]?.[dStr] || 0;
+            row[`${yr}_D_${dStr}`] = Number(row[`${yr}_D_${dStr}`] || 0) + Number(dVal);
+          });
         });
       });
 

@@ -123,6 +123,10 @@ export default function PeriodSetupPanel({ periodSetup, availableYears, isOpen, 
           <span className="text-[var(--color-text-tertiary)] text-[0.72rem] font-extrabold">
             ({getPeriodRangeDetailText()})
           </span>
+          {/* Order Date is the default; say so only when the period counts by Due Date */}
+          {periodSetup.config.allowDateFieldToggle && periodSetup.committed.dateField === 'dueDate' && (
+            <span className="text-[var(--color-brand-600)] text-[0.72rem] font-extrabold">· Due Date</span>
+          )}
         </>
         <ChevronDown size={14} className="text-[var(--color-text-tertiary)]" />
       </button>

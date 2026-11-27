@@ -693,3 +693,55 @@ The Order List opened from a Customer Report Matrix group could show a higher to
 ### Prevention & Lessons Learned:
 1. A drill-down must use exactly the filters of the number it explains; compare the WHERE clauses, not the comments.
 2. Check a drill-down by opening it from a Matrix cell and comparing the totals.
+
+## Issue: Order List Mixed the Matrix Compare Year Into Its Totals
+**Date:** 2026-11-27
+**Component:** `components/report/CustomerReportTable.tsx`, `pages/SalesCustomerGroupDetail.tsx`
+
+### Symptoms:
+With Compare 2025 on in the Customer Report Matrix, clicking a group / customer name opened the Order List with both 2026 and 2025. Its Ordered Amount (then "Sales Amount") was the two years added together and matched no Matrix number.
+
+### Root Cause:
+The name link copied the Matrix query as is, including `years=2026,2025`; the compare year is only for the Matrix side-by-side view.
+
+### Fix:
+The name link now sends the main (newest) year only. The Order List has a `Year` dropdown (one year at a time) to see another year, and the KPI is renamed `Ordered Amount` (ordered value, not shipped).
+
+### Prevention & Lessons Learned:
+1. A drill-down link must carry one comparable scope; do not pass on comparison settings that only make sense in the source view.
+
+## Issue: Customer Report Matrix Day View Showed No Daily Numbers
+**Date:** 2026-11-27
+**Component:** `backend/routes/customerReportMatrix.js`, `frontend/src/hooks/useCustomerReportData.ts`
+
+### Symptoms:
+With Period = Day (e.g. 01/07/2025 - 31/07/2025) the Matrix showed the Total, but every day column (1 Jul, 2 Jul, …) was empty, with Order Date and with Due Date. Sales Summary showed numbers because it only shows totals.
+
+### Root Cause:
+Two gaps, both there since the first commit:
+1. `/api/dashboard/customer-summary` grouped by year, month and week only; it never returned `daily` / `dailyQty`.
+2. `useCustomerReportData` wrote day values to `${year}_D1`…`D31` (day of month), but the Day columns read `${year}_D_MM-DD`.
+
+### Fix:
+1. With `startDate` + `endDate` the query adds `DAY(date)` to the temp table and one more read-only recordset (customer, year, month, day totals); the route returns `daily` / `dailyQty` keyed `'MM-DD'`, using the selected date basis. No database change.
+2. The hook reads those values for each displayed day into `${year}_D_MM-DD`.
+Checked on live data (July 2025 vs 2024, both date bases): the daily values of every customer add up to its Total, amount and qty.
+
+### Prevention & Lessons Learned:
+1. When a view reads row keys, check that the producer writes the same keys; a column that is always empty is easy to miss when the Total looks right.
+
+## Issue: Sales Summary and Matrix Showed $0 for a Day Period Opened From a Link
+**Date:** 2026-11-27
+**Component:** `frontend/src/hooks/usePeriodSetup.ts`
+
+### Symptoms:
+Opening `…?years=2025&preset=day&dateFrom=2025-07-01&dateTo=2025-07-31` showed $0.00 for every group on Sales Summary (KPI cards and chart). Picking Day right after Year looked fine; picking it after a Month choice gave partial totals.
+
+### Root Cause:
+The API returned July correctly, but the pages add up the monthly values over the committed `selectedMonths`. Day (and Week) never set `selectedMonths`: from a link it became the current month (November), after Year it stayed January–December, after Month it stayed that month. July data summed over November = 0.
+
+### Fix:
+`committedMonths()` in `usePeriodSetup.ts`: Day and Week always commit all 12 months (Apply, `applyChanges` and loading from the URL), since the API already filters by the date range / weeks. No backend or database change. Sales Summary's unused `presets` override was removed (the panel always offers Year / Month / Week / Day).
+
+### Prevention & Lessons Learned:
+1. When the server already filters a period, the client must not filter it again with a second, independent selection.

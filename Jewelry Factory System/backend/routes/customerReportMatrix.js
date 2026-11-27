@@ -22,6 +22,9 @@ const { buildSalesFilters, salesDateBasis } = require('../utils/dateFilters');
  * - years selects the dashboard period; months narrows customer totals and top item ranking.
  * - Uses legacy NOT IN OrdNo blocklist: BBP, BBK, BBS, BBL, BBT, BBD.
  * - Active customers only: CustStatus = 'Y'.
+ * - Date basis: dateField=ordDate (default, OrdDate) or dueDate (DueDate), for every grouping below.
+ * - Day period (startDate + endDate): also returns daily / dailyQty per customer, keyed 'MM-DD'
+ *   (Customer Report Matrix Day view).
  * =============================================================================
  */
 
@@ -42,6 +45,8 @@ router.get('/customer-summary', async (req, res) => {
     const request = pool.request();
     
     const typeParam = req.query.type || 'ALL';
+    // Day period (startDate + endDate, at most 31 days): the Matrix Day view also needs one total per day
+    const isDayPeriod = Boolean(req.query.startDate && req.query.endDate);
     const { dateExpr: dateColumn } = salesDateBasis(req, '');
     const { whereSql: sargableDateCondition } = buildSalesFilters(req, request, '', dateColumn);
     
@@ -64,6 +69,7 @@ router.get('/customer-summary', async (req, res) => {
         YEAR(${dateColumn}) AS OrdYear,
         MONTH(${dateColumn}) AS OrdMonth,
         DATEPART(isowk, ${dateColumn}) AS OrdWeek,
+        DAY(${dateColumn}) AS OrdDay,
         ItemAmnt,
         ItemQty,
         ItemNo,
@@ -132,6 +138,12 @@ router.get('/customer-summary', async (req, res) => {
       SELECT CustCode as id, yr, ProductType as productType, ItemNo as topItem, totalQty as topItemQty
       FROM RankedItems WHERE rn = 1;
 
+      ${isDayPeriod ? `-- [Recordset 4] Daily totals (Day period only)
+      SELECT CustCode AS id, OrdYear AS yr, OrdMonth AS mth, OrdDay AS dy,
+        SUM(ItemAmnt) AS totalSales, SUM(ItemQty) AS totalQty
+      FROM #FilteredSales
+      GROUP BY CustCode, OrdYear, OrdMonth, OrdDay;` : ''}
+
       -- 3. ลบ Temporary Table
       DROP TABLE #FilteredSales;
     `;
@@ -144,6 +156,7 @@ router.get('/customer-summary', async (req, res) => {
     const topItemRows = multiResult.recordsets[1] || [];
     const topItemByYearRows = multiResult.recordsets[2] || [];
     const topItemByYearTypeRows = multiResult.recordsets[3] || [];
+    const dailyRows = isDayPeriod ? (multiResult.recordsets[4] || []) : [];
 
     const topItemMap = {};
     topItemRows.forEach(r => {
@@ -190,6 +203,9 @@ router.get('/customer-summary', async (req, res) => {
           dataQty: {},
           monthlyQty: {},
           weeklyQty: {},
+          // Day period only: { [year]: { 'MM-DD': value } }
+          daily: {},
+          dailyQty: {},
           currentMonthSales: 0,
           topItem: topItemMap[row.id]?.topItem || null,
           topItemQty: topItemMap[row.id]?.topItemQty || 0,
@@ -240,6 +256,18 @@ router.get('/customer-summary', async (req, res) => {
       if (row.yr === curYear && row.mth === curMonth) {
         custMap[row.id].currentMonthSales += row.totalSales;
       }
+    });
+
+    // Daily Data (Day period): key 'MM-DD', the same key the Matrix Day columns use
+    dailyRows.forEach(row => {
+      const cust = custMap[row.id];
+      if (!cust) return;
+      const yrStr = row.yr.toString();
+      const dayKey = `${String(row.mth).padStart(2, '0')}-${String(row.dy).padStart(2, '0')}`;
+      if (!cust.daily[yrStr]) cust.daily[yrStr] = {};
+      if (!cust.dailyQty[yrStr]) cust.dailyQty[yrStr] = {};
+      cust.daily[yrStr][dayKey] = (cust.daily[yrStr][dayKey] || 0) + row.totalSales;
+      cust.dailyQty[yrStr][dayKey] = (cust.dailyQty[yrStr][dayKey] || 0) + row.totalQty;
     });
 
     // เรียงลำดับ: ยอดเดือนปัจจุบันมากสุดก่อน → ถ้าเท่ากันดูยอดปีรวม

@@ -32,7 +32,7 @@ export default function CustomerDashboard({ metric: propMetric = 'amount' }: { m
     groupSelection,
     isFiltered,
     resetFilters
-  } = useCustomerPageFilters(availableYears, { presets: ['full-year', 'ytd', 'this-month', 'last-month', 'custom'] });
+  } = useCustomerPageFilters(availableYears); // Year / Month / Week / Day, the same Period as the Matrix
 
   const selectedYears = periodSetup.committed.selectedYears;
   const selectedMonths = periodSetup.committed.selectedMonths;
