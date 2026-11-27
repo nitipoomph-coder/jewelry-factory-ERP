@@ -7,12 +7,13 @@
 // - Layout (option D, 2026-11-26): scope line, KPI row, breakdown by customer and by product type
 //   (click a bar to filter), one toolbar, then the table, which is the only scroll area on desktop.
 // - Columns: 13 shown by default, the rest under "Columns" (saved per user).
-// - Excel: registered with the Global Topbar (Print / Export → Export to Excel); the file always has every column.
+// - Excel: registered with the Global Topbar (Print / Export → Export to Excel); utils/exportOrderListExcel.ts writes
+//   the columns shown on screen with the scope and filters on top.
+// - Year switch on the scope line (one year at a time); Refresh Data button in the Global Topbar.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Columns3, DollarSign, Hash, RotateCcw, Search, Users, X } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Columns3, DollarSign, Hash, RefreshCw, RotateCcw, Search, Users, X } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import CustomSelect from '../components/ui/CustomSelect';
 import { ErpButton, ErpSegmentedControl } from '../components/ui/ErpButtons';
@@ -20,7 +21,10 @@ import { BREADCRUMBS } from '../config/breadcrumbs';
 import { ALL_GROUPS, getCustomerGroupId, getGroupCustomerFilter } from '../config/customerGroups';
 import { currentUserKey, useColumnWidths } from '../hooks/useColumnWidths';
 import { fetchSalesOrders, type SalesOrderRow } from '../services/orderVolumeSummaryAPI';
+import { fetchAvailableYears } from '../services/dashboardAPI';
 import { usePageExcelExport } from '../contexts/pageExportStore';
+import { useTopbarActions } from '../contexts/TopbarActionContext';
+import { exportOrderListExcel, type OrderListExcelType } from '../utils/exportOrderListExcel';
 import './SalesResponsive.css';
 import './OrderList.css';
 
@@ -71,13 +75,15 @@ interface OrderListColumn {
   total?: TotalField;
   /** Numeric field: a zero value shows in faint text */
   zeroField?: keyof SalesOrderRow;
+  /** Excel: cell type and raw value (default: text from `text`) */
+  excel?: { type: OrderListExcelType; value: (row: SalesOrderRow) => string | number | null };
 }
 
 const COLUMNS: OrderListColumn[] = [
   { key: 'orderNo', label: 'OrdNo', width: 118, set: 'Order', tone: 'order', text: r => r.orderNo },
-  { key: 'ordDate', label: 'OrdDate', width: 92, set: 'Dates', text: r => fmtDate(r.ordDate) },
-  { key: 'dueDate', label: 'DueDate', width: 92, set: 'Dates', text: r => fmtDate(r.dueDate) },
-  { key: 'custDate', label: 'CustDate', width: 92, set: 'Dates', text: r => fmtDate(r.custDate) },
+  { key: 'ordDate', label: 'OrdDate', width: 92, set: 'Dates', text: r => fmtDate(r.ordDate), excel: { type: 'date', value: r => r.ordDate } },
+  { key: 'dueDate', label: 'DueDate', width: 92, set: 'Dates', text: r => fmtDate(r.dueDate), excel: { type: 'date', value: r => r.dueDate } },
+  { key: 'custDate', label: 'CustDate', width: 92, set: 'Dates', text: r => fmtDate(r.custDate), excel: { type: 'date', value: r => r.custDate } },
   { key: 'customerCode', label: 'CustCode', width: 82, set: 'Order', tone: 'strong', text: r => r.customerCode },
   { key: 'poNo', label: 'PONo', width: 108, set: 'Order', tone: 'soft', text: r => r.poNo || '-' },
   { key: 'po2', label: 'PO2', width: 130, set: 'Order', tone: 'soft', text: r => r.po2 || '-' },
@@ -85,7 +91,7 @@ const COLUMNS: OrderListColumn[] = [
   { key: 'shipTo', label: 'Ship To', width: 180, set: 'Order', text: r => r.shipTo || '-' },
   { key: 'ordStamp', label: 'OrdStamp', width: 160, set: 'Order', text: r => r.ordStamp || '-' },
   { key: 'ordMaker', label: 'OrdMaker', width: 110, set: 'Order', text: r => r.ordMaker || '-' },
-  { key: 'ordWeek', label: 'OrdWeek', width: 76, set: 'Order', align: 'right', text: r => (r.ordWeek ? String(r.ordWeek) : '-') },
+  { key: 'ordWeek', label: 'OrdWeek', width: 76, set: 'Order', align: 'right', text: r => (r.ordWeek ? String(r.ordWeek) : '-'), excel: { type: 'int', value: r => r.ordWeek || null } },
   { key: 'itemNo', label: 'ItemNo', width: 112, set: 'Item', tone: 'strong', text: r => r.itemNo },
   { key: 'productTypeCode', label: 'Type', width: 58, set: 'Item', text: r => r.productTypeCode || '-' },
   { key: 'itemDesc', label: 'ItemDesc', width: 230, set: 'Item', tone: 'soft', text: r => r.itemDesc || '-' },
@@ -96,17 +102,17 @@ const COLUMNS: OrderListColumn[] = [
   { key: 'itemStone', label: 'ItemStone', width: 170, set: 'Item', text: r => r.itemStone || '-' },
   { key: 'itemPlate', label: 'Itemplate', width: 170, set: 'Item', text: r => r.itemPlate || '-' },
   { key: 'setType', label: 'SetType', width: 80, set: 'Item', text: r => r.setType || '-' },
-  { key: 'itemWeight', label: 'ItemWeight', width: 96, set: 'Item', align: 'right', text: r => fmtWeight(r.itemWeight) },
+  { key: 'itemWeight', label: 'ItemWeight', width: 96, set: 'Item', align: 'right', text: r => fmtWeight(r.itemWeight), excel: { type: 'decimal', value: r => r.itemWeight } },
   {
     key: 'shipping', label: 'Shipping', width: 112, set: 'Amounts', text: shipLabel,
     render: r => <span className={`order-list-status order-list-status--${shipState(r)}`}>{shipLabel(r)}</span>,
   },
-  { key: 'orderQty', label: 'ItemQTY', width: 86, set: 'Amounts', align: 'right', text: r => fmtQty(r.orderQty), total: 'orderQty', zeroField: 'orderQty' },
-  { key: 'itemPrice', label: 'ItemPrice', width: 96, set: 'Amounts', align: 'right', tone: 'soft', text: r => fmtAmount(r.itemPrice) },
-  { key: 'itemAmnt', label: 'ItemAmt', width: 124, set: 'Amounts', align: 'right', tone: 'strong', text: r => fmtAmount(r.itemAmnt), total: 'itemAmnt', zeroField: 'itemAmnt' },
-  { key: 'shippedQty', label: 'ExportQTY', width: 92, set: 'Amounts', align: 'right', text: r => fmtQty(r.shippedQty), total: 'shippedQty', zeroField: 'shippedQty' },
-  { key: 'openQty', label: 'OpenQTY', width: 90, set: 'Amounts', align: 'right', text: r => fmtQty(r.openQty), total: 'openQty', zeroField: 'openQty' },
-  { key: 'shippedAmnt', label: 'ExportAmt', width: 124, set: 'Amounts', align: 'right', text: r => fmtAmount(r.shippedAmnt), total: 'shippedAmnt', zeroField: 'shippedAmnt' },
+  { key: 'orderQty', label: 'ItemQTY', width: 86, set: 'Amounts', align: 'right', text: r => fmtQty(r.orderQty), total: 'orderQty', zeroField: 'orderQty', excel: { type: 'int', value: r => r.orderQty } },
+  { key: 'itemPrice', label: 'ItemPrice', width: 96, set: 'Amounts', align: 'right', tone: 'soft', text: r => fmtAmount(r.itemPrice), excel: { type: 'money', value: r => r.itemPrice } },
+  { key: 'itemAmnt', label: 'ItemAmt', width: 124, set: 'Amounts', align: 'right', tone: 'strong', text: r => fmtAmount(r.itemAmnt), total: 'itemAmnt', zeroField: 'itemAmnt', excel: { type: 'money', value: r => r.itemAmnt } },
+  { key: 'shippedQty', label: 'ExportQTY', width: 92, set: 'Amounts', align: 'right', text: r => fmtQty(r.shippedQty), total: 'shippedQty', zeroField: 'shippedQty', excel: { type: 'int', value: r => r.shippedQty } },
+  { key: 'openQty', label: 'OpenQTY', width: 90, set: 'Amounts', align: 'right', text: r => fmtQty(r.openQty), total: 'openQty', zeroField: 'openQty', excel: { type: 'int', value: r => r.openQty } },
+  { key: 'shippedAmnt', label: 'ExportAmt', width: 124, set: 'Amounts', align: 'right', text: r => fmtAmount(r.shippedAmnt), total: 'shippedAmnt', zeroField: 'shippedAmnt', excel: { type: 'money', value: r => r.shippedAmnt } },
 ];
 const COLUMN_SETS: ColumnSet[] = ['Dates', 'Order', 'Item', 'Amounts'];
 const PINNED_KEY = 'orderNo';
@@ -142,6 +148,7 @@ function saveColumnPrefs(prefs: Record<string, boolean>) {
 
 export default function SalesCustomerGroupDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ── Scope from the URL (same params the Matrix sends) ──
@@ -172,8 +179,11 @@ export default function SalesCustomerGroupDetail() {
   const scopeGroup = ALL_GROUPS.find(g => g.id === scopeGroupId);
 
   // No years in the URL (the Period's default) → the API uses the current year, so say that year
-  const periodYears = years.length > 0 ? years : [String(new Date().getFullYear())];
-  const periodText = `${periodYears.join(', ')} · ${weekFrom && weekTo ? `Week ${weekFrom}–${weekTo}` : dayFrom && dayTo ? `${dayFrom} – ${dayTo}` : monthSummary(months)}`;
+  const periodYears = useMemo(() => (years.length > 0 ? years : [String(new Date().getFullYear())]), [years]);
+  const weekText = weekFrom && weekTo ? (weekFrom === weekTo ? `Week ${weekFrom}` : `Week ${weekFrom}–${weekTo}`) : '';
+  const dayText = dayFrom && dayTo ? (dayFrom === dayTo ? dayFrom : `${dayFrom} – ${dayTo}`) : '';
+  const rangeText = weekText || dayText || monthSummary(months);
+  const periodText = `${periodYears.join(', ')} · ${rangeText}`;
 
   // ── Data ──
   const [rows, setRows] = useState<SalesOrderRow[]>([]);
@@ -215,6 +225,38 @@ export default function SalesCustomerGroupDetail() {
     return () => window.clearTimeout(loadTimer);
   }, [loadSalesOrders, hasScope]);
 
+  // ── Topbar Refresh Data: reloads the same scope; page filters, search and page stay as they are ──
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshData = useCallback(async () => {
+    setRefreshing(true);
+    // Keep the dim at least ~450ms so a fast reload does not flicker
+    await Promise.all([loadSalesOrders(), new Promise(resolve => window.setTimeout(resolve, 450))]);
+    setRefreshing(false);
+  }, [loadSalesOrders]);
+
+  const { setTopbarActions } = useTopbarActions();
+  const refreshBusy = loading || refreshing;
+  useEffect(() => {
+    if (!hasScope) {
+      setTopbarActions(null);
+      return;
+    }
+    setTopbarActions(
+      <button
+        type="button"
+        onClick={() => { void refreshData(); }}
+        disabled={refreshBusy}
+        className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border-none bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-brand-600)] transition-colors"
+        style={{ cursor: refreshBusy ? 'wait' : 'pointer', opacity: refreshBusy ? 0.8 : 1 }}
+        title="Refresh Data"
+        aria-label="Refresh Data"
+      >
+        <RefreshCw size={18} strokeWidth={1.75} className={refreshBusy ? 'animate-spin text-[var(--color-brand-600)]' : ''} />
+      </button>
+    );
+  }, [setTopbarActions, refreshData, refreshBusy, hasScope]);
+  useEffect(() => () => setTopbarActions(null), [setTopbarActions]);
+
   // ── Page filters (customer, product type, search) ──
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -222,7 +264,8 @@ export default function SalesCustomerGroupDetail() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  // A new scope starts with no page filters
+  // A new group / customer scope starts with no page filters (a year switch keeps them)
+  const filterScopeKey = JSON.stringify([scopeCustomers, excludeCustomers, types]);
   useEffect(() => {
     const resetTimer = window.setTimeout(() => {
       setSelectedCustomers([]);
@@ -230,7 +273,26 @@ export default function SalesCustomerGroupDetail() {
       setPage(1);
     }, 0);
     return () => window.clearTimeout(resetTimer);
-  }, [requestKey]);
+  }, [filterScopeKey]);
+
+  // ── Year switch: one year at a time, so the KPIs match one Matrix number (an old link with several
+  //    years still shows them, as one "2026 + 2025" choice) ──
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetchAvailableYears()
+      .then(list => { if (alive) setAvailableYears(list.map(String)); })
+      .catch(() => { /* the dropdown still lists the years in the URL */ });
+    return () => { alive = false; };
+  }, []);
+  const yearValue = periodYears.join(',');
+  const yearOptions = useMemo(() => {
+    const options = Array.from(new Set([...availableYears, ...periodYears]))
+      .sort((a, b) => Number(b) - Number(a))
+      .map(yr => ({ value: yr, label: yr }));
+    if (periodYears.length > 1) options.unshift({ value: yearValue, label: periodYears.join(' + ') });
+    return options;
+  }, [availableYears, periodYears, yearValue]);
 
   const valueOf = useCallback((row: SalesOrderRow) => Number((metric === 'qty' ? row.orderQty : row.itemAmnt) || 0), [metric]);
 
@@ -294,6 +356,14 @@ export default function SalesCustomerGroupDetail() {
     setColumnPrefs({});
     saveColumnPrefs({});
   };
+  // Every column on (saved as "on" overrides of the columns that are off by default)
+  const showAllColumns = () => {
+    const next: Record<string, boolean> = {};
+    COLUMNS.forEach(col => { if (col.key !== PINNED_KEY && !defaultVisible.has(col.key)) next[col.key] = true; });
+    setColumnPrefs(next);
+    saveColumnPrefs(next);
+  };
+  const allColumnsShown = COLUMNS.every(col => isShown(col.key));
 
   const visibleKeys = useMemo(() => visibleColumns.map(c => c.key), [visibleColumns]);
   const { tableRef, colRef, getWidth, tableStyle, handleProps, stickyClass, resetAll: resetColumnWidths, isCustomized: hasCustomWidths } =
@@ -302,25 +372,44 @@ export default function SalesCustomerGroupDetail() {
   // ── Navigation ──
   // Back to the Customer Report Matrix with the same period / metric (group / customer dropped, so the
   // report opens on every group again)
+  // Opened from a Matrix value (router state): go back to that exact Matrix view, period included
+  const matrixFrom = (location.state as { from?: string } | null)?.from;
   const reportPath = useMemo(() => {
+    if (matrixFrom?.startsWith('/dashboard/customer/matrix')) return matrixFrom;
     const params = new URLSearchParams(searchParams);
     params.delete('customers');
     params.delete('groups');
     const query = params.toString();
     return query ? `/dashboard/customer/matrix?${query}` : '/dashboard/customer/matrix';
-  }, [searchParams]);
+  }, [searchParams, matrixFrom]);
 
   const setGroup = (groupId: string) => {
     const next = new URLSearchParams(searchParams);
     next.set('groups', groupId);
     next.delete('customers');
-    setSearchParams(next, { replace: true });
+    setSearchParams(next, { replace: true, state: location.state });
+  };
+
+  const setYear = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('years', value);
+    // Day range: move the dates to the new year (end date in that year; a range over New Year starts the
+    // year before), the same way the API maps the range and the Matrix links move it
+    const from = next.get('dateFrom');
+    const to = next.get('dateTo');
+    if (preset === 'day' && !value.includes(',') && from && to) {
+      const span = Number(to.slice(0, 4)) - Number(from.slice(0, 4));
+      next.set('dateFrom', `${Number(value) - span}${from.slice(4)}`);
+      next.set('dateTo', `${value}${to.slice(4)}`);
+    }
+    setSearchParams(next, { replace: true, state: location.state });
+    setPage(1);
   };
 
   const setMetric = (nextMetric: 'amount' | 'qty') => {
     const next = new URLSearchParams(searchParams);
     next.set('metric', nextMetric);
-    setSearchParams(next, { replace: true });
+    setSearchParams(next, { replace: true, state: location.state });
     setPage(1);
   };
 
@@ -353,20 +442,32 @@ export default function SalesCustomerGroupDetail() {
     setPage(1);
   };
 
-  const exportToExcel = () => {
-    // Every column, whatever is shown on screen
-    const exportData = filteredRows.map(row => Object.fromEntries(COLUMNS.map(col => {
-      const raw = col.total ? Number(row[col.total] || 0)
-        : col.key === 'itemPrice' ? Number(row.itemPrice || 0)
-          : col.key === 'itemWeight' ? Number(row.itemWeight || 0)
-            : col.text(row);
-      return [col.label, raw];
-    })));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Order List');
+  // Columns shown on screen, in screen order; the page filters are written above the table
+  const exportToExcel = async () => {
     const scopeName = singleCustomer || scopeGroup?.label || groups.join('-') || 'Orders';
-    XLSX.writeFile(wb, `Order List ${scopeName} ${periodYears.join('-')}.xlsx`);
+    const scope: [string, string][] = [
+      singleCustomer ? ['Customer', singleCustomer] : ['Group', scopeGroup?.label || groups.join(', ')],
+      ['Period', periodText],
+      ['Date', dateField === 'dueDate' ? 'Due Date' : 'Order Date'],
+    ];
+    const filters: [string, string][] = [];
+    if (selectedCustomers.length > 0) filters.push(['Customers', selectedCustomers.join(', ')]);
+    if (typeFilter) filters.push(['Type', typeFilter]);
+    if (search) filters.push(['Search', search]);
+    await exportOrderListExcel({
+      title: 'Order List',
+      scope,
+      filters,
+      columns: visibleColumns.map(col => ({
+        label: col.label,
+        width: col.width,
+        type: col.excel?.type ?? 'text',
+        value: col.excel?.value ?? col.text,
+        total: Boolean(col.total),
+      })),
+      rows: filteredRows,
+      fileName: `Order List ${scopeName} ${periodYears.join('-')}.xlsx`,
+    });
   };
 
   // Excel export lives in the Global Topbar (Print / Export menu → Export to Excel)
@@ -376,7 +477,7 @@ export default function SalesCustomerGroupDetail() {
   });
 
   const initialLoading = hasScope && !loaded && !error;
-  const refetching = loading && loaded;
+  const refetching = (loading || refreshing) && loaded;
   const groupOptions = ALL_GROUPS.map(g => ({ value: g.id, label: g.label }));
 
   return (
@@ -400,7 +501,11 @@ export default function SalesCustomerGroupDetail() {
             {customersFromUrl.length > 1 && (
               <span className="order-list-scope-item"><span className="order-list-scope-key">Customers</span>{customersFromUrl.length}</span>
             )}
-            <span className="order-list-scope-item"><span className="order-list-scope-key">Period</span>{periodText}</span>
+            <span className="order-list-scope-item">
+              <span className="order-list-scope-key">Year</span>
+              <CustomSelect value={yearValue} onChange={setYear} options={yearOptions} width={periodYears.length > 1 ? 130 : 96} ariaLabel="Year" />
+            </span>
+            <span className="order-list-scope-item"><span className="order-list-scope-key">Period</span>{rangeText}</span>
             <span className="order-list-scope-item"><span className="order-list-scope-key">Date</span>{dateField === 'dueDate' ? 'Due Date' : 'Order Date'}</span>
           </div>
 
@@ -425,7 +530,7 @@ export default function SalesCustomerGroupDetail() {
             <div className={`order-list-body transition-opacity duration-300 ${refetching ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
               {/* KPI row */}
               <div className="order-list-kpis">
-                <Kpi label="Sales Amount" value={fmtAmount(totals.itemAmnt)} />
+                <Kpi label="Ordered Amount" value={fmtAmount(totals.itemAmnt)} />
                 <Kpi label="Ordered Qty (PCS)" value={fmtQty(totals.orderQty)} />
                 <Kpi
                   label="Shipped Qty (PCS)"
@@ -506,7 +611,11 @@ export default function SalesCustomerGroupDetail() {
                 </label>
                 <CheckMenu
                   icon={<Columns3 size={14} />}
-                  label="Columns"
+                  label={`Columns ${visibleColumns.length}/${COLUMNS.length - (singleCustomer ? 1 : 0)}`}
+                  actions={[
+                    { label: 'Default', onClick: resetColumns, disabled: Object.keys(columnPrefs).length === 0, title: 'Back to the starting columns' },
+                    { label: 'Show all', onClick: showAllColumns, disabled: allColumnsShown, title: 'Show every column' },
+                  ]}
                   sections={COLUMN_SETS.map(set => ({
                     title: set,
                     items: COLUMNS.filter(col => col.set === set && col.key !== PINNED_KEY).map(col => ({
@@ -517,7 +626,6 @@ export default function SalesCustomerGroupDetail() {
                     })),
                   }))}
                   onToggle={toggleColumn}
-                  footer={Object.keys(columnPrefs).length > 0 ? { label: 'Default columns', onClick: resetColumns } : undefined}
                 />
                 {hasCustomWidths && (
                   <ErpButton variant="ghost" icon={<RotateCcw size={14} />} onClick={resetColumnWidths} title="Return every column to its default width">
@@ -660,13 +768,15 @@ interface CheckMenuItem {
   disabled?: boolean;
 }
 
-/** Button with a popover list of checkboxes (customers, columns). */
-function CheckMenu({ icon, label, sections, onToggle, footer }: {
+/** Button with a popover list of checkboxes (customers, columns). `actions` = quick buttons on top
+ *  (the menu stays open so the change is visible); `footer` = one link at the bottom that closes it. */
+function CheckMenu({ icon, label, sections, onToggle, footer, actions }: {
   icon: ReactNode;
   label: string;
   sections: { title?: string; items: CheckMenuItem[] }[];
   onToggle: (key: string) => void;
   footer?: { label: string; onClick: () => void };
+  actions?: { label: string; onClick: () => void; disabled?: boolean; title?: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -689,6 +799,15 @@ function CheckMenu({ icon, label, sections, onToggle, footer }: {
       </ErpButton>
       {open && (
         <div className="order-list-menu content-scrollbar" role="menu">
+          {actions && actions.length > 0 && (
+            <div className="order-list-menu-actions">
+              {actions.map(action => (
+                <button key={action.label} type="button" className="order-list-menu-action" onClick={action.onClick} disabled={action.disabled} title={action.title}>
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
           {sections.map((section, si) => (
             <div key={section.title ?? si} className="order-list-menu-section">
               {section.title && <div className="order-list-menu-title">{section.title}</div>}

@@ -192,7 +192,8 @@ gemstone-lifecycle-management/
     │       │   ├── printChart.ts             # Print chart utility
     │       │   ├── errors.ts                 # Error utility types
     │       │   ├── exportPOTrackerExcel.ts   # 📊 Excel export for PO Tracker data
-    │       │   └── exportOrderDetailExcel.ts # 📊 Excel export for Order Detail data
+    │       │   ├── exportOrderDetailExcel.ts # 📊 Excel export for Order Detail data
+    │       │   └── exportOrderListExcel.ts  # 📊 Excel export for the Order List (formatted, print-ready)
     │       │
     │       └── assets/                # Static assets (images, icons)
     │           └── hero.png           # Login page hero image

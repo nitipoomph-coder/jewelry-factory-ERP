@@ -346,6 +346,43 @@
   box-shadow: 0 10px 28px color-mix(in srgb, var(--color-text-primary) 16%, transparent);
 }
 
+/* Quick buttons on top of the menu (Default / Show all); pinned while the list scrolls */
+.order-list-menu-actions {
+  position: sticky;
+  top: -6px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  margin: -6px -6px 4px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-ui-surface);
+  padding: 6px;
+}
+
+.order-list-menu-action {
+  flex: 1;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 4px 8px;
+  color: var(--color-brand-600);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.order-list-menu-action:hover:not(:disabled) {
+  background: var(--color-table-row-alt);
+}
+
+.order-list-menu-action:disabled {
+  color: var(--color-text-tertiary);
+  cursor: default;
+  opacity: 0.6;
+}
+
 .order-list-menu-section + .order-list-menu-section {
   border-top: 1px solid var(--color-border-light);
   margin-top: 4px;
