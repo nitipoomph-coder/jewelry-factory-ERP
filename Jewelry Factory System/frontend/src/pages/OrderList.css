@@ -317,6 +317,23 @@
   font-weight: 800;
 }
 
+/* OrdNo / PONo → PO Tracker Order Detail. Plain text until hovered; no transition (table cell). */
+.order-list-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.order-list-link:hover {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.order-list-link:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 1px;
+}
+
 /* ── Check menu (customers, columns) ── */
 .order-list-menu-label {
   display: inline-flex;

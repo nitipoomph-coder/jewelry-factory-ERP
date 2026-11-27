@@ -12,7 +12,7 @@
 // - Year switch on the scope line (one year at a time); Refresh Data button in the Global Topbar.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Columns3, DollarSign, Hash, RefreshCw, RotateCcw, Search, Users, X } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import CustomSelect from '../components/ui/CustomSelect';
@@ -25,6 +25,7 @@ import { fetchAvailableYears } from '../services/dashboardAPI';
 import { usePageExcelExport } from '../contexts/pageExportStore';
 import { useTopbarActions } from '../contexts/TopbarActionContext';
 import { exportOrderListExcel, type OrderListExcelType } from '../utils/exportOrderListExcel';
+import { canAccessRoute, getStoredAllowedMenus } from '../utils/authRedirect';
 import './SalesResponsive.css';
 import './OrderList.css';
 
@@ -55,6 +56,19 @@ function shipLabel(row: SalesOrderRow): string {
   if (state === 'done') return 'Shipped';
   if (state === 'part') return `Partial ${Math.round((Number(row.shippedQty) / Number(row.orderQty)) * 100)}%`;
   return state === 'open' ? 'Open' : '-';
+}
+
+// Shipping filter on the toolbar (lines with ordered qty 0 are only in All)
+type ShipFilter = 'all' | 'open' | 'part' | 'done';
+const SHIP_FILTER_LABELS: Record<Exclude<ShipFilter, 'all'>, string> = { open: 'Open', part: 'Partial', done: 'Shipped' };
+
+// OrdNo / PONo open the PO Tracker Order Detail page; shown as links only when this user may open it
+function canOpenOrderDetail(): boolean {
+  try {
+    return canAccessRoute('/po-tracker/ord/x', (localStorage.getItem('auth_role') || '').toLowerCase(), getStoredAllowedMenus());
+  } catch {
+    return false;
+  }
 }
 
 type ColumnSet = 'Dates' | 'Order' | 'Item' | 'Amounts';
@@ -260,6 +274,7 @@ export default function SalesCustomerGroupDetail() {
   // ── Page filters (customer, product type, search) ──
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [shipFilter, setShipFilter] = useState<ShipFilter>('all');
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -270,6 +285,7 @@ export default function SalesCustomerGroupDetail() {
     const resetTimer = window.setTimeout(() => {
       setSelectedCustomers([]);
       setTypeFilter(null);
+      setShipFilter('all');
       setPage(1);
     }, 0);
     return () => window.clearTimeout(resetTimer);
@@ -305,18 +321,38 @@ export default function SalesCustomerGroupDetail() {
 
   const customerMatch = useCallback((row: SalesOrderRow) => selectedCustomers.length === 0 || selectedCustomers.includes(row.customerCode), [selectedCustomers]);
   const typeMatch = useCallback((row: SalesOrderRow) => !typeFilter || row.productTypeCode === typeFilter, [typeFilter]);
+  const shipMatch = useCallback((row: SalesOrderRow) => shipFilter === 'all' || shipState(row) === shipFilter, [shipFilter]);
+
+  // Line count per shipping state, under the other filters (shown on the Shipping buttons)
+  const shipCounts = useMemo(() => {
+    const counts = { all: 0, open: 0, part: 0, done: 0 };
+    searchedRows.forEach(row => {
+      if (!customerMatch(row) || !typeMatch(row)) return;
+      counts.all += 1;
+      const state = shipState(row);
+      if (state !== 'none') counts[state] += 1;
+    });
+    return counts;
+  }, [searchedRows, customerMatch, typeMatch]);
 
   const filteredRows = useMemo(() => {
-    const list = searchedRows.filter(row => customerMatch(row) && typeMatch(row));
+    const list = searchedRows.filter(row => customerMatch(row) && typeMatch(row) && shipMatch(row));
     // Biggest first; order number + line keep the order stable for equal values
     return list.sort((a, b) => valueOf(b) - valueOf(a)
       || String(a.orderNo).localeCompare(String(b.orderNo))
       || Number(a.ordLineNo || 0) - Number(b.ordLineNo || 0));
-  }, [searchedRows, customerMatch, typeMatch, valueOf]);
+  }, [searchedRows, customerMatch, typeMatch, shipMatch, valueOf]);
 
   // ── Breakdowns: each one filtered by the other dimension, so clicking one updates the other ──
-  const customerBreakdown = useMemo(() => breakdown(searchedRows.filter(typeMatch), r => r.customerCode, valueOf), [searchedRows, typeMatch, valueOf]);
-  const typeBreakdown = useMemo(() => breakdown(searchedRows.filter(customerMatch), r => r.productTypeCode || '-', valueOf), [searchedRows, customerMatch, valueOf]);
+  const customerBreakdown = useMemo(
+    () => breakdown(searchedRows.filter(row => typeMatch(row) && shipMatch(row)), r => r.customerCode, valueOf),
+    [searchedRows, typeMatch, shipMatch, valueOf],
+  );
+  const typeBreakdown = useMemo(
+    () => breakdown(searchedRows.filter(row => customerMatch(row) && shipMatch(row)), r => r.productTypeCode || '-', valueOf),
+    [searchedRows, customerMatch, shipMatch, valueOf],
+  );
+  const orderLinks = useMemo(() => canOpenOrderDetail(), []);
   const scopeCustomerCodes = useMemo(() => Array.from(new Set(rows.map(r => r.customerCode))).sort(), [rows]);
   const showCustomerBreakdown = !singleCustomer && scopeCustomerCodes.length > 1;
 
@@ -453,6 +489,7 @@ export default function SalesCustomerGroupDetail() {
     const filters: [string, string][] = [];
     if (selectedCustomers.length > 0) filters.push(['Customers', selectedCustomers.join(', ')]);
     if (typeFilter) filters.push(['Type', typeFilter]);
+    if (shipFilter !== 'all') filters.push(['Shipping', SHIP_FILTER_LABELS[shipFilter]]);
     if (search) filters.push(['Search', search]);
     await exportOrderListExcel({
       title: 'Order List',
@@ -594,6 +631,17 @@ export default function SalesCustomerGroupDetail() {
                     Type: {typeFilter} <X size={12} />
                   </button>
                 )}
+                <ErpSegmentedControl<ShipFilter>
+                  ariaLabel="Shipping status"
+                  value={shipFilter}
+                  onChange={value => { setShipFilter(value); setPage(1); }}
+                  options={[
+                    { value: 'all', label: `All ${fmtQty(shipCounts.all)}` },
+                    { value: 'open', label: `Open ${fmtQty(shipCounts.open)}` },
+                    { value: 'part', label: `Partial ${fmtQty(shipCounts.part)}` },
+                    { value: 'done', label: `Shipped ${fmtQty(shipCounts.done)}` },
+                  ]}
+                />
                 <label className="order-list-search">
                   <Search size={14} />
                   <input
@@ -653,7 +701,7 @@ export default function SalesCustomerGroupDetail() {
                       ))}
                     </tr>
                   </thead>
-                  <OrderListBody rows={pageRows} columns={visibleColumns} stickyClass={stickyClass} />
+                  <OrderListBody rows={pageRows} columns={visibleColumns} stickyClass={stickyClass} orderLinks={orderLinks} />
                   {filteredRows.length > 0 && (
                     <tfoot>
                       <tr>
@@ -833,10 +881,12 @@ function CheckMenu({ icon, label, sections, onToggle, footer, actions }: {
 
 // Body rows. Memoized: column widths live on <col>, so resizing a column or typing in the search box
 // does not re-render the body cells.
-const OrderListBody = memo(function OrderListBody({ rows, columns, stickyClass }: {
+const OrderListBody = memo(function OrderListBody({ rows, columns, stickyClass, orderLinks }: {
   rows: SalesOrderRow[];
   columns: OrderListColumn[];
   stickyClass: (key: string) => string;
+  /** OrdNo / PONo link to the PO Tracker Order Detail page */
+  orderLinks: boolean;
 }) {
   return (
     <tbody>
@@ -852,7 +902,11 @@ const OrderListBody = memo(function OrderListBody({ rows, columns, stickyClass }
             const tone = zero ? 'order-list-zero' : col.tone ? `order-list-${col.tone}` : '';
             return (
               <td key={col.key} className={`${cellClass(col, stickyClass)} ${tone}`.trim()} title={text && text !== '-' ? text : undefined}>
-                {col.render ? col.render(row) : text}
+                {orderLinks && col.key === 'orderNo' && row.orderNo
+                  ? <Link className="order-list-link" to={`/po-tracker/ord/${encodeURIComponent(row.orderNo)}`} title={`Open order ${row.orderNo}`}>{text}</Link>
+                  : orderLinks && col.key === 'poNo' && row.poNo
+                    ? <Link className="order-list-link" to={`/po-tracker/po/${encodeURIComponent(row.poNo)}`} title={`Open PO ${row.poNo}`}>{text}</Link>
+                    : col.render ? col.render(row) : text}
               </td>
             );
           })}
@@ -893,7 +947,8 @@ function OrderListSkeleton({ showCustomers }: { showCustomers: boolean }) {
         ))}
       </div>
       <div className="order-list-toolbar">
-        {[150, 150, 240, 100, 110].map((w, i) => <span key={i} className="app-skeleton" style={{ width: w, height: 28, borderRadius: 6 }} />)}
+        {/* Same order as the toolbar: Amount / Qty, Customers (only with several customers), Shipping, search, Columns, line count */}
+        {[150, ...(showCustomers ? [150] : []), 300, 240, 110, 110].map((w, i) => <span key={i} className="app-skeleton" style={{ width: w, height: 28, borderRadius: 6 }} />)}
       </div>
       <div className="order-list-scroll">
         <div className="order-list-skeleton-row order-list-skeleton-row--head" />
