@@ -7,7 +7,7 @@
 //   per view. Width keys use the year position (y0 = newest), not the year value, so a saved width
 //   still applies after the period moves to the next year.
 import React, { useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, DollarSign, Hash, RotateCcw, Search, X } from 'lucide-react';
 import { ErpButton, ErpSegmentedControl } from '../ui/ErpButtons';
 import { useColumnWidths } from '../../hooks/useColumnWidths';
@@ -60,6 +60,13 @@ interface CustomerReportTableProps {
   setSearchQuery?: (value: string) => void;
 }
 
+/** What a clicked value opens in the Order List: one month, week or day, or the whole selected period. */
+export type DrillPeriod =
+  | { kind: 'period' }
+  | { kind: 'month'; month: number }
+  | { kind: 'week'; week: number }
+  | { kind: 'day'; day: string };
+
 /** One year line inside a stacked cell. */
 interface StackValue {
   year: string;
@@ -106,6 +113,10 @@ interface MatrixColumn {
   future?: boolean;
   /** First column of a header group: draws the group divider */
   groupStart?: boolean;
+  /** Click a value → Order List: the year of a value column (stack cells take it per line), the period, its label */
+  year?: string;
+  drill?: DrillPeriod;
+  drillLabel?: string;
 }
 
 /** One header group (first header row). */
@@ -201,10 +212,11 @@ function buildDefaultWidths(viewMode: MatrixViewMode): Record<string, number> {
       widths[`g${gi}_amt`] = WIDTH.growthAmt;
       widths[`g${gi}_pct`] = WIDTH.growthPct;
     });
-    // Year view with 2+ years: one stacked column per month plus one Total column
-    MONTHS.forEach(m => { widths[`s_${m}`] = WIDTH.stack; });
-    widths.s_total = WIDTH.stackTotal;
   }
+  // 2+ years (every view): one stacked column per month / week / day plus one Total column
+  const stackIds = viewMode === 'ytd' || viewMode === 'monthly' ? MONTHS : viewMode === 'weekly' ? WEEK_IDS : DAY_IDS;
+  stackIds.forEach(p => { widths[`s_${p}`] = WIDTH.stack; });
+  widths.s_total = WIDTH.stackTotal;
   const periodIds = viewMode === 'ytd' ? [] : viewMode === 'monthly' ? MONTHS : viewMode === 'weekly' ? WEEK_IDS : DAY_IDS;
   periodIds.forEach(p => {
     years.forEach(yi => { widths[`${p}_y${yi}`] = WIDTH.value; });
@@ -236,58 +248,91 @@ interface BuildColumnsInput {
   currentMonthIdx: number;
   /** Stacked Year view: the one older year compared with the newest year */
   stackCompare: string;
+  /** Today as YYYY-MM-DD (local), for weeks / days that have not started yet */
+  today: string;
 }
 
-function buildColumns({ viewMode, years, months, weeks, days, growth, metric, currentYearStr, currentMonthIdx, stackCompare }: BuildColumnsInput) {
+/** ISO 8601 week number of a local date (week 1 holds the year's first Thursday), as SQL DATEPART(isowk). */
+function isoWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+function buildColumns({ viewMode, years, months, weeks, days, growth, metric, currentYearStr, currentMonthIdx, stackCompare, today }: BuildColumnsInput) {
   const groups: MatrixColumnGroup[] = [];
   const columns: MatrixColumn[] = [];
   const newestYear = years.reduce((max, yr) => (Number(yr) > Number(max) ? yr : max), years[0] || '');
   const isCurrentMonth = (yr: string, m: string) => yr === currentYearStr && MONTHS.indexOf(m) === currentMonthIdx;
   const isFutureMonth = (yr: string, m: string) =>
     Number(yr) > Number(currentYearStr) || (yr === currentYearStr && MONTHS.indexOf(m) > currentMonthIdx);
+  // Weeks and days follow the same rule as months: not started yet → "·" instead of 0 / -100%
+  const todayWeek = isoWeek(new Date(`${today}T00:00:00`));
+  const isFutureWeek = (yr: string, w: number) =>
+    Number(yr) > Number(currentYearStr) || (yr === currentYearStr && w > todayWeek);
+  const isFutureDay = (yr: string, day: string) => `${yr}-${day}` > today;
   const pairLabel = (pair: GrowthPair, base: string) => (growth.length > 1 ? `${base} vs ${pair.b}` : base);
 
-  // Year view, 2+ years: one stacked cell per month with always 3 lines (newest year, one compare year,
-  // Growth %), so all 12 months fit one screen. With 3+ years the toolbar picks the compare year.
-  // Growth amount shows on hover; the Total column also lists it.
-  if (viewMode === 'ytd' && years.length > 1) {
+  // One column per month / week / day (Year and Month views: months).
+  // `isFuture(year)`: that year's month / week / day has not started yet
+  type Period = { id: string; label: string; suffix: string; month?: string; drill: DrillPeriod; isFuture: (yr: string) => boolean };
+  const periods: Period[] = viewMode === 'ytd' || viewMode === 'monthly'
+    ? months.map(m => ({ id: m, label: m, suffix: m, month: m, drill: { kind: 'month', month: MONTHS.indexOf(m) + 1 }, isFuture: yr => isFutureMonth(yr, m) }))
+    : viewMode === 'weekly'
+      ? weeks.map(w => ({ id: `W${w}`, label: `W${w}`, suffix: `W${w}`, drill: { kind: 'week', week: w }, isFuture: yr => isFutureWeek(yr, w) }))
+      : days.map((d, di) => {
+        const [mm, dd] = d.split('-');
+        return {
+          id: `d${di}`, label: `${parseInt(dd, 10)} ${MONTHS[parseInt(mm, 10) - 1] || ''}`.trim(), suffix: `D_${d}`,
+          drill: { kind: 'day', day: d }, isFuture: yr => isFutureDay(yr, d),
+        };
+      });
+
+  // 2+ years, every view: one stacked cell per period (newest year, one compare year, Growth), so the
+  // periods fit one screen instead of 4 columns each. With 3+ years the toolbar picks the compare year.
+  // Day view keeps a Growth line per day too (same calendar date; note it can fall on another weekday).
+  // Growth amount shows on hover.
+  if (years.length > 1) {
     const compareYear = years.includes(stackCompare) && stackCompare !== newestYear
       ? stackCompare
       : years.filter(yr => yr !== newestYear).sort((a, b) => Number(b) - Number(a))[0];
     const stackYears = [newestYear, compareYear];
     // Growth stays optional: no Growth line when every comparison was removed
     const stackPairs: GrowthPair[] = growth.length > 0 ? [{ a: newestYear, b: compareYear }] : [];
-    const legend = [...stackYears, ...stackPairs.map(() => 'Growth')].join(' / ');
-    const legendTitle = [
+    const legendFor = (pairs: GrowthPair[]) => [...stackYears, ...pairs.map(() => 'Growth')].join(' / ');
+    const titleFor = (pairs: GrowthPair[]) => [
       `${newestYear} (bold)`,
       compareYear,
-      ...stackPairs.map(pair => `Growth amount (short) and Growth % ${pair.a} vs ${pair.b}`),
+      ...pairs.map(pair => `Growth amount (short) and Growth % ${pair.a} vs ${pair.b}`),
     ].join(', ');
-    const stackGrowth = (suffix: string, month?: string): StackGrowth[] => stackPairs.map(pair => ({
+    const stackGrowth = (pairs: GrowthPair[], suffix: string, isFuture?: (yr: string) => boolean): StackGrowth[] => pairs.map(pair => ({
       a: pair.a,
       b: pair.b,
       fieldA: `${pair.a}_${suffix}`,
       fieldB: `${pair.b}_${suffix}`,
       newFlag: `isTrulyNew_${pair.a}`,
-      // the newer year's month has not started: no growth to show yet
-      future: month ? isFutureMonth(pair.a, month) : false,
+      // the newer year's period has not started: no growth to show yet
+      future: isFuture ? isFuture(pair.a) : false,
     }));
-    months.forEach(m => {
-      groups.push({ key: `s_${m}`, label: m, span: 1 });
+    periods.forEach(p => {
+      groups.push({ key: `s_${p.id}`, label: p.label, span: 1 });
       columns.push({
-        key: `s_${m}`, kind: 'stack', label: legend, title: `${m}: ${legendTitle}`,
-        current: isCurrentMonth(newestYear, m), groupStart: true,
-        stackValues: stackYears.map(yr => ({ year: yr, field: `${yr}_${m}`, previous: yr !== newestYear, future: isFutureMonth(yr, m) })),
-        stackGrowth: stackGrowth(m, m),
+        key: `s_${p.id}`, kind: 'stack', label: legendFor(stackPairs), title: `${p.label}: ${titleFor(stackPairs)}`,
+        current: p.month ? isCurrentMonth(newestYear, p.month) : false, groupStart: true,
+        drill: p.drill, drillLabel: p.label,
+        stackValues: stackYears.map(yr => ({ year: yr, field: `${yr}_${p.suffix}`, previous: yr !== newestYear, future: p.isFuture(yr) })),
+        stackGrowth: stackGrowth(stackPairs, p.suffix, p.isFuture),
       });
     });
     groups.push({ key: 's_total', label: metric === 'qty' ? 'Grand Total QTY' : 'Grand Total Sales', span: 1 });
     columns.push({
-      key: 's_total', kind: 'stack', label: stackPairs.length > 0 ? `${legend} / Amount` : legend,
-      title: `Year total: ${legendTitle}${stackPairs.length > 0 ? ', Growth amount' : ''}`,
-      groupStart: true, stackTotal: true, stackAmount: true,
+      key: 's_total', kind: 'stack', label: stackPairs.length > 0 ? `${legendFor(stackPairs)} / Amount` : legendFor(stackPairs),
+      title: `Total: ${titleFor(stackPairs)}${stackPairs.length > 0 ? ', Growth amount' : ''}`,
+      groupStart: true, stackTotal: true, stackAmount: true, drill: { kind: 'period' },
       stackValues: stackYears.map(yr => ({ year: yr, field: `${yr}_total`, previous: yr !== newestYear, future: false })),
-      stackGrowth: stackGrowth('total'),
+      stackGrowth: stackGrowth(stackPairs, 'total'),
     });
     return { groups, columns };
   }
@@ -301,11 +346,12 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
         columns.push({
           key: `y${yi}_${m}`, kind: 'value', label: m, field: `${yr}_${m}`,
           current: isCurrentMonth(yr, m), previous, future: isFutureMonth(yr, m), groupStart: mi === 0,
+          year: yr, drill: { kind: 'month', month: MONTHS.indexOf(m) + 1 }, drillLabel: m,
         });
       });
       columns.push({
         key: `y${yi}_total`, kind: 'total', label: 'Total', field: `${yr}_total`,
-        previous, groupStart: months.length === 0,
+        previous, groupStart: months.length === 0, year: yr, drill: { kind: 'period' },
       });
     });
     growth.forEach((pair, gi) => {
@@ -317,16 +363,7 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
     return { groups, columns };
   }
 
-  // Month / Week / Day: one header group per period, with every year (and growth) inside it.
-  const periods = viewMode === 'monthly'
-    ? months.map(m => ({ id: m, label: m, suffix: m, month: m as string | undefined }))
-    : viewMode === 'weekly'
-      ? weeks.map(w => ({ id: `W${w}`, label: `W${w}`, suffix: `W${w}`, month: undefined }))
-      : days.map((d, di) => {
-        const [mm, dd] = d.split('-');
-        return { id: `d${di}`, label: `${parseInt(dd, 10)} ${MONTHS[parseInt(mm, 10) - 1] || ''}`.trim(), suffix: `D_${d}`, month: undefined };
-      });
-
+  // Month / Week / Day, one year: one header group per period.
   periods.forEach(p => {
     groups.push({ key: p.id, label: p.label, span: years.length + growth.length * 2 });
     years.forEach((yr, yi) => {
@@ -334,15 +371,16 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
         key: `${p.id}_y${yi}`, kind: 'value', label: yr, field: `${yr}_${p.suffix}`,
         current: p.month ? isCurrentMonth(yr, p.month) : false,
         previous: yr !== newestYear,
-        future: p.month ? isFutureMonth(yr, p.month) : false,
+        future: p.isFuture(yr),
         groupStart: yi === 0,
+        year: yr, drill: p.drill, drillLabel: p.label,
       });
     });
     growth.forEach((pair, gi) => {
       const fields = {
         fieldA: `${pair.a}_${p.suffix}`, fieldB: `${pair.b}_${p.suffix}`, newFlag: `isTrulyNew_${pair.a}`,
         // the newer year's month has not started: no growth to show yet
-        future: p.month ? isFutureMonth(pair.a, p.month) : false,
+        future: p.isFuture(pair.a),
       };
       columns.push({ key: `${p.id}_g${gi}_amt`, kind: 'growthAmt', label: pairLabel(pair, 'Growth'), title: `Growth amount (${pair.a} vs ${pair.b})`, ...fields });
       columns.push({ key: `${p.id}_g${gi}_pct`, kind: 'growthPct', label: pairLabel(pair, 'Growth %'), title: `Growth rate % (${pair.a} vs ${pair.b})`, ...fields });
@@ -353,7 +391,7 @@ function buildColumns({ viewMode, years, months, weeks, days, growth, metric, cu
   years.forEach((yr, yi) => {
     columns.push({
       key: `tot_y${yi}`, kind: 'total', label: `${yr} Total`, field: `${yr}_total`,
-      previous: yr !== newestYear, groupStart: yi === 0,
+      previous: yr !== newestYear, groupStart: yi === 0, year: yr, drill: { kind: 'period' },
     });
   });
   return { groups, columns };
@@ -404,6 +442,8 @@ interface MatrixGridProps {
   renderGrowthAmt: CustomerReportTableProps['renderGrowthAmt'];
   renderGrowthPct: CustomerReportTableProps['renderGrowthPct'];
   onCustomerClick: (id: string) => void;
+  /** A value was clicked: open the Order List of that row for that year and period */
+  onValueClick: (id: string, year: string, period: DrillPeriod) => void;
   /** Toolbar controls (left) and the row count (right); the Reset widths button sits between them */
   toolbar: React.ReactNode;
   toolbarEnd: React.ReactNode;
@@ -425,6 +465,7 @@ function MatrixGrid({
   renderGrowthAmt,
   renderGrowthPct,
   onCustomerClick,
+  onValueClick,
   toolbar,
   toolbarEnd,
 }: MatrixGridProps) {
@@ -512,6 +553,29 @@ function MatrixGrid({
     );
   };
 
+  // A value in a customer / group row opens the Order List behind it (not the Total row, not a zero).
+  const drillValue = (
+    content: React.ReactNode, className: string, source: Record<string, unknown>,
+    isTotalRow: boolean, val: number, year: string | undefined, col: MatrixColumn, key?: string,
+  ) => {
+    if (isTotalRow || val === 0 || !year || !col.drill || typeof source.id !== 'string') {
+      return className ? <span key={key} className={className}>{content}</span> : content;
+    }
+    const rowId = source.id;
+    const when = col.drillLabel ? `${col.drillLabel} ${year}` : year;
+    return (
+      <button
+        key={key}
+        type="button"
+        className={`customer-matrix-drill ${className}`.trim()}
+        onClick={() => onValueClick(rowId, year, col.drill!)}
+        title={`Open ${String(source.label || rowId)} orders · ${when}`}
+      >
+        {content}
+      </button>
+    );
+  };
+
   // Stacked cell: one line per year (newest first, bold), then Growth % (NEW as plain text), and in the
   // Total column the Growth amount too. Hovering a month cell shows its Growth amount.
   const renderStackCell = (col: MatrixColumn, source: Record<string, unknown>, isTotalRow: boolean) => {
@@ -519,7 +583,8 @@ function MatrixGrid({
     const growthLines: React.ReactNode[] = [];
     const amountLines: React.ReactNode[] = [];
     col.stackGrowth?.forEach((g, gi) => {
-      if (g.future) {
+      // Not started and still empty (by Due Date a future period can already hold orders)
+      if (g.future && Number(source[g.fieldA] || 0) === 0) {
         growthLines.push(<span key={`g${gi}`} className="customer-matrix-stack-line customer-matrix-future">·</span>);
         return;
       }
@@ -553,7 +618,7 @@ function MatrixGrid({
           {col.stackValues?.map(v => {
             const val = Number(source[v.field] || 0);
             const tone = val === 0 ? 'customer-matrix-stack-line--zero' : v.previous ? 'customer-matrix-stack-line--previous' : 'customer-matrix-stack-line--newest';
-            return <span key={v.year} className={`customer-matrix-stack-line ${tone}`}>{renderValue(val, v)}</span>;
+            return drillValue(renderValue(val, v), `customer-matrix-stack-line ${tone}`, source, isTotalRow, val, v.year, col, v.year);
           })}
           {growthLines}
           {amountLines}
@@ -564,7 +629,7 @@ function MatrixGrid({
 
   const renderCell = (col: MatrixColumn, source: Record<string, unknown>, isTotalRow: boolean) => {
     if (col.kind === 'stack') return renderStackCell(col, source, isTotalRow);
-    if (isGrowth(col) && col.future) {
+    if (isGrowth(col) && col.future && Number(source[col.fieldA!] || 0) === 0) {
       return (
         <td key={col.key} className={`customer-matrix-td ${columnClass(col)}`}>
           <span className="customer-matrix-future" title="Not started yet">·</span>
@@ -587,7 +652,7 @@ function MatrixGrid({
     const tone = val === 0 ? 'customer-matrix-td--zero' : col.previous ? 'customer-matrix-td--previous' : '';
     return (
       <td key={col.key} className={`customer-matrix-td ${columnClass(col)} ${tone}`.trim()}>
-        {renderValue(val, col)}
+        {drillValue(renderValue(val, col), '', source, isTotalRow, val, col.year, col)}
       </td>
     );
   };
@@ -712,11 +777,12 @@ export default function CustomerReportTable({
   setSearchQuery,
 }: CustomerReportTableProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const growth = useMemo(() => (displayYears.length > 1 ? growthComparisons : []), [displayYears.length, growthComparisons]);
   const activeGrowthCount = growth.length;
 
-  // Stacked Year view: the newest year is compared with one older year. Default = the year the
+  // Stacked cells (2+ years, every view): the newest year is compared with one older year. Default = the year the
   // Period's compare target sets, else the next newest; with 3+ years the toolbar switches it.
   const newestYear = useMemo(
     () => displayYears.reduce((max, yr) => (Number(yr) > Number(max) ? yr : max), displayYears[0] || ''),
@@ -729,7 +795,8 @@ export default function CustomerReportTable({
   const [stackCompareChoice, setStackCompareChoice] = React.useState<string | null>(null);
   const defaultStackCompare = growth.find(p => p.a === newestYear && compareOptions.includes(p.b))?.b ?? compareOptions[0] ?? '';
   const stackCompare = stackCompareChoice && compareOptions.includes(stackCompareChoice) ? stackCompareChoice : defaultStackCompare;
-  const isStackedYear = viewMode === 'ytd' && displayYears.length > 1;
+  // 2+ years: stacked cells in every view
+  const isStacked = displayYears.length > 1;
   const [searchDraft, setSearchDraft] = React.useState(searchQuery);
   const [appliedSearch, setAppliedSearch] = React.useState(searchQuery);
   const lastAppliedSearchRef = React.useRef(searchQuery);
@@ -765,20 +832,66 @@ export default function CustomerReportTable({
     }
   };
 
-  const handleCustomerClick = (custId: string) => {
+  // Order List link for one row: the Matrix's own URL params (period, metric, filters) plus the row.
+  // The Matrix URL rides along as router state, so the Order List's back button returns to this exact view.
+  const openOrderList = (rowId: string, adjust?: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams);
-
     // Drop the opposing filter to avoid contradictions
     if (aggregationMode === 'group') {
-      params.set('groups', custId);
+      params.set('groups', rowId);
       params.delete('customers');
     } else {
-      params.set('customers', custId);
+      params.set('customers', rowId);
       params.delete('groups');
     }
-
-    navigate(`/dashboard/sales-customer-detail?${params.toString()}`);
+    adjust?.(params);
+    navigate(`/dashboard/sales-customer-detail?${params.toString()}`, {
+      state: { from: `${location.pathname}${location.search}` },
+    });
   };
+
+  // A Day range names its year inside the dates. For another year move the dates to that year, the
+  // way the API maps the range onto each year (end date in that year, a range over New Year starts the
+  // year before), so the Order List shows the dates it really lists.
+  const moveDayRange = (params: URLSearchParams, year: string) => {
+    const from = params.get('dateFrom');
+    const to = params.get('dateTo');
+    if (!from || !to || !/^\d{4}$/.test(year)) return;
+    const span = Number(to.slice(0, 4)) - Number(from.slice(0, 4));
+    params.set('dateFrom', `${Number(year) - span}${from.slice(4)}`);
+    params.set('dateTo', `${year}${to.slice(4)}`);
+  };
+
+  // The name opens the main (newest) year only: a compare year mixed in would make the Order List
+  // totals match no Matrix number. Older years open from their own values, or the Order List's Year switch.
+  const handleCustomerClick = (custId: string) => openOrderList(custId, params => {
+    if (!newestYear) return;
+    params.set('years', newestYear);
+    moveDayRange(params, newestYear);
+  });
+
+  // A clicked value: that year only, narrowed to the clicked month / week / day. A Total value keeps
+  // the selected period (the Total is the sum of that period).
+  const handleValueClick = (rowId: string, year: string, period: DrillPeriod) => openOrderList(rowId, params => {
+    params.set('years', year);
+    if (period.kind === 'period') {
+      moveDayRange(params, year);
+      return;
+    }
+    ['wStart', 'wEnd', 'dateFrom', 'dateTo'].forEach(key => params.delete(key));
+    if (period.kind === 'month') {
+      params.set('preset', 'month');
+      params.set('months', String(period.month));
+    } else if (period.kind === 'week') {
+      params.set('preset', 'week');
+      params.set('wStart', String(period.week));
+      params.set('wEnd', String(period.week));
+    } else {
+      params.set('preset', 'day');
+      params.set('dateFrom', `${year}-${period.day}`);
+      params.set('dateTo', `${year}-${period.day}`);
+    }
+  });
 
   const visibleRows = useMemo(() => {
     if (!appliedSearch.trim()) return tableData.rows;
@@ -790,6 +903,11 @@ export default function CustomerReportTable({
   }, [tableData.rows, appliedSearch]);
 
   const weeks = useMemo(() => displayWeeks ?? range(53).map(i => i + 1), [displayWeeks]);
+  // Today (local), fixed for this view: weeks / days after it show "·" until they start
+  const today = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
   const { groups, columns } = useMemo(() => buildColumns({
     viewMode,
     years: displayYears,
@@ -801,29 +919,24 @@ export default function CustomerReportTable({
     currentYearStr,
     currentMonthIdx,
     stackCompare,
-  }), [viewMode, displayYears, displayMonths, weeks, displayDays, growth, metric, currentYearStr, currentMonthIdx, stackCompare]);
+    today,
+  }), [viewMode, displayYears, displayMonths, weeks, displayDays, growth, metric, currentYearStr, currentMonthIdx, stackCompare, today]);
 
   // Loading skeleton: same column count and row heights as the final table.
   const skeletonYearCount = Math.max(displayYears.length, 1);
   const skeletonMonthCount = displayMonths.length > 0 ? displayMonths.length : 1;
   const skeletonColumnCount = useMemo(() => {
-    const perPeriod = skeletonYearCount + activeGrowthCount * 2;
-    if (viewMode === 'weekly') {
-      return (displayWeeks && displayWeeks.length > 0 ? displayWeeks.length : 4) * perPeriod + skeletonYearCount;
-    }
-    if (viewMode === 'daily') {
-      return (displayDays.length > 0 ? displayDays.length : 7) * perPeriod + skeletonYearCount;
-    }
-    if (viewMode === 'monthly') {
-      return skeletonMonthCount * perPeriod + skeletonYearCount;
-    }
-    if (skeletonYearCount > 1) {
-      // Year view, 2+ years: one stacked column per month, then one Total column
-      return skeletonMonthCount + 1;
-    }
-    // 'ytd', one year
-    return skeletonYearCount * (skeletonMonthCount + 1) + activeGrowthCount * 2;
-  }, [viewMode, skeletonYearCount, skeletonMonthCount, activeGrowthCount, displayWeeks, displayDays]);
+    const periodCount = viewMode === 'weekly'
+      ? (displayWeeks && displayWeeks.length > 0 ? displayWeeks.length : 4)
+      : viewMode === 'daily'
+        ? (displayDays.length > 0 ? displayDays.length : 7)
+        : skeletonMonthCount;
+    // 2+ years, every view: one stacked column per period, then one Total column
+    if (skeletonYearCount > 1) return periodCount + 1;
+    // One year: Year view = months + Total; Month / Week / Day = one column per period + Total
+    if (viewMode === 'ytd') return skeletonMonthCount + 1;
+    return periodCount + 1;
+  }, [viewMode, skeletonYearCount, skeletonMonthCount, displayWeeks, displayDays]);
 
   // Enough rows to fill a tall screen; the loading scroll area hides the overflow
   const skeletonRowCount = 30;
@@ -832,8 +945,8 @@ export default function CustomerReportTable({
   const skeletonWidths = [54, 72, 60, 84, 66, 78, 58, 70, 88, 62, 76, 56];
   const skeletonGridStyle: MatrixSkeletonStyle = { '--matrix-skeleton-columns': skeletonColumns.length };
 
-  // Stacked Year view (2+ years): taller rows, 2 year lines plus the Growth % line
-  const stackLines = isStackedYear ? 2 + (activeGrowthCount > 0 ? 1 : 0) : 0;
+  // Stacked cells (2+ years): taller rows, 2 year lines plus the Growth line
+  const stackLines = isStacked ? 2 + (activeGrowthCount > 0 ? 1 : 0) : 0;
   const shellStyle: MatrixShellStyle | undefined = stackLines > 0
     ? { '--matrix-row-min-height': `${stackRowHeight(stackLines)}px`, '--matrix-skeleton-column-width': `${WIDTH.stack}px` }
     : undefined;
@@ -930,6 +1043,7 @@ export default function CustomerReportTable({
         renderGrowthAmt={renderGrowthAmt}
         renderGrowthPct={renderGrowthPct}
         onCustomerClick={handleCustomerClick}
+        onValueClick={handleValueClick}
         toolbar={(
           <>
             {setMetric && (
@@ -979,7 +1093,7 @@ export default function CustomerReportTable({
               </label>
             )}
 
-            {isStackedYear && compareOptions.length > 1 && (
+            {isStacked && compareOptions.length > 1 && (
               <ErpSegmentedControl
                 ariaLabel={`Compare ${newestYear} with`}
                 value={stackCompare}

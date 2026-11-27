@@ -279,6 +279,29 @@
   text-decoration: underline;
 }
 
+/* A value that opens the Order List: looks like plain text until hovered (no transition: table cell) */
+.customer-matrix-drill {
+  border: 0;
+  background: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.customer-matrix-drill:hover {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.customer-matrix-drill:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 1px;
+}
+
 .customer-matrix-td--number,
 .customer-matrix-td--growth {
   text-align: right;

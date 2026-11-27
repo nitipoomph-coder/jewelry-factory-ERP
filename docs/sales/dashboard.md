@@ -73,9 +73,12 @@ Legacy redirect: `/dashboard/customer-report` -> `/dashboard/customer/matrix`
 View modes (picked by the Period preset, `hooks/useCustomerReportData.ts`):
 - `YTD` (Year / YTD preset), one year: one year block with months and the year total
 - `YTD`, 2+ years (2026-11-26, requested by management for month-to-month review): one stacked cell per month, so all 12 months fit one screen without sliding. Each cell always has 3 lines: the newest year (bold), one compare year (soft), and a Growth line with the short Growth amount (K/M, 2 decimals, e.g. `+$322.33K`) and Growth % side by side. The compare year defaults to the Period compare target; with 3+ years a `vs 2025 | vs 2024` switch in the table toolbar changes it (the other years stay in the KPI row). With every Growth removed the cell has 2 lines. The sub header shows the line order (`2026 / 2025 / Growth`). Hovering a cell shows the full Growth amount. The last column is the Grand Total with the year totals, Growth % and Growth amount (full-year comparison, unchanged). Rows are taller (15px per line + 8px)
-- Growth of a month that has not started yet (for the newer year) shows `·` instead of a misleading -100%
+- The stacked layout is used for every view with 2+ years (Year since 2026-11-26; Month / Week / Day since 2026-11-27)
+- A month, ISO week or day that has not started yet (after today) shows `·` instead of 0, and its Growth shows `·` instead of a misleading -100% (weeks and days since 2026-11-27; ISO week as SQL `DATEPART(isowk)`). By Due Date a future period can already hold orders: then the values and Growth show normally; `·` is only for a period that is both in the future and still empty
 - A customer new in the newer year shows `NEW` as plain green text (no frame, no cell tint)
-- `Monthly` (Month / Custom preset), `Weekly` (Week preset), `Daily` (Day preset): one block per month / week / day with every year (and Growth) inside it, then a Grand Total block
+- `Monthly` (Month / Custom preset), `Weekly` (Week preset), `Daily` (Day preset), one year: one column per month / week / day, then the Grand Total
+- `Monthly` / `Weekly`, 2+ years (2026-11-27): the same stacked cell as the Year view, one per month / week (newest year, compare year, Growth line), plus the stacked Grand Total; the `vs year` switch works the same. Before, each period had 4 columns (years, Growth, Growth %)
+- `Daily`, 2+ years (2026-11-27): the same 3-line stacked cell per day (newest year, compare year, Growth). Growth compares the same calendar date, which can fall on another weekday in the other year
 - All four views are built from one column list (`buildColumns` in `components/report/CustomerReportTable.tsx`), so headers, body, Total row and resize handles always line up
 
 Layout (2026-11-25 redesign, "option 5"):
@@ -95,10 +98,19 @@ Table UX rules:
 - A month that has not started yet shows `·` instead of `0` (only when its value is 0)
 - Only Growth uses semantic direction color. The Growth formula lives once in `growthPctInfo` / `growthAmtInfo` (`components/dashboard/customerReport/GrowthHelpers.tsx`), used by both the side-by-side and the stacked cells
 
+Day view data (fixed 2026-11-27): with a Day period, `/api/dashboard/customer-summary` also returns `daily` / `dailyQty` per customer (`{ year: { 'MM-DD': value } }`, by the selected date basis), and `useCustomerReportData` fills the `${year}_D_MM-DD` cells from it. Every day of a row adds up to its Total.
+
+Drill-down to the Order List (2026-11-27):
+- The group / customer name opens the Order List for the row with the selected period, main (newest) year only — a compare year is not mixed in, so the Order List totals match that year's Grand Total. Older years open from their own values or the Order List's Year switch
+- Any non-zero value in a group / customer row opens the Order List for that row, that year and that cell's period: a month cell → that month, a week → that week, a day → that day, a Total → the whole selected period. In stacked cells each year line is its own link; Growth lines, zeros, future months and the Total row are not links
+- Values look like plain text until hovered (brand color + underline, hover title `Open <row> orders · <period> <year>`), no transitions on cells
+- The Matrix URL goes along as router state, so the Order List's back button returns to the same Matrix view
+- Day period: a link for another year (a compare-year Total, or the name link) moves `dateFrom` / `dateTo` to that year the way the API maps the range (end date in that year; a range over New Year starts the year before), so the Order List scope line shows the dates it lists
+
 Column widths:
 - Starting widths fit the longest number of each column kind (month values, totals, growth amounts), measured on all rows and the Total row, so Sales columns are wider than Qty columns and a search does not make columns jump
-- Drag a header's right edge to resize (in the stacked Year view the month name row has a handle too) (a dragged width wins over the fitted width), double-click to reset one column, `Reset widths` in the table toolbar (shown only after a resize) to reset every column of the current view, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
-- Saved per signed-in user and per view (`customer-matrix:ytd|monthly|weekly|daily`). Stacked Year view keys: `s_{Mon}`, `s_total`. Keys use the year position (`y0` = newest year), not the year value, so widths still apply after the period moves to a new year
+- Drag a header's right edge to resize (in stacked views the period name row has a handle too) (a dragged width wins over the fitted width), double-click to reset one column, `Reset widths` in the table toolbar (shown only after a resize) to reset every column of the current view, or focus the handle and use the arrow keys (`hooks/useColumnWidths.ts`)
+- Saved per signed-in user and per view (`customer-matrix:ytd|monthly|weekly|daily`). Stacked keys: `s_{Mon}` (Year / Month), `s_W{n}` (Week), `s_d{i}` (Day), `s_total`. Keys use the year position (`y0` = newest year), not the year value, so widths still apply after the period moves to a new year
 
 Search UX:
 - Force uppercase while typing
