@@ -124,6 +124,7 @@ gemstone-lifecycle-management/
     │       │   ├── TopOrdersGalleryPage.tsx    # ⭐ Top Orders Gallery
     │       │   ├── TopOrdersAnalyticsPage.tsx  # Top Orders Analytics (draft)
     │       │   ├── POTrackerAdvanced.tsx       # ⭐ PO Tracker main (list view)
+    │       │   ├── POTracker.css               # PO Tracker layout (flat surface, summary row, pager)
     │       │   ├── SalesCustomerGroupDetail.tsx     # ✅ Order List (orders behind a Matrix group / customer)
     │       │   ├── OrderList.css               # Order List layout (flat surface, breakdowns, table)
     │       │   ├── OrderDetailPage.tsx         # Order detail (by ord/po/group)

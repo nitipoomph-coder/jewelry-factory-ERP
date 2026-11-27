@@ -1,0 +1,194 @@
+/* PO Tracker page (POTrackerAdvanced.tsx).
+   One flat surface like the Order List and the Customer Report Matrix (2026-11-27): no frames or shadows
+   around the toolbar, the summary or the table; sections are separated by spacing and hairlines only.
+   Responsive rules for .po-toolbar / .po-pagination / .po-filter-popover stay in index.css. */
+.po-tracker-page {
+  gap: 10px;
+}
+
+/* ── Toolbar: Group + Status (left), Custom View / Filters / Reset Columns (right) ── */
+.po-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.po-toolbar__modes,
+.po-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+}
+
+.po-toolbar__actions {
+  gap: 8px;
+}
+
+.po-toolbar__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.po-toolbar__label {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+.po-filter-count {
+  margin-left: 2px;
+  border-radius: 10px;
+  background: var(--color-brand-500);
+  padding: 1px 6px;
+  color: var(--color-ui-on-interactive);
+  font-size: var(--erp-text-meta);
+  font-weight: 900;
+}
+
+/* ── Summary: Pending and Overdue are the main numbers; PO / Qty / Amount are secondary ── */
+.po-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 32px;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 10px;
+}
+
+.po-kpi {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.po-kpi-label {
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.po-kpi-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: var(--erp-text-grand);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.po-kpi-unit {
+  margin-left: 4px;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+}
+
+/* Overdue: red number only when there is something overdue; no box */
+.po-kpi--late .po-kpi-label,
+.po-kpi--late .po-kpi-value {
+  color: var(--color-danger-600);
+}
+
+.po-kpi--minor .po-kpi-value {
+  color: var(--color-text-secondary);
+  font-size: var(--erp-text-panel);
+  font-weight: 800;
+}
+
+.po-kpi-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border-light);
+}
+
+.po-kpi-skeleton {
+  display: block;
+  border-radius: 4px;
+}
+
+/* ── Table area: the only scroll area; hairline on top, no card ── */
+.po-table-region {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.po-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  color: var(--color-danger-600);
+  font-size: var(--erp-text-body);
+  font-weight: 700;
+}
+
+/* ── Pager: flat, like the Order List ── */
+.po-pagination {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 8px;
+  color: var(--color-text-tertiary);
+  font-size: var(--erp-text-dense);
+  font-weight: 800;
+}
+
+.po-pagination b {
+  color: var(--color-text-primary);
+}
+
+.po-pages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.po-page-btn {
+  min-width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--erp-text-control);
+  font-weight: 800;
+}
+
+.po-page-btn:hover:not(:disabled) {
+  background: var(--color-ui-raised);
+  color: var(--color-text-primary);
+}
+
+.po-page-btn[aria-current='page'] {
+  background: color-mix(in srgb, var(--color-brand-500) 14%, transparent);
+  color: var(--color-brand-600);
+}
+
+.po-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.po-page-gap {
+  padding: 0 6px;
+  color: var(--color-text-quaternary);
+}

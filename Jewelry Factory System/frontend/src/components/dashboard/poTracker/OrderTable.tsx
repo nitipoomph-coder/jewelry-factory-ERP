@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, BarChart2, DollarSign, Layers, Package, X } from 'lucide-react';
 import { type OrderSummary } from '../../../services/orderAPI';
 import type { ColumnWidths } from '../../../hooks/useColumnWidths';
-import { MASTER_COLS, PINNED_KEYS, getActiveColumnKeys, USER_INPUT_HEAD_BG, USER_INPUT_KEYS, PENDING_QTY_KEYS, PENDING_QTY_HEAD_BG, METRICS_KEYS, METRICS_HEAD_BG, METRICS_BG } from './orderTableConfig';
+import { MASTER_COLS, PINNED_KEYS, getActiveColumnKeys, USER_INPUT_HEAD_BG, USER_INPUT_KEYS, PENDING_QTY_KEYS, PENDING_QTY_HEAD_BG, METRICS_KEYS, METRICS_HEAD_BG, METRICS_BG, COLUMN_GROUPS } from './orderTableConfig';
 import './POTracker.css';
 
 const PINNED_SET = new Set(PINNED_KEYS);
@@ -248,6 +248,14 @@ function ViewPickerModal({ order, onClose, onSelect }: ViewPickerProps) {
 }
 
 
+// ─── Column groups ────────────────────────────────────────────────────────────
+// Flat table (2026-11-27): no line between every column. A thin vertical line marks only the first
+// column of a new group (Customer Data | Production — Stage | Book / QC | Pack / Tag | Issue / Plan),
+// like the Order List. The pinned block already ends with its own shadow. N044 copies (`*_n044`)
+// belong to the group of their base column.
+const GROUP_OF = new Map<string, string>(COLUMN_GROUPS.flatMap(g => g.keys.map(k => [k, g.label] as [string, string])));
+const groupOf = (key: string) => GROUP_OF.get(key.replace(/_n044$/, '')) ?? 'base';
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function SkeletonRows({ activeCols, stickyClass }: { activeCols: { key: string; pinned: boolean }[], stickyClass: (key: string) => string }) {
   return (
@@ -261,21 +269,21 @@ function SkeletonRows({ activeCols, stickyClass }: { activeCols: { key: string; 
         }
       `}</style>
       {Array.from({ length: 12 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid var(--color-border-strong)' }}>
+        <tr key={i}>
           {activeCols.map((c) => {
             const isPinned = c.pinned;
             return (
               <td key={c.key} className={isPinned ? stickyClass(c.key) : undefined} style={{
                 padding: '8px',
-                borderRight: '1px solid var(--color-border-strong)',
-                background: isPinned ? 'var(--color-surface-0)' : 'transparent',
+                borderBottom: '1px solid var(--color-border-light)',
+                background: isPinned ? 'var(--color-ui-canvas)' : 'transparent',
                 position: isPinned ? 'sticky' : undefined,
                 zIndex: isPinned ? 15 : undefined,
                 boxShadow: isPinned && c.key === 'newReplen' ? 'var(--shadow-pinned)' : 'none',
                 boxSizing: 'border-box', overflow: 'hidden',
               }}>
                 {c.key === 'photo'
-                  ? <div className="skeleton-cell" style={{ width: 38, height: 38, borderRadius: 4, margin: '0 auto' }} />
+                  ? <div className="skeleton-cell" style={{ width: 'var(--po-photo-size, 40px)', height: 'var(--po-photo-size, 40px)', maxWidth: '100%', borderRadius: 4, margin: '0 auto' }} />
                   : <div className="skeleton-cell" style={{ height: '14px', borderRadius: '4px' }} />}
               </td>
             );
@@ -308,7 +316,13 @@ export default function OrderTable({
   const { tableRef, colRef, getWidth, tableStyle, stickyClass, handleProps } = columnWidths;
 
   const activeCols = useMemo(
-    () => getActiveColumnKeys(visibleKeys).map(key => ({ key, ...MASTER_COLS[key], pinned: PINNED_SET.has(key) })),
+    () => getActiveColumnKeys(visibleKeys).map((key, index, keys) => {
+      const pinned = PINNED_SET.has(key);
+      const prev = keys[index - 1];
+      const groupStart = !pinned && key !== 'arrow' && prev !== undefined && !PINNED_SET.has(prev) && prev !== 'arrow'
+        && groupOf(key) !== groupOf(prev);
+      return { key, ...MASTER_COLS[key], pinned, groupStart };
+    }),
     [visibleKeys],
   );
 
@@ -357,9 +371,7 @@ export default function OrderTable({
         overflow: 'auto',
         flex: 1,
         minHeight: 0,
-        background: 'var(--color-surface-0)',
         position: 'relative',
-        borderLeft: '1px solid var(--color-border-light)',
       }}>
         <table ref={tableRef} style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', fontFamily: 'var(--font-body)', ...tableStyle }}>
           <colgroup>
@@ -375,12 +387,12 @@ export default function OrderTable({
                   <th key={c.key} className={isPinned ? stickyClass(c.key) : undefined} style={{
                     background: USER_INPUT_KEYS.has(c.key) ? USER_INPUT_HEAD_BG :
                       PENDING_QTY_KEYS.has(c.key) ? PENDING_QTY_HEAD_BG :
-                        METRICS_KEYS.has(c.key) ? METRICS_HEAD_BG : 'var(--color-surface-1)',
+                        METRICS_KEYS.has(c.key) ? METRICS_HEAD_BG : 'var(--color-ui-raised)',
                     padding: '9px 8px', fontSize: 'var(--erp-text-dense)', fontWeight: 900,
                     color: c.key === 'arrow' ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)',
                     textAlign: c.align,
                     borderBottom: '1px solid var(--color-border-strong)',
-                    borderRight: '1px solid var(--color-border-light)',
+                    borderLeft: c.groupStart ? '1px solid var(--color-border-light)' : undefined,
                     textTransform: 'capitalize', letterSpacing: 0,
                     position: isPinned ? 'sticky' : 'relative',
                     top: 0,
@@ -409,7 +421,7 @@ export default function OrderTable({
               <SkeletonRows activeCols={activeCols} stickyClass={stickyClass} />
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={activeCols.length} style={{ padding: '64px 24px', textAlign: 'center', color: 'var(--color-text-quaternary)', fontSize: 'var(--erp-text-body)', borderBottom: '1px solid var(--color-border-strong)', borderRight: '1px solid var(--color-border-light)' }}>
+                <td colSpan={activeCols.length} style={{ padding: '64px 24px', textAlign: 'center', color: 'var(--color-text-quaternary)', fontSize: 'var(--erp-text-body)', borderBottom: '1px solid var(--color-border-light)' }}>
                   <Package size={28} style={{ margin: '0 auto 14px', opacity: 0.35 }} />
                   <div style={{ fontWeight: 800, letterSpacing: '0.02em' }}>No matching orders found</div>
                   <div style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.6 }}>Try adjusting your filters or search keywords</div>
@@ -435,11 +447,11 @@ export default function OrderTable({
                         padding: '8px',
                         textAlign: c.align,
                         fontSize: 'var(--erp-text-control)',
-                        fontWeight: 800,
+                        fontWeight: 700,
                         color: USER_INPUT_KEYS.has(c.key) ? 'var(--color-warning-700)' : 'var(--color-text-primary)',
-                        borderBottom: '1px solid var(--color-border-strong)',
-                        borderRight: '1px solid var(--color-border-light)',
-                        background: isPinned ? 'var(--color-surface-0)' : (METRICS_KEYS.has(c.key) ? METRICS_BG : 'transparent'),
+                        borderBottom: '1px solid var(--color-border-light)',
+                        borderLeft: c.groupStart ? '1px solid var(--color-border-light)' : undefined,
+                        background: isPinned ? 'var(--color-ui-canvas)' : (METRICS_KEYS.has(c.key) ? METRICS_BG : 'transparent'),
                         // Only pinned cells are positioned: a stacking context on every cell made the
                         // browser re-layer the whole table on each resize/hover frame.
                         position: isPinned ? 'sticky' : undefined,
@@ -482,7 +494,7 @@ export default function OrderTable({
         }
         .table-row-hover:hover td.pinned-col {
           color: var(--color-text-primary) !important;
-          background: color-mix(in srgb, var(--color-brand-500) 4%, var(--color-surface-0)) !important;
+          background: color-mix(in srgb, var(--color-brand-500) 4%, var(--color-ui-canvas)) !important;
         }
 
 

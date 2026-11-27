@@ -6,11 +6,12 @@ import CustomSelect from '../components/ui/CustomSelect';
 import { RefreshCw, AlertTriangle, Filter, Layers, FilterX, RotateCcw } from 'lucide-react';
 import { usePOTrackerAdvanced } from '../hooks/usePOTrackerAdvanced';
 import { useTopbarActions } from '../contexts/TopbarActionContext';
-import { ErpSegmentedControl } from '../components/ui/ErpButtons';
+import { ErpButton, ErpSegmentedControl } from '../components/ui/ErpButtons';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MultiSelectFilterInput } from '../components/dashboard/poTracker/MultiSelectFilterInput';
 import { DEFAULT_COL_WIDTHS, PINNED_KEYS, getActiveColumnKeys } from '../components/dashboard/poTracker/orderTableConfig';
-import { useColumnWidths } from '../hooks/useColumnWidths';
+import { currentUserKey, useColumnWidths } from '../hooks/useColumnWidths';
+import './POTracker.css';
 
 const GROUP_OPTIONS = [
   { value: 'N008', label: 'N008' },
@@ -20,6 +21,19 @@ const GROUP_OPTIONS = [
   { value: 'MLT', label: 'MLT' },
   { value: 'ALL', label: 'General' },
 ];
+
+// Photo size in the table (only offered when the Photo column is shown, e.g. N051). Saved per user.
+type PhotoSize = 'S' | 'M' | 'L';
+const PHOTO_SIZES: Record<PhotoSize, number> = { S: 40, M: 72, L: 112 };
+const PHOTO_SIZE_KEY = 'po-tracker-photo-size:v1';
+function loadPhotoSize(): PhotoSize {
+  try {
+    const saved = localStorage.getItem(`${PHOTO_SIZE_KEY}:${currentUserKey()}`);
+    return saved === 'M' || saved === 'L' ? saved : 'S';
+  } catch {
+    return 'S';
+  }
+}
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -80,7 +94,18 @@ export default function POTrackerAdvanced() {
 
   // Column widths: dragged without re-rendering the table, remembered per user (hooks/useColumnWidths).
   const activeColumnKeys = useMemo(() => getActiveColumnKeys(visibleKeys), [visibleKeys]);
-  const columnWidths = useColumnWidths('po-tracker', DEFAULT_COL_WIDTHS, { minWidth: 40, keys: activeColumnKeys, stickyKeys: PINNED_KEYS });
+  // Photo size: the Photo column's default width follows it (a width the user dragged still wins)
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(loadPhotoSize);
+  const changePhotoSize = (size: PhotoSize) => {
+    setPhotoSize(size);
+    try { localStorage.setItem(`${PHOTO_SIZE_KEY}:${currentUserKey()}`, size); } catch { /* storage blocked: size still applies for this visit */ }
+  };
+  const showsPhoto = activeColumnKeys.includes('photo');
+  const widthDefaults = useMemo(
+    () => ({ ...DEFAULT_COL_WIDTHS, photo: Math.max(DEFAULT_COL_WIDTHS.photo ?? 72, PHOTO_SIZES[photoSize] + 16) }),
+    [photoSize],
+  );
+  const columnWidths = useColumnWidths('po-tracker', widthDefaults, { minWidth: 40, keys: activeColumnKeys, stickyKeys: PINNED_KEYS });
   const hasCustomWidths = columnWidths.isCustomized;
 
   const { setTopbarActions } = useTopbarActions();
@@ -145,19 +170,16 @@ export default function POTrackerAdvanced() {
     <div className="app-page font-body">
       <PageHeader breadcrumb={BREADCRUMBS.PO_TRACKER} contentLayout="dashboard-wide" />
 
+      {/* One flat surface (2026-11-27): toolbar, summary and table are separated by hairlines, not boxes */}
       <div className="app-content-frame app-content-frame--dashboard-wide app-page-content po-tracker-page" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-        {/* ─── FILTERS: compact toolbar + popover + active chips ─── */}
-        <div className="po-toolbar app-panel no-print" style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
-          background: 'var(--color-surface-0)',
-          padding: '14px 20px', marginBottom: '24px',
-        }}>
+        {/* ─── FILTERS: compact toolbar + Filters popover (the count on the button shows active filters) ─── */}
+        <div className="po-toolbar no-print">
           {/* Left: Group + Status pill toggles */}
-          <div className="po-toolbar__modes" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div className="po-toolbar__modes">
             {/* Group Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-tertiary)', textTransform: 'capitalize', letterSpacing: '0.05em' }}>Group</span>
+            <div className="po-toolbar__field">
+              <span className="po-toolbar__label">Group</span>
               <ErpSegmentedControl
                 ariaLabel="Group Filter"
                 value={groupFilter}
@@ -167,8 +189,8 @@ export default function POTrackerAdvanced() {
             </div>
 
             {/* Status Toggle — SP ทั้ง 5 dateType รับ @Status แล้ว */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-tertiary)', textTransform: 'capitalize', letterSpacing: '0.05em' }}>Status</span>
+            <div className="po-toolbar__field">
+              <span className="po-toolbar__label">Status</span>
               <ErpSegmentedControl
                 ariaLabel="Status Filter"
                 value={statusFilter}
@@ -204,37 +226,36 @@ export default function POTrackerAdvanced() {
             )}
           </div>
 
-          <div className="po-toolbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowCustomViewModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px',
-                background: 'var(--color-surface-0)',
-                border: '1px solid var(--color-border-strong)', color: 'var(--color-text-primary)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s ease'
-              }}
-              className="hover:bg-[var(--color-surface-1)]"
-            >
-              <Layers size={14} />
+          <div className="po-toolbar__actions">
+            {showsPhoto && (
+              <div className="po-toolbar__field">
+                <span className="po-toolbar__label">Photo</span>
+                <ErpSegmentedControl<PhotoSize>
+                  ariaLabel="Photo size"
+                  value={photoSize}
+                  onChange={changePhotoSize}
+                  options={[{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }]}
+                />
+              </div>
+            )}
+            {hasCustomWidths && (
+              <ErpButton variant="ghost" icon={<RotateCcw size={14} />} onClick={columnWidths.resetAll} title="Return every column to its default width">
+                Reset Columns
+              </ErpButton>
+            )}
+            <ErpButton variant="secondary" icon={<Layers size={14} />} onClick={(e) => { e.stopPropagation(); setShowCustomViewModal(true); }}>
               Custom View
-            </button>
+            </ErpButton>
             <div style={{ position: 'relative' }}>
-              <button
+              <ErpButton
+                variant="secondary"
+                icon={<Filter size={14} />}
                 onClick={(e) => { e.stopPropagation(); setShowFiltersPopover(!showFiltersPopover); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px',
-                  background: showFiltersPopover ? 'var(--color-surface-2)' : 'var(--color-surface-0)', border: '1px solid var(--color-border-strong)',
-                  color: 'var(--color-text-primary)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
-                }}
-                className="hover:bg-[var(--color-surface-1)]"
+                aria-expanded={showFiltersPopover}
               >
-                <Filter size={14} />
                 Filters
-                {activeFilterCount > 0 && (
-                  <span style={{ background: 'var(--color-brand-500)', color: 'var(--color-ui-on-interactive)', padding: '2px 6px', borderRadius: '10px', fontSize: '0.65rem' }}>
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
+                {activeFilterCount > 0 && <span className="po-filter-count">{activeFilterCount}</span>}
+              </ErpButton>
 
               {showFiltersPopover && (
                 <>
@@ -312,259 +333,79 @@ export default function POTrackerAdvanced() {
           </div>
         </div>
 
-        {/* ─── SMART KPI TOOLBAR (WCAG 2.1 AA) ─── */}
-        <div
-          role="banner"
-          aria-label="Tracker summary and data refresh"
-          style={{
-            padding: '12px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 16,
-            marginBottom: '24px',
-            border: '1px solid var(--color-border-light)',
-            borderRadius: '8px',
-            background: 'var(--color-surface-0)',
-            boxShadow: 'var(--shadow-panel)'
-          }}
-        >
-          {/* Left Side: Framed Status Pod (Pending & Late Cust Due) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {loading && filtered.length === 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '8px 16px',
-                  background: 'var(--color-surface-1)',
-                  border: '1px solid var(--color-border-light)',
-                  borderRadius: '8px',
-                }}
-              >
-                {[70, 90].map((w, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div className="app-skeleton" style={{ width: w * 0.7, height: 10, borderRadius: 2 }} />
-                    <div className="app-skeleton" style={{ width: w, height: 20, borderRadius: 4 }} />
-                  </div>
-                ))}
+        {/* ─── SUMMARY: Pending + Overdue first (what needs follow-up), then PO / Qty / Amount ─── */}
+        <div className="po-kpis" role="group" aria-label="Tracker summary">
+          {loading && filtered.length === 0 ? (
+            [[70, 64], [70, 52], [40, 48], [60, 76], [70, 110]].map(([lw, vw], idx) => (
+              <div key={idx} className="po-kpi">
+                <span className="app-skeleton po-kpi-skeleton" style={{ width: lw, height: 11 }} />
+                <span className="app-skeleton po-kpi-skeleton" style={{ width: vw, height: idx < 2 ? 26 : 18 }} />
               </div>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '6px 14px',
-                  background: 'var(--color-surface-1)',
-                  border: '1px solid var(--color-border-light)',
-                  borderRadius: '8px',
-                  boxShadow: 'var(--shadow-panel)'
-                }}
-              >
-                {/* Primary Active Status */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {statusFilter === 'all' ? 'ALL ORDERS' : statusFilter === 'finish' ? 'FINISHED' : 'PENDING'}
-                  </span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--color-brand-600)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-                    {filtered.length.toLocaleString()}
-                  </span>
-                </div>
-
-                {/* LATE (Cust Due) Pill with dynamic alert styling */}
-                {statusFilter !== 'finish' && (
-                  <>
-                    <div style={{ width: '1px', height: '24px', background: 'var(--color-border-strong)' }} />
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: delayedCount > 0 ? 'var(--color-danger-50)' : 'transparent',
-                        border: delayedCount > 0 ? '1px solid var(--color-danger-200)' : '1px solid transparent',
-                        transition: 'all 0.2s ease'
-                      }}
-                      title="Late orders calculated based on Customer Due Date (CustDueDate)"
-                    >
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: delayedCount > 0 ? 'var(--color-danger-600)' : 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        OVERDUE
-                      </span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 850, color: delayedCount > 0 ? 'var(--color-danger-600)' : 'var(--color-text-secondary)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-                        {delayedCount.toLocaleString()}
-                      </span>
-                    </div>
-                  </>
-                )}
+            ))
+          ) : (
+            <>
+              <div className="po-kpi">
+                <span className="po-kpi-label">{statusFilter === 'all' ? 'All Orders' : statusFilter === 'finish' ? 'Finished' : 'Pending'}</span>
+                <span className="po-kpi-value">{filtered.length.toLocaleString()}</span>
               </div>
-            )}
-          </div>
-
-          {/* Right Side: Modern Framed Summary Pod (PO, QTY, AMOUNT) + Reset Columns Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            {loading && filtered.length === 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '8px 16px',
-                  background: 'var(--color-surface-0)',
-                  border: '1px solid var(--color-border-strong)',
-                  borderRadius: '8px',
-                }}
-              >
-                {[70, 80, 110].map((w, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div className="app-skeleton" style={{ width: w * 0.7, height: 10, borderRadius: 2 }} />
-                    <div className="app-skeleton" style={{ width: w, height: 20, borderRadius: 4 }} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Modern Framed Summary Pod: PO, Qty, Amount ($) */
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'stretch',
-                  borderRadius: '8px',
-                  border: '1px solid var(--color-border-strong)',
-                  background: 'var(--color-surface-0)',
-                  boxShadow: 'var(--shadow-panel)',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* PO Section */}
+              {statusFilter !== 'finish' && (
                 <div
-                  style={{
-                    padding: '6px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRight: '1px solid var(--color-border-light)',
-                    background: 'var(--color-surface-0)',
-                    minWidth: '75px',
-                    transition: 'background 0.15s ease'
-                  }}
-                  className="hover:bg-[var(--color-surface-1)]"
-                  title={`Unique POs: ${totalPOs.toLocaleString()} | Active Order Lines: ${filtered.length.toLocaleString()}`}
+                  className={`po-kpi ${delayedCount > 0 ? 'po-kpi--late' : ''}`.trim()}
+                  title="Orders past the customer due date (CustDueDate)"
                 >
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PO</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 850, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
-                    {totalPOs.toLocaleString()}
-                  </span>
+                  <span className="po-kpi-label">Overdue (Cust Due)</span>
+                  <span className="po-kpi-value">{delayedCount.toLocaleString()}</span>
                 </div>
-
-                {/* QTY Section */}
-                <div
-                  style={{
-                    padding: '6px 18px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRight: '1px solid var(--color-border-light)',
-                    background: 'var(--color-surface-0)',
-                    minWidth: '95px',
-                    transition: 'background 0.15s ease'
-                  }}
-                  className="hover:bg-[var(--color-surface-1)]"
-                >
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL QTY</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 850, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
-                    {totalQty.toLocaleString()}
-                  </span>
-                </div>
-
-                {/* AMOUNT ($) Section with subtle premium highlight */}
-                <div
-                  style={{
-                    padding: '6px 20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'color-mix(in srgb, var(--color-brand-50) 60%, var(--color-surface-0))',
-                    minWidth: '130px',
-                    transition: 'background 0.15s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-brand-700)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AMOUNT ($)</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 850, color: 'var(--color-brand-700)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
-                    ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
+              )}
+              <span className="po-kpi-divider" aria-hidden="true" />
+              <div className="po-kpi po-kpi--minor" title={`Unique POs: ${totalPOs.toLocaleString()} | Order lines: ${filtered.length.toLocaleString()}`}>
+                <span className="po-kpi-label">PO</span>
+                <span className="po-kpi-value">{totalPOs.toLocaleString()}</span>
               </div>
-            )}
-
-            {/* Reset Columns Widths Button */}
-            <button
-              type="button"
-              onClick={columnWidths.resetAll}
-              disabled={!hasCustomWidths}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--color-border-strong)',
-                background: 'var(--color-surface-0)',
-                color: hasCustomWidths ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                cursor: hasCustomWidths ? 'pointer' : 'default',
-                opacity: hasCustomWidths ? 1 : 0.45,
-                transition: 'all 0.15s ease',
-                boxShadow: hasCustomWidths ? 'var(--shadow-control)' : 'none',
-              }}
-              className={hasCustomWidths ? "hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] active:scale-95" : ""}
-              title={hasCustomWidths ? "Reset column widths back to original default" : "Column widths are at default"}
-            >
-              <RotateCcw size={12} />
-              Reset Columns
-            </button>
-          </div>
+              <div className="po-kpi po-kpi--minor">
+                <span className="po-kpi-label">Total Qty</span>
+                <span className="po-kpi-value">{totalQty.toLocaleString()}<span className="po-kpi-unit">pcs</span></span>
+              </div>
+              <div className="po-kpi po-kpi--minor">
+                <span className="po-kpi-label">Amount</span>
+                <span className="po-kpi-value">${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* ─── DATA TABLE — outer box owns the leftover viewport space (invisible, no chrome);
-               inner card shrinks to its actual content and only grows up to that budget when the
-               table is long enough to need it, so a short result set doesn't leave an empty box ─── */}
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }} className="content-scrollbar">
-          <div style={{ background: 'var(--color-surface-0)', borderRadius: '8px', border: '1px solid var(--color-border-light)', boxShadow: 'var(--shadow-panel)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {error && <div style={{ padding: '16px', background: 'var(--color-danger-50)', borderBottom: '1px solid var(--color-danger-500)', display: 'flex', alignItems: 'center', gap: '8px' }}><AlertTriangle size={16} style={{ color: 'var(--color-danger-600)' }} /> <span style={{ fontSize: '0.85rem', color: 'var(--color-danger-600)' }}>{error}</span></div>}
+        {/* ─── DATA TABLE: the only scroll area; no card around it ─── */}
+        <div className="po-table-region" style={{ '--po-photo-size': `${PHOTO_SIZES[photoSize]}px` } as React.CSSProperties}>
+          {error && <div className="po-error"><AlertTriangle size={16} /> <span>{error}</span></div>}
 
-            <OrderTable
-              data={paged}
-              loading={loading}
-              pageOffset={pageStart}
-              visibleKeys={visibleKeys}
-              columnWidths={columnWidths}
-            />
-
-            {/* Single Pagination Bar — record count, page size, and page nav together */}
-            {!loading && filtered.length > 0 && (
-              <div className="po-pagination" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '12px 16px', borderTop: '1px solid var(--color-border-strong)', background: 'var(--color-surface-0)', gap: '12px', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-tertiary)', fontWeight: 600 }}>
-                  Showing <strong style={{ color: 'var(--color-text-primary)' }}>{pageStart + 1}</strong>–<strong style={{ color: 'var(--color-text-primary)' }}>{Math.min(pageStart + pageSize, filtered.length)}</strong> of <strong style={{ color: 'var(--color-brand-600)' }}>{filtered.length.toLocaleString()}</strong>
-                </span>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button onClick={() => setPage((p: number) => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '6px 16px', borderRadius: '10px', border: '1px solid var(--color-border-light)', background: page === 1 ? 'transparent' : 'var(--color-surface-1)', color: page === 1 ? 'var(--color-text-quaternary)' : 'var(--color-text-secondary)', cursor: page === 1 ? 'default' : 'pointer', fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s' }} className="hover:bg-surface-2 active:scale-95">Prev</button>
-                  {pageNumbers.map((p, i) => p === '...' ? <span key={i} style={{ color: 'var(--color-text-quaternary)', padding: '0 8px' }}>...</span> : (
-                    <button key={i} onClick={() => setPage(p as number)} style={{ padding: '6px 14px', borderRadius: '8px', border: `1px solid ${page === p ? 'var(--color-brand-500)' : 'var(--color-border-light)'}`, background: page === p ? 'var(--color-brand-500)' : 'transparent', color: page === p ? 'var(--color-ui-on-interactive)' : 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 900, minWidth: '38px', transition: 'all 0.2s' }} className="hover:bg-surface-1 active:scale-95">{p}</button>
-                  ))}
-                  <button onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '6px 16px', borderRadius: '10px', border: '1px solid var(--color-border-light)', background: page === totalPages ? 'transparent' : 'var(--color-surface-1)', color: page === totalPages ? 'var(--color-text-quaternary)' : 'var(--color-text-secondary)', cursor: page === totalPages ? 'default' : 'pointer', fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s' }} className="hover:bg-surface-2 active:scale-95">Next</button>
-                </div>
-              </div>
-            )}
-          </div>
+          <OrderTable
+            data={paged}
+            loading={loading}
+            pageOffset={pageStart}
+            visibleKeys={visibleKeys}
+            columnWidths={columnWidths}
+          />
         </div>
+
+        {/* Pager: record count and page buttons, flat like the Order List */}
+        {!loading && filtered.length > 0 && (
+          <div className="po-pagination">
+            <span>
+              <b>{pageStart + 1}</b>–<b>{Math.min(pageStart + pageSize, filtered.length)}</b> of <b>{filtered.length.toLocaleString()}</b> orders
+            </span>
+            <span className="po-pages">
+              <button type="button" className="po-page-btn" onClick={() => setPage((p: number) => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</button>
+              {pageNumbers.map((p, i) => p === '...'
+                ? <span key={i} className="po-page-gap">…</span>
+                : (
+                  <button key={i} type="button" className="po-page-btn" onClick={() => setPage(p as number)} aria-current={page === p ? 'page' : undefined}>
+                    {p}
+                  </button>
+                ))}
+              <button type="button" className="po-page-btn" onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</button>
+            </span>
+          </div>
+        )}
       </div>
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}

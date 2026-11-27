@@ -886,10 +886,6 @@ body * {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .po-toolbar {
-    padding: 12px !important;
-  }
-
   .po-toolbar__modes>*,
   .po-toolbar__actions {
     width: 100%;

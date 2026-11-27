@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
@@ -7,9 +7,40 @@ interface PhotoCellProps {
   title: string;
 }
 
+// Hover preview: a larger copy beside the thumbnail after a short pause, so moving the mouse down the
+// table does not load every big photo. Hidden on leave and on any scroll (its position would be stale).
+const PREVIEW_SIZE = 260;
+const PREVIEW_DELAY_MS = 200;
+
 export function PhotoCell({ itemNo, title }: PhotoCellProps) {
   const [showModal, setShowModal] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [preview, setPreview] = useState<{ left: number; top: number } | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
+
+  const openPreview = (target: HTMLElement) => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => {
+      const r = target.getBoundingClientRect();
+      const gap = 10;
+      // Right of the thumbnail, or left when there is no room; kept inside the window vertically
+      const left = r.right + gap + PREVIEW_SIZE <= window.innerWidth ? r.right + gap : Math.max(8, r.left - gap - PREVIEW_SIZE);
+      const top = Math.min(Math.max(8, r.top + r.height / 2 - PREVIEW_SIZE / 2), window.innerHeight - PREVIEW_SIZE - 8);
+      setPreview({ left, top });
+    }, PREVIEW_DELAY_MS);
+  };
+  const closePreview = () => {
+    window.clearTimeout(hoverTimer.current);
+    setPreview(null);
+  };
+
+  useEffect(() => {
+    if (!preview) return;
+    const onScroll = () => setPreview(null);
+    window.addEventListener('scroll', onScroll, true);
+    return () => window.removeEventListener('scroll', onScroll, true);
+  }, [preview]);
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
   useEffect(() => {
     if (!showModal) return;
@@ -38,27 +69,25 @@ export function PhotoCell({ itemNo, title }: PhotoCellProps) {
         loading="lazy"
         onClick={(e) => {
           e.stopPropagation();
+          closePreview();
           setShowModal(true);
         }}
         title={`Click to view photo: ${cleanItem} (${title})`}
         style={{
-          width: '40px',
-          height: '40px',
+          // Size from the page's Photo S / M / L (--po-photo-size); never wider than the column
+          width: 'var(--po-photo-size, 40px)',
+          height: 'var(--po-photo-size, 40px)',
+          maxWidth: '100%',
           objectFit: 'contain',
           display: 'block',
           margin: '0 auto',
-          cursor: 'pointer',
+          cursor: 'zoom-in',
           background: 'transparent',
           border: 'none',
           outline: 'none',
-          transition: 'transform 0.15s ease',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
+        onMouseEnter={(e) => openPreview(e.currentTarget)}
+        onMouseLeave={closePreview}
         onError={(e) => {
           const img = e.currentTarget;
           if (!img.dataset.triedCad) {
@@ -69,6 +98,40 @@ export function PhotoCell({ itemNo, title }: PhotoCellProps) {
           }
         }}
       />
+
+      {preview && !showModal &&
+        createPortal(
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              left: preview.left,
+              top: preview.top,
+              zIndex: 9000,
+              width: PREVIEW_SIZE,
+              height: PREVIEW_SIZE,
+              padding: 8,
+              borderRadius: 8,
+              background: 'var(--color-ui-surface)',
+              boxShadow: 'var(--shadow-dropdown)',
+              pointerEvents: 'none',
+            }}
+          >
+            <img
+              src={`/api/photos/ps/${encodeURIComponent(cleanItem)}`}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.dataset.triedCad) {
+                  img.dataset.triedCad = 'true';
+                  img.src = `/api/photos/cad/${encodeURIComponent(cleanItem)}`;
+                }
+              }}
+            />
+          </div>,
+          document.body
+        )}
 
       {showModal &&
         createPortal(
