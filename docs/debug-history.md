@@ -745,3 +745,19 @@ The API returned July correctly, but the pages add up the monthly values over th
 
 ### Prevention & Lessons Learned:
 1. When the server already filters a period, the client must not filter it again with a second, independent selection.
+
+---
+
+## Issue: PO Tracker Row Photo Not in the Order Detail (2026-11-27)
+
+### Symptoms:
+On the PO Tracker list the photo of a row often showed an item that was not in the Order Detail opened from that row. Rows of one PO split by metal / ship-to / due date all showed the same photo.
+
+### Root Cause:
+`GET /api/orders` picked the photo with `MIN(d.ItemNo)` grouped by `PONo` over every order with that PO number (any metal, ship-to, kind, due date, older orders reusing the PO number). The Detail page shows only the row's own orders, by OrdNo then OrdLineNo.
+
+### Fix:
+`routes/poTracker.js`: one read-only SELECT returns the first ItemNo (by OrdLineNo) of each order of those POs (`ROW_NUMBER() OVER (PARTITION BY OrdNo ...)`); after grouping, each row takes the item of its smallest OrdNo that has one, which is the first line of its Detail. Checked on live data (read-only): 25/25 orders matched the Detail's first line; the old rule differed on 24 of them. No SP or database change.
+
+### Prevention & Lessons Learned:
+1. A representative value for a grouped row must come from the same records the drill-down shows, with the same sort.

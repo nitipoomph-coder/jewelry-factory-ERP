@@ -10,7 +10,7 @@ import { ErpButton, ErpSegmentedControl } from '../components/ui/ErpButtons';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MultiSelectFilterInput } from '../components/dashboard/poTracker/MultiSelectFilterInput';
 import { DEFAULT_COL_WIDTHS, PINNED_KEYS, getActiveColumnKeys } from '../components/dashboard/poTracker/orderTableConfig';
-import { currentUserKey, useColumnWidths } from '../hooks/useColumnWidths';
+import { useColumnWidths } from '../hooks/useColumnWidths';
 import './POTracker.css';
 
 const GROUP_OPTIONS = [
@@ -21,19 +21,6 @@ const GROUP_OPTIONS = [
   { value: 'MLT', label: 'MLT' },
   { value: 'ALL', label: 'General' },
 ];
-
-// Photo size in the table (only offered when the Photo column is shown, e.g. N051). Saved per user.
-type PhotoSize = 'S' | 'M' | 'L';
-const PHOTO_SIZES: Record<PhotoSize, number> = { S: 40, M: 72, L: 112 };
-const PHOTO_SIZE_KEY = 'po-tracker-photo-size:v1';
-function loadPhotoSize(): PhotoSize {
-  try {
-    const saved = localStorage.getItem(`${PHOTO_SIZE_KEY}:${currentUserKey()}`);
-    return saved === 'M' || saved === 'L' ? saved : 'S';
-  } catch {
-    return 'S';
-  }
-}
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -94,18 +81,7 @@ export default function POTrackerAdvanced() {
 
   // Column widths: dragged without re-rendering the table, remembered per user (hooks/useColumnWidths).
   const activeColumnKeys = useMemo(() => getActiveColumnKeys(visibleKeys), [visibleKeys]);
-  // Photo size: the Photo column's default width follows it (a width the user dragged still wins)
-  const [photoSize, setPhotoSize] = useState<PhotoSize>(loadPhotoSize);
-  const changePhotoSize = (size: PhotoSize) => {
-    setPhotoSize(size);
-    try { localStorage.setItem(`${PHOTO_SIZE_KEY}:${currentUserKey()}`, size); } catch { /* storage blocked: size still applies for this visit */ }
-  };
-  const showsPhoto = activeColumnKeys.includes('photo');
-  const widthDefaults = useMemo(
-    () => ({ ...DEFAULT_COL_WIDTHS, photo: Math.max(DEFAULT_COL_WIDTHS.photo ?? 72, PHOTO_SIZES[photoSize] + 16) }),
-    [photoSize],
-  );
-  const columnWidths = useColumnWidths('po-tracker', widthDefaults, { minWidth: 40, keys: activeColumnKeys, stickyKeys: PINNED_KEYS });
+  const columnWidths = useColumnWidths('po-tracker', DEFAULT_COL_WIDTHS, { minWidth: 40, keys: activeColumnKeys, stickyKeys: PINNED_KEYS });
   const hasCustomWidths = columnWidths.isCustomized;
 
   const { setTopbarActions } = useTopbarActions();
@@ -227,17 +203,6 @@ export default function POTrackerAdvanced() {
           </div>
 
           <div className="po-toolbar__actions">
-            {showsPhoto && (
-              <div className="po-toolbar__field">
-                <span className="po-toolbar__label">Photo</span>
-                <ErpSegmentedControl<PhotoSize>
-                  ariaLabel="Photo size"
-                  value={photoSize}
-                  onChange={changePhotoSize}
-                  options={[{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }]}
-                />
-              </div>
-            )}
             {hasCustomWidths && (
               <ErpButton variant="ghost" icon={<RotateCcw size={14} />} onClick={columnWidths.resetAll} title="Return every column to its default width">
                 Reset Columns
@@ -375,7 +340,7 @@ export default function POTrackerAdvanced() {
         </div>
 
         {/* ─── DATA TABLE: the only scroll area; no card around it ─── */}
-        <div className="po-table-region" style={{ '--po-photo-size': `${PHOTO_SIZES[photoSize]}px` } as React.CSSProperties}>
+        <div className="po-table-region">
           {error && <div className="po-error"><AlertTriangle size={16} /> <span>{error}</span></div>}
 
           <OrderTable

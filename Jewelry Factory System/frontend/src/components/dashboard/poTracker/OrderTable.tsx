@@ -283,7 +283,7 @@ function SkeletonRows({ activeCols, stickyClass }: { activeCols: { key: string; 
                 boxSizing: 'border-box', overflow: 'hidden',
               }}>
                 {c.key === 'photo'
-                  ? <div className="skeleton-cell" style={{ width: 'var(--po-photo-size, 40px)', height: 'var(--po-photo-size, 40px)', maxWidth: '100%', borderRadius: 4, margin: '0 auto' }} />
+                  ? <div className="skeleton-cell" style={{ width: 38, height: 38, borderRadius: 4, margin: '0 auto' }} />
                   : <div className="skeleton-cell" style={{ height: '14px', borderRadius: '4px' }} />}
               </td>
             );

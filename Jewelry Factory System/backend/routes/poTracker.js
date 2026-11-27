@@ -167,9 +167,13 @@ router.get('/', async (req, res) => {
 
       let rawData = result.recordset || [];
 
-      // ดึง SampleItemNo สำหรับรูปภาพสินค้า (Read-Only SELECT จาก OrdDT ผ่าน OrdHD โดยไม่แตะต้องหรือแก้ SP)
+      // Row photo (SampleItemNo) = the first line the Order Detail shows for that row (2026-11-27).
+      // Detail lists the row's orders by OrdNo, then OrdLineNo, so here: first ItemNo of each order,
+      // then the smallest OrdNo of the row that has one. Read-only SELECT, the SP is untouched.
+      // (Before: MIN(ItemNo) over every order with the same PONo, so it could be an item the Detail
+      // never shows, and every row of a PO split by metal / ship-to / due date got the same photo.)
       const uniquePos = Array.from(new Set(rawData.map(r => r.PONo).filter(p => p && p !== 'Group PO By ShipTo')));
-      const poItemMap = new Map();
+      const firstItemByOrd = new Map();
       if (uniquePos.length > 0) {
         try {
           for (let i = 0; i < uniquePos.length; i += 400) {
@@ -181,20 +185,26 @@ router.get('/', async (req, res) => {
               return `@${param}`;
             }).join(',');
             const itemRes = await q.query(`
-              SELECT h.PONo, MIN(d.ItemNo) AS SampleItemNo
-              FROM OrdHD h WITH (NOLOCK)
-              JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
-              WHERE h.PONo IN (${inClause})
-              GROUP BY h.PONo
+              SELECT x.OrdNo, x.ItemNo
+              FROM (
+                SELECT h.OrdNo, d.ItemNo,
+                  ROW_NUMBER() OVER (PARTITION BY h.OrdNo ORDER BY d.OrdLineNo, d.ItemNo) AS rn
+                FROM OrdHD h WITH (NOLOCK)
+                JOIN OrdDT d WITH (NOLOCK) ON d.OrdNo = h.OrdNo
+                WHERE h.PONo IN (${inClause})
+                  AND ISNULL(d.ItemNo, '') <> ''
+              ) x
+              WHERE x.rn = 1
             `);
             itemRes.recordset.forEach(row => {
-              if (row.PONo && row.SampleItemNo) {
-                poItemMap.set(row.PONo, row.SampleItemNo);
+              const ordNo = String(row.OrdNo || '').trim();
+              if (ordNo && row.ItemNo && !firstItemByOrd.has(ordNo)) {
+                firstItemByOrd.set(ordNo, row.ItemNo);
               }
             });
           }
         } catch (err) {
-          console.error('[POTracker] Could not load SampleItemNo mapping:', err.message);
+          console.error('❌ [POTracker] Could not load SampleItemNo mapping:', err.message);
         }
       }
 
@@ -203,10 +213,6 @@ router.get('/', async (req, res) => {
       const groupedMap = new Map();
 
       rawData.forEach(r => {
-        if (!r.SampleItemNo && poItemMap.has(r.PONo)) {
-          r.SampleItemNo = poItemMap.get(r.PONo);
-        }
-
         // สร้างกุญแจ 6 เงื่อนไข (รวม CustDueDate เพื่อป้องกันไม่ให้ข้อมูลต่างกำหนดส่งถูกรวมทับกัน)
         const key = `${r.CustCode}|${r.PONo}|${r.OrdKind}|${r.CustMultiAddr}|${r.OrdMat}|${r.CustDueDate || ''}`;
 
@@ -249,19 +255,19 @@ router.get('/', async (req, res) => {
             existing.CustDueDate = r.CustDueDate;
           }
 
-          // ItemNo ตัวแทน (SampleItemNo): ถ้าก้อนเดิมยังไม่มี ให้ยึดของแถวใหม่
-          if (!existing.SampleItemNo && r.SampleItemNo) {
-            existing.SampleItemNo = r.SampleItemNo;
-          }
         }
       });
 
       // 3. แปลงร่างกลับเป็น Array ปกติส่งให้ React (SampleItemNo ไหลผ่าน ...rest ไปให้ frontend ประกอบ URL รูปเอง)
       const data = Array.from(groupedMap.values()).map(r => {
         const { OrdNos, ItemPhoto, ...rest } = r;
+        // Row photo: first order of the row (Detail order) that has an item
+        const ordList = Array.from(OrdNos).filter(Boolean);
+        const firstOrd = [...ordList].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).find(o => firstItemByOrd.has(o));
         return {
           ...rest,
-          OrdNo: Array.from(OrdNos).filter(Boolean).join('/ '),
+          SampleItemNo: firstOrd ? firstItemByOrd.get(firstOrd) : (rest.SampleItemNo || null),
+          OrdNo: ordList.join('/ '),
         };
       });
       // === [END ADDED] ===

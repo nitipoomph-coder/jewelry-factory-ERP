@@ -74,10 +74,8 @@ export function PhotoCell({ itemNo, title }: PhotoCellProps) {
         }}
         title={`Click to view photo: ${cleanItem} (${title})`}
         style={{
-          // Size from the page's Photo S / M / L (--po-photo-size); never wider than the column
-          width: 'var(--po-photo-size, 40px)',
-          height: 'var(--po-photo-size, 40px)',
-          maxWidth: '100%',
+          width: '40px',
+          height: '40px',
           objectFit: 'contain',
           display: 'block',
           margin: '0 auto',
