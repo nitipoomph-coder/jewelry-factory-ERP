@@ -94,24 +94,24 @@ interface OrderListColumn {
 }
 
 const COLUMNS: OrderListColumn[] = [
-  { key: 'orderNo', label: 'OrdNo', width: 118, set: 'Order', tone: 'order', text: r => r.orderNo },
-  { key: 'ordDate', label: 'OrdDate', width: 92, set: 'Dates', text: r => fmtDate(r.ordDate), excel: { type: 'date', value: r => r.ordDate } },
-  { key: 'dueDate', label: 'DueDate', width: 92, set: 'Dates', text: r => fmtDate(r.dueDate), excel: { type: 'date', value: r => r.dueDate } },
-  { key: 'custDate', label: 'CustDate', width: 92, set: 'Dates', text: r => fmtDate(r.custDate), excel: { type: 'date', value: r => r.custDate } },
-  { key: 'customerCode', label: 'CustCode', width: 82, set: 'Order', tone: 'strong', text: r => r.customerCode },
-  { key: 'poNo', label: 'PONo', width: 108, set: 'Order', tone: 'soft', text: r => r.poNo || '-' },
+  { key: 'orderNo', label: 'Order No.', width: 118, set: 'Order', tone: 'order', text: r => r.orderNo },
+  { key: 'ordDate', label: 'Order Date', width: 92, set: 'Dates', text: r => fmtDate(r.ordDate), excel: { type: 'date', value: r => r.ordDate } },
+  { key: 'dueDate', label: 'Factory Due', width: 92, set: 'Dates', text: r => fmtDate(r.dueDate), excel: { type: 'date', value: r => r.dueDate } },
+  { key: 'custDate', label: 'Cust Due', width: 92, set: 'Dates', text: r => fmtDate(r.custDate), excel: { type: 'date', value: r => r.custDate } },
+  { key: 'customerCode', label: 'Cust', width: 82, set: 'Order', tone: 'strong', text: r => r.customerCode },
+  { key: 'poNo', label: 'PO No.', width: 108, set: 'Order', tone: 'soft', text: r => r.poNo || '-' },
   { key: 'po2', label: 'PO2', width: 130, set: 'Order', tone: 'soft', text: r => r.po2 || '-' },
   { key: 'salesName', label: 'SalesName', width: 130, set: 'Order', text: r => r.salesName || '-' },
   { key: 'shipTo', label: 'Ship To', width: 180, set: 'Order', text: r => r.shipTo || '-' },
   { key: 'ordStamp', label: 'OrdStamp', width: 160, set: 'Order', text: r => r.ordStamp || '-' },
   { key: 'ordMaker', label: 'OrdMaker', width: 110, set: 'Order', text: r => r.ordMaker || '-' },
-  { key: 'ordWeek', label: 'OrdWeek', width: 76, set: 'Order', align: 'right', text: r => (r.ordWeek ? String(r.ordWeek) : '-'), excel: { type: 'int', value: r => r.ordWeek || null } },
+  { key: 'ordWeek', label: 'Week', width: 76, set: 'Order', align: 'right', text: r => (r.ordWeek ? String(r.ordWeek) : '-'), excel: { type: 'int', value: r => r.ordWeek || null } },
   { key: 'itemNo', label: 'ItemNo', width: 112, set: 'Item', tone: 'strong', text: r => r.itemNo },
   { key: 'productTypeCode', label: 'Type', width: 58, set: 'Item', text: r => r.productTypeCode || '-' },
   { key: 'itemDesc', label: 'ItemDesc', width: 230, set: 'Item', tone: 'soft', text: r => r.itemDesc || '-' },
   { key: 'itemSku', label: 'Item SKU', width: 120, set: 'Item', text: r => r.itemSku || '-' },
   { key: 'custItem', label: 'Cust Item', width: 120, set: 'Item', text: r => r.custItem || '-' },
-  { key: 'itemMat', label: 'ItemMat', width: 80, set: 'Item', text: r => r.itemMat || '-' },
+  { key: 'itemMat', label: 'Metal', width: 80, set: 'Item', text: r => r.itemMat || '-' },
   { key: 'itemSize', label: 'ItemSize', width: 100, set: 'Item', text: r => r.itemSize || '-' },
   { key: 'itemStone', label: 'ItemStone', width: 170, set: 'Item', text: r => r.itemStone || '-' },
   { key: 'itemPlate', label: 'Itemplate', width: 170, set: 'Item', text: r => r.itemPlate || '-' },
@@ -121,11 +121,11 @@ const COLUMNS: OrderListColumn[] = [
     key: 'shipping', label: 'Shipping', width: 112, set: 'Amounts', text: shipLabel,
     render: r => <span className={`order-list-status order-list-status--${shipState(r)}`}>{shipLabel(r)}</span>,
   },
-  { key: 'orderQty', label: 'ItemQTY', width: 86, set: 'Amounts', align: 'right', text: r => fmtQty(r.orderQty), total: 'orderQty', zeroField: 'orderQty', excel: { type: 'int', value: r => r.orderQty } },
+  { key: 'orderQty', label: 'Qty', width: 86, set: 'Amounts', align: 'right', text: r => fmtQty(r.orderQty), total: 'orderQty', zeroField: 'orderQty', excel: { type: 'int', value: r => r.orderQty } },
   { key: 'itemPrice', label: 'ItemPrice', width: 96, set: 'Amounts', align: 'right', tone: 'soft', text: r => fmtAmount(r.itemPrice), excel: { type: 'money', value: r => r.itemPrice } },
-  { key: 'itemAmnt', label: 'ItemAmt', width: 124, set: 'Amounts', align: 'right', tone: 'strong', text: r => fmtAmount(r.itemAmnt), total: 'itemAmnt', zeroField: 'itemAmnt', excel: { type: 'money', value: r => r.itemAmnt } },
-  { key: 'shippedQty', label: 'ExportQTY', width: 92, set: 'Amounts', align: 'right', text: r => fmtQty(r.shippedQty), total: 'shippedQty', zeroField: 'shippedQty', excel: { type: 'int', value: r => r.shippedQty } },
-  { key: 'openQty', label: 'OpenQTY', width: 90, set: 'Amounts', align: 'right', text: r => fmtQty(r.openQty), total: 'openQty', zeroField: 'openQty', excel: { type: 'int', value: r => r.openQty } },
+  { key: 'itemAmnt', label: 'Amount ($)', width: 124, set: 'Amounts', align: 'right', tone: 'strong', text: r => fmtAmount(r.itemAmnt), total: 'itemAmnt', zeroField: 'itemAmnt', excel: { type: 'money', value: r => r.itemAmnt } },
+  { key: 'shippedQty', label: 'Shipped', width: 92, set: 'Amounts', align: 'right', text: r => fmtQty(r.shippedQty), total: 'shippedQty', zeroField: 'shippedQty', excel: { type: 'int', value: r => r.shippedQty } },
+  { key: 'openQty', label: 'Balance', width: 90, set: 'Amounts', align: 'right', text: r => fmtQty(r.openQty), total: 'openQty', zeroField: 'openQty', excel: { type: 'int', value: r => r.openQty } },
   { key: 'shippedAmnt', label: 'ExportAmt', width: 124, set: 'Amounts', align: 'right', text: r => fmtAmount(r.shippedAmnt), total: 'shippedAmnt', zeroField: 'shippedAmnt', excel: { type: 'money', value: r => r.shippedAmnt } },
 ];
 const COLUMN_SETS: ColumnSet[] = ['Dates', 'Order', 'Item', 'Amounts'];
@@ -721,7 +721,7 @@ export default function SalesCustomerGroupDetail() {
               <div className="order-list-pager">
                 <span>
                   Showing {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredRows.length)} of {fmtQty(filteredRows.length)}
-                  {' · '}sorted by {metric === 'amount' ? 'ItemAmt' : 'ItemQTY'}, biggest first
+                  {' · '}sorted by {metric === 'amount' ? 'Amount' : 'Qty'}, biggest first
                 </span>
                 <span className="order-list-pager-buttons">
                   <button type="button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page"><ChevronLeft size={14} /></button>
